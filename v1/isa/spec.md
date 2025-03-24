@@ -1,4 +1,4 @@
-# Special Instructions (0xC0-0xFF)
+# Special Instructions (0x00 && 0xC0-0xFF)
 In COIL there exists certain instructions that are not universally supported across all devices. Such instructions occupy the range of 0xC0-0xFE
 
 0xFF is a special instruction meant to be used for COIL processor attributes and instructions specific to each COIL processor. Instructions like this are frowned upon in the COIL workflow but are seen as something which may be necessary in certain contexts.
@@ -9,6 +9,10 @@ CPU's all share interrupts with one another but other processing units don't hav
 
 For normal operations that can be used universally in COIL look into the other files certain control flow, arithmetic, certain memory operations, types and directives can all be used universally.
 
+## No Operation (0x00)
+No Operation - Does nothing, advances instruction pointer.
+
+Format: Single byte with value 0x00 (no operands)
 
 ## Processing Unit Specific 0xB0-0xCF
 

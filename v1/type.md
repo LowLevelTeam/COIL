@@ -64,7 +64,7 @@ TYPE_PTR  = 0xA6  // Default pointer size for current platform
 
 // Complex Types
 TYPE_CINT = 0xB0  // Complex integer
-TYPE_CUNT = 0xB1  // Complex unsigned
+TYPE_CUNT = 0xB1  // Complex unsigned (pronounced (see-unt))
 TYPE_CFP  = 0xB2  // Complex floating point
 
 // Composite Types
@@ -92,17 +92,30 @@ Type extensions provide additional qualifiers for type values:
 ```
 TYPEEXT_CONST    = (1 << 0)  // 0x01 - Constant value (read-only)
 TYPEEXT_VOLATILE = (1 << 1)  // 0x02 - Volatile access (not optimizable)
-TYPEEXT_VOID     = (1 << 4)  // 0x10 - No type, just value
+TYPEEXT_VOID     = (1 << 4)  // 0x10 - No Value
 TYPEEXT_IMM      = (1 << 5)  // 0x20 - Immediate value
-TYPEEXT_VAR      = (1 << 6)  // 0x40 - Variable reference
-TYPEEXT_SYM      = (1 << 7)  // 0x80 - Symbol reference
+TYPEEXT_VAR      = (1 << 6)  // 0x40 - Variable ID
+TYPEEXT_SYM      = (1 << 7)  // 0x80 - Symbol ID
 ```
+
+Where the type defines the underlying type the type extension not only gives hints about the type but also gives the format of the types encoding. 
+
+One confusing parameter may be the TYPEEXT_SYM when there is already a symbol type. Well in this case it refers to a value at the symbols location rather then the symbol as the value itself. If TYPEEXT_SYM is used in par with TYPE_SYM then an error will occur but if you had a program with string data at the symbols location and you used a integral fixed width 8 array type with a symbol extension then the program will automatically dereference the data at the symbols location. TYPE_SYM can not be used as of course symbols are linker time and can not be affected for runtime values which would happen if a symbol could be located at a symbol since a symbol doesn't exist in program memory there is no way to derefence this.
+
+Variables don't have the same feature as the variable id can be gotten with a self explanatory TYPE_VOID with TYPEEXT_VAR where the variable id cacn be obvious in being passed. if it was TYPE_VOID with TYPEEXT_SYM it could be mistaken as the symbol having void data as the symbol can be thought of similar to a pointer or address.
 
 ### Parameter Definitions
 
 Parameters modify instruction behavior and provide additional context for operations.
 
-#### Branch Conditions
+#### symbol_parameter0_t
+```
+TMP  = 0x00 // symbol is used only in this context
+FILE = 0x01 // symbol is used around the file
+GLOB = 0x02 // symbol is used in other files
+```
+
+#### branch_condition_t
 ```
 BRANCH_COND_EQ = 0x00  // Equal
 BRANCH_COND_NE = 0x01  // Not equal
@@ -120,7 +133,7 @@ BRANCH_COND_S  = 0x0C  // Sign flag set
 BRANCH_COND_NS = 0x0D  // Sign flag not set
 ```
 
-#### Branch Control
+#### branch_ctrl_t
 ```
 BRANCH_CTRL_FAR       = 0x00  // Far jump/call
 BRANCH_CTRL_INL       = 0x01  // Inline
