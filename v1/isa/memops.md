@@ -2,6 +2,82 @@
 
 Memory operations handle data movement, variable management, and memory manipulation. These instructions form the foundation for effective memory management in COIL.
 
+## Variable System Instructions
+
+#### VAR (0x16)
+Declare a variable with optional initialization. Variables are the primary mechanism for data handling in COIL and abstract over registers and memory locations.
+
+```
+Operands:
+- Type: TYPE_*
+- Name: TYPE_SYM
+- InitialValue: (optional) Non TYPE_VOID
+```
+
+The COIL processor automatically determines optimal storage for variables:
+- Frequently accessed variables are typically assigned to registers
+- Less frequently used variables may be stored in memory
+- When register pressure is high, variables may be spilled to stack
+- Register selection considers the variable's type and usage pattern
+
+Example:
+```
+; Declare variables
+VAR TYPE_INT32, counter, 0
+VAR TYPE_INT64, result
+VAR TYPE_FP32, pi, 3.14159
+
+; Use variables (no register allocation needed)
+ADD counter, counter, 1
+MUL result, counter, 10
+```
+
+#### SCOPEE (0x14)
+Enter a new variable scope. Creates a lexical boundary for variables and enables automatic cleanup and optimization.
+
+```
+Operands:
+- None
+```
+
+Scopes provide several benefits:
+- Automatic variable lifetime management
+- Register optimization opportunities
+- Structured control over variable visibility
+- Automatic cleanup when exiting the scope
+
+Example:
+```
+; Begin a new scope
+SCOPEE
+    ; Variables only accessible within this scope
+    VAR TYPE_INT32, temp, 0
+    
+    ; Operations using temp
+    ADD temp, temp, 5
+    
+    ; Nested scope
+    SCOPEE
+        VAR TYPE_INT32, inner_temp, 10
+        ADD temp, inner_temp
+    SCOPEL  ; inner_temp is deallocated here
+    
+SCOPEL  ; temp is deallocated here
+```
+
+#### SCOPEL (0x15)
+Leave the current variable scope. Releases variables defined in this scope.
+
+```
+Operands:
+- None
+```
+
+When a scope is exited:
+- All variables declared in the scope are deallocated
+- Resources (such as registers) used by those variables are freed
+- The COIL processor may optimize based on scope boundaries
+
 ## Core Memory Instructions
 
 #### MOV (0x10)
@@ -16,19 +92,28 @@ Operands:
 
 Example:
 ```
-; Move immediate value to register
+; Move immediate value to variable
+MOV counter, 42
+
+; Move variable to memory
+MOV [address], value
+
+; Move memory to variable with condition
+MOV_NZ temp, [array + 8]
+
+; Move with register (only when absolutely necessary)
 MOV TYPE_RGP=RAX, 42
 
-; Move register to memory
-MOV [address], TYPE_RGP=RBX
+; Get parameter via ABI
+MOV param, TYPE_ABICTL=ABICTL_PARAM=linux_x86_64, 0
 
-; Move memory to register with condition
-MOV_NZ TYPE_RGP=RCX, [array + 8]
+; Get return value via ABI
+MOV result, TYPE_ABICTL=ABICTL_RET=windows_x64
 ```
 
 #### PUSH (0x11)
 Push a value onto the stack.
-Can be used with variables to demote its position. When pushing a variable, the processor will prioritize this variable on the stack and free up a register slot if using one.
+When used with variables, PUSH can demote a variable, suggesting the processor prioritize this variable on the stack rather than in a register. This is useful for infrequently used variables or to free up register space.
 
 ```
 Operands:
@@ -38,19 +123,16 @@ Operands:
 
 Example:
 ```
-; Push register value
-PUSH TYPE_RGP=RAX
-
-; Push immediate value
+; Push value
 PUSH 42
 
-; Push variable to free register
-PUSH counter
+; Push variable to demote its storage
+PUSH counter  ; Hint to the processor to store counter in memory
 ```
 
 #### POP (0x12)
 Pop a value from the stack.
-Can be used with variables to promote its position. When popping a variable, the processor will prioritize this variable in a register.
+When used with variables, POP can promote a variable, suggesting the processor prioritize this variable in a register. This is useful for frequently used variables.
 
 ```
 Operands:
@@ -60,11 +142,11 @@ Operands:
 
 Example:
 ```
-; Pop into register
-POP TYPE_RGP=RBX
-
 ; Pop into variable
 POP result
+
+; Promote variable to register
+POP counter  ; Hint to the processor to keep counter in a register
 ```
 
 #### LEA (0x13)
@@ -79,58 +161,11 @@ Operands:
 
 Example:
 ```
-; Load address of array element into register
-LEA TYPE_RGP=RSI, [array + TYPE_RGP=RCX*4]
+; Load address of array element into variable
+LEA ptr, [array + index*4]
 
 ; Get address of structure field
-LEA TYPE_RGP=RDI, [object + 16]
-```
-
-#### SCOPEE (0x14)
-Enter a new variable scope. Creates a lexical boundary for variables and can optimize register/stack usage.
-
-```
-Operands:
-- None
-```
-
-Example:
-```
-; Begin a new scope for local variables
-SCOPEE
-    VAR TYPE_INT32, temp, 0
-    ; ... operations using temp ...
-SCOPEL
-```
-
-#### SCOPEL (0x15)
-Leave the current variable scope. Releases variables defined in this scope.
-
-```
-Operands:
-- None
-```
-
-#### VAR (0x16)
-Declare a variable with optional initialization.
-
-```
-Operands:
-- Type: TYPE_*
-- Name: TYPE_SYM
-- InitialValue: (optional) Non TYPE_VOID
-```
-
-Example:
-```
-; Declare an uninitialized integer
-VAR TYPE_INT32, counter
-
-; Declare and initialize a floating point value
-VAR TYPE_FP32, pi, 3.14159
-
-; Declare using a register value
-VAR TYPE_INT64, result, TYPE_RGP=RAX
+LEA field_ptr, [object + 16]
 ```
 
 #### MEMCPY (0x17)
@@ -149,8 +184,9 @@ Example:
 ; Copy 100 bytes from source to destination
 MEMCPY dest_buffer, source_buffer, 100
 
-; Copy with register-based size
-MEMCPY TYPE_RGP=RDI, TYPE_RGP=RSI, TYPE_RGP=RCX
+; Copy with variable-based size
+VAR TYPE_UNT32, copy_size, 256
+MEMCPY dest_ptr, src_ptr, copy_size
 ```
 
 #### MEMSET (0x18)
@@ -169,8 +205,11 @@ Example:
 ; Set 200 bytes to zero
 MEMSET buffer, 0, 200
 
-; Initialize memory conditionally
-MEMSET_Z TYPE_RGP=RDI, 0xFF, TYPE_RGP=RCX
+; Initialize memory conditionally with variables
+VAR TYPE_PTR, buffer_ptr, buffer
+VAR TYPE_UNT8, fill_value, 0xFF
+VAR TYPE_UNT64, buffer_size, 1024
+MEMSET_Z buffer_ptr, fill_value, buffer_size
 ```
 
 #### MEMCMP (0x19)
@@ -204,8 +243,8 @@ Operands:
 
 Example:
 ```
-; Swap register contents
-XCHG TYPE_RGP=RAX, TYPE_RGP=RBX
+; Swap variable contents
+XCHG a, b
 
 ; Swap variable and memory
 XCHG counter, [address]
@@ -225,11 +264,11 @@ Operands:
 
 Example:
 ```
-; Atomic compare and swap
-CAS [lock_address], 0, 1
-
-; CAS with register operands
-CAS TYPE_RGP=RAX, TYPE_RGP=RBX, TYPE_RGP=RCX
+; Atomic compare and swap with variables
+VAR TYPE_PTR, lock_ptr, lock_address
+VAR TYPE_UNT32, expected_value, 0
+VAR TYPE_UNT32, new_value, 1
+CAS [lock_ptr], expected_value, new_value
 ```
 
 ## Memory Control Instructions
@@ -246,7 +285,9 @@ Operands:
 Example:
 ```
 ; Pin 4KB page
-PIN buffer_address, 4096
+VAR TYPE_PTR, buffer_ptr, buffer_address
+VAR TYPE_UNT64, page_size, 4096
+PIN buffer_ptr, page_size
 ```
 
 #### UNPIN (0x2F)
@@ -260,27 +301,24 @@ Operands:
 Example:
 ```
 ; Unpin previously pinned memory
-UNPIN buffer_address
+VAR TYPE_PTR, buffer_ptr, buffer_address
+UNPIN buffer_ptr
 ```
 
-## Memory Model Considerations
+## Variable System Best Practices
 
-Memory operations in COIL adhere to the memory model specified in the configuration. This includes:
+For optimal use of COIL's variable system:
 
-1. **Alignment Requirements**: By default, memory operations follow the architecture's natural alignment. The `ALIGN` directive and `MEMORY_CTRL_ALIGNED` parameter can be used to specify or enforce alignment.
+1. **Declare variables at the beginning of their scope**: This improves readability and helps the processor optimize variable allocation.
 
-2. **Atomicity**: For multi-threaded environments, atomic operations have explicit instructions (CAS) or can be specified with the `MEMORY_CTRL_ATOMIC` parameter.
+2. **Use appropriate scoping**: Smaller, more focused scopes allow better resource management.
 
-3. **Ordering**: Memory operations follow the ordering rules of the target architecture unless explicitly relaxed or enforced.
+3. **Consider variable promotion/demotion**: Use POP/PUSH hints for variables with specific performance needs.
 
-4. **Caching Behavior**: Can be influenced with the `MEMORY_CTRL_VOLATILE` parameter to bypass caching.
+4. **Use appropriate types**: Accurate type information allows better optimization.
 
-## Implementation Requirements
+5. **Avoid premature optimization**: Let the COIL processor handle register allocation in most cases.
 
-A COIL v1 processor must:
+## ABI Integration with the Variable System
 
-1. Implement all memory operations with their specified semantics
-2. Honor memory control parameters
-3. Follow the architecture's memory model for alignment and ordering
-4. Properly handle variable scoping (SCOPEE/SCOPEL)
-5. Implement variable promotion/demotion optimization as specified
+The variable syste

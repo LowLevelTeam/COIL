@@ -1,0 +1,112 @@
+; Traditional Assembly-Like Approach (NOT recommended for COIL)
+PROC 0x01               ; Select CPU
+ARCH 0x01, 0x03         ; Select x86 architecture in 64-bit mode
+
+SECTION .text, 0x01 | 0x04
+SYM factorial_traditional, TYPE_PARAM0=SYMBOL_PARAM_GLOB
+    ; Function: unsigned long factorial(unsigned int n)
+    ; Input: RDI = n
+    ; Output: RAX = result
+    
+    ; Base case check
+    CMP TYPE_RGP=RDI, 1
+    BR_LE factorial_base_case
+    
+    ; Recursive case
+    PUSH TYPE_RGP=RDI
+    DEC TYPE_RGP=RDI
+    CALL factorial_traditional
+    POP TYPE_RGP=RDI
+    MUL TYPE_RGP=RAX, TYPE_RGP=RDI
+    RET
+    
+factorial_base_case:
+    MOV TYPE_RGP=RAX, 1
+    RET
+
+; ========================================================
+; COIL-Native Approach (RECOMMENDED) - Using variables and ABI
+; ========================================================
+
+PROC 0x01               ; Select CPU
+ARCH 0x01, 0x03         ; Select x86 architecture in 64-bit mode
+
+SECTION .text, 0x01 | 0x04
+SYM factorial, TYPE_PARAM0=BRANCH_CTRL_ABI
+    ; Function: unsigned long factorial(unsigned int n)
+    ; The ABI system handles parameter passing automatically
+    
+    SCOPEE
+    ; Get input parameter
+    VAR TYPE_UNT64, n
+    MOV n, TYPE_PARAM0=BRANCH_CTRL_ABI_PARAM
+    
+    ; Base case check
+    CMP n, 1
+    BR_LE factorial_base_case
+    
+    ; Recursive case - prepare parameter for recursive call
+    VAR TYPE_UNT64, n_minus_1
+    SUB n_minus_1, n, 1
+    
+    ; Recursive call with automatic parameter passing
+    CALL factorial, TYPE_PARAM0=BRANCH_CTRL_ABI_PARAM, n_minus_1
+    
+    ; Get result from recursive call
+    VAR TYPE_UNT64, result
+    MOV result, TYPE_PARAM0=BRANCH_CTRL_ABI_RET
+    
+    ; Multiply by n
+    MUL result, result, n
+    
+    ; Return result via ABI
+    RET TYPE_PARAM0=BRANCH_CTRL_ABI_RET, result
+    SCOPEL
+    
+factorial_base_case:
+    ; Return 1 via ABI
+    VAR TYPE_UNT64, result, 1
+    RET TYPE_PARAM0=BRANCH_CTRL_ABI_RET, result
+    SCOPEL
+
+; ========================================================
+; Architecture-Independent Version
+; ========================================================
+
+PROC 0x01
+
+SECTION .text, 0x01 | 0x04
+SYM factorial_portable, TYPE_PARAM0=BRANCH_CTRL_ABI
+    ; This function works on ANY architecture
+    
+    SCOPEE
+    ; Get input parameter
+    VAR TYPE_UNT, n
+    MOV n, TYPE_PARAM0=BRANCH_CTRL_ABI_PARAM
+    
+    ; Base case check
+    CMP n, 1
+    BR_LE factorial_portable_base_case
+    
+    ; Recursive case
+    VAR TYPE_UNT, n_minus_1
+    SUB n_minus_1, n, 1
+    
+    ; Recursive call
+    CALL factorial_portable, TYPE_PARAM0=BRANCH_CTRL_ABI_PARAM, n_minus_1
+    
+    ; Get result
+    VAR TYPE_UNT, result
+    MOV result, TYPE_PARAM0=BRANCH_CTRL_ABI_RET
+    
+    ; Multiply
+    MUL result, result, n
+    
+    ; Return
+    RET TYPE_PARAM0=BRANCH_CTRL_ABI_RET, result
+    SCOPEL
+    
+factorial_portable_base_case:
+    VAR TYPE_UNT, result, 1
+    RET TYPE_PARAM0=BRANCH_CTRL_ABI_RET, result
+    SCOPEL

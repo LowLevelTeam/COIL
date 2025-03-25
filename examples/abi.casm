@@ -1,0 +1,81 @@
+; Improved ABI Definition and Usage
+
+; Define a standard ABI for x86-64
+ABI standard_x86_64
+  ; Define registers for parameter passing (the processor will use these automatically)
+  PARAMS RAX, RDI, RSI, RDX, RCX, R8, R9
+  
+  ; Define registers for return values
+  RETS RAX, RDX
+  
+  ; Define caller-saved registers (automatically managed by the COIL processor)
+  CALLER RAX, RCX, RDX, RSI, RDI, R8, R9, R10, R11
+  
+  ; Define callee-saved registers (automatically managed by the COIL processor)
+  CALLEE RBX, RSP, RBP, R12, R13, R14, R15
+  
+  ; Stack alignment requirement
+  SALLIGN 16
+  
+  ; Red zone size
+  RZONE 128
+EXIT
+
+; Function declaration using the ABI
+SYM calculate_sum, TYPE_PARAM0=BRANCH_CTRL_ABI
+  SCOPEE
+  ; Get parameters via the ABI (no manual register handling)
+  VAR TYPE_INT32, a
+  VAR TYPE_INT32, b
+  MOV a, TYPE_PARAM0=BRANCH_CTRL_ABI_PARAM, 0  ; First parameter
+  MOV b, TYPE_PARAM0=BRANCH_CTRL_ABI_PARAM, 1  ; Second parameter
+  
+  ; Calculate sum
+  VAR TYPE_INT32, result
+  ADD result, a, b
+  
+  ; Return via the ABI (no manual register handling)
+  RET TYPE_PARAM0=BRANCH_CTRL_ABI_RET, result
+  SCOPEL
+
+; Calling the function
+SYM main, TYPE_PARAM0=BRANCH_CTRL_ABI
+  SCOPEE
+  ; Define parameter variables
+  VAR TYPE_INT32, value1, 10
+  VAR TYPE_INT32, value2, 20
+  
+  ; Call function with automatic parameter passing
+  CALL calculate_sum, TYPE_PARAM0=BRANCH_CTRL_ABI_PARAM, value1, value2
+  
+  ; Get return value via the ABI
+  VAR TYPE_INT32, sum
+  MOV sum, TYPE_PARAM0=BRANCH_CTRL_ABI_RET
+  
+  ; Use the result
+  VAR TYPE_INT32, doubled
+  MUL doubled, sum, 2
+  
+  ; Return the doubled value
+  RET TYPE_PARAM0=BRANCH_CTRL_ABI_RET, doubled
+  SCOPEL
+
+; Traditional approach (NOT recommended for COIL):
+; 
+; SYM calculate_sum_traditional
+;   ; Parameters passed in registers according to x86-64 convention
+;   ; RDI = first parameter, RSI = second parameter
+;   
+;   MOV TYPE_RGP=RAX, TYPE_RGP=RDI     ; Move first parameter to RAX
+;   ADD TYPE_RGP=RAX, TYPE_RGP=RSI     ; Add second parameter
+;   RET                               ; Return value in RAX
+;
+; SYM main_traditional
+;   MOV TYPE_RGP=RDI, 10              ; Set up first parameter
+;   MOV TYPE_RGP=RSI, 20              ; Set up second parameter
+;   CALL calculate_sum_traditional     ; Call function
+;   ; Result in RAX
+;   MOV TYPE_RGP=RDI, TYPE_RGP=RAX    ; Move result to parameter register
+;   MUL TYPE_RGP=RDI, 2               ; Double it
+;   MOV TYPE_RGP=RAX, TYPE_RGP=RDI    ; Move to return register
+;   RET

@@ -4,6 +4,27 @@
 
 The COIL Instruction Set Architecture (ISA) defines the complete set of operations that can be performed in COIL. The instruction set is organized into logical categories, with clear separation between universal operations and architecture-specific operations.
 
+### 1.1 Key Concepts
+
+#### Binary Format Primacy
+COIL is fundamentally a binary instruction format. This binary format is the actual "language" of COIL, with COIL Assembly (COIL-ASM) being a textual representation for human readability.
+
+#### Type-Determined Instructions
+COIL follows a "type-determined instruction" philosophy where instructions derive their behavior from the types of their operands. This allows for a compact set of opcodes that can operate on many different data types.
+
+#### Variable System
+COIL provides a robust variable system that abstracts over registers and memory:
+- Variables are declared with specific types
+- Variables are automatically allocated to registers or memory
+- Variables are managed in lexical scopes for automatic lifetime control
+- The COIL processor optimizes variable storage based on usage patterns
+
+#### ABI System
+The Application Binary Interface (ABI) system eliminates the need for manual register management during function calls:
+- Parameter passing is automated based on ABI definitions
+- Return values are managed according to ABI rules
+- Register preservation is handled by the processor
+
 ## 2. Instruction Format
 
 COIL instructions follow a consistent binary format:
@@ -55,6 +76,8 @@ Instructions for memory access and management:
 - Memory allocation and scope management
 - Variable declarations
 - Memory copying, comparison, and manipulation
+
+The variable system is a key component of memory operations in COIL, providing an abstraction layer over registers and memory that enables architecture-independent code.
 
 [Detailed documentation](./isa/memops.md)
 
@@ -122,27 +145,72 @@ Instructions specific to certain processors or architectures:
 
 [Detailed documentation](./isa/spec.md)
 
-## 5. Instruction Operands
+## 5. Variable System
 
-Instruction operands use the COIL type system to specify their type and behavior. Most instructions support a wide range of operand types, with behavior determined by the types provided.
+The variable system is one of COIL's most powerful features:
 
-Common operand patterns include:
-- Source and destination
-- Left and right operands with destination
-- Conditional execution flags
-- Control parameters
+### 5.1 Variable Declaration
 
-## 6. Conditional Execution
+Variables are declared using the `VAR` instruction:
+```
+VAR TYPE_INT32, counter, 0  ; Declare and initialize a variable
+```
 
-Many COIL instructions support conditional execution based on CPU flags:
-- Equal/Not Equal
-- Greater/Less Than
-- Zero/Non-Zero
-- Carry/No Carry
-- Overflow/No Overflow
-- Sign/No Sign
+### 5.2 Variable Scoping
 
-This allows for compact conditional code without branch instructions.
+Variables exist within lexical scopes defined by `SCOPEE` and `SCOPEL`:
+```
+SCOPEE
+    VAR TYPE_INT32, temp, 0
+    ; temp is accessible here
+SCOPEL  ; temp is automatically deallocated here
+```
+
+### 5.3 Variable Usage
+
+Variables can be used directly in instructions without specifying registers:
+```
+ADD counter, counter, 1  ; Increment counter
+```
+
+The COIL processor automatically determines the best storage location (register or memory) for each variable based on usage patterns and available resources.
+
+## 6. ABI System
+
+The ABI system enables architecture-independent function calls:
+
+### 6.1 Function Declaration with ABI
+
+```
+SYM add_function, TYPE_PARAM0=BRANCH_CTRL_ABI
+    SCOPEE
+    VAR TYPE_INT32, a
+    VAR TYPE_INT32, b
+    MOV a, TYPE_PARAM0=BRANCH_CTRL_ABI_PARAM, 0
+    MOV b, TYPE_PARAM0=BRANCH_CTRL_ABI_PARAM, 1
+    
+    VAR TYPE_INT32, result
+    ADD result, a, b
+    
+    RET TYPE_PARAM0=BRANCH_CTRL_ABI_RET, result
+    SCOPEL
+```
+
+### 6.2 Function Call with ABI
+
+```
+VAR TYPE_INT32, x, 10
+VAR TYPE_INT32, y, 20
+CALL add_function, TYPE_PARAM0=BRANCH_CTRL_ABI_PARAM, x, y
+VAR TYPE_INT32, sum
+MOV sum, TYPE_PARAM0=BRANCH_CTRL_ABI_RET
+```
+
+The ABI system automatically handles:
+- Parameter passing (register selection or stack usage)
+- Return value handling
+- Register preservation
+- Stack frame setup and teardown
 
 ## 7. Implementation Requirements
 
@@ -151,23 +219,95 @@ A COIL v1 processor must:
 2. Implement appropriate architecture-specific instructions for supported architectures
 3. Reject instructions from the reserved range (0x30-0x4F)
 4. Handle conditional execution correctly
-5. Follow the operand type rules for each instruction
+5. Implement the variable system with automatic allocation optimization
+6. Support the ABI system for function calls and returns
+7. Follow the operand type rules for each instruction
 
-## 8. Recommended Extensions
+## 8. Best Practices
 
-While not required, COIL processors are encouraged to implement:
-1. Common optimization patterns for instruction sequences
-2. Hardware acceleration where available
-3. Software fallbacks for instructions not directly supported by hardware
-4. Efficient handling of conditional execution
+### 8.1 Variable Usage
 
-## 9. Instruction Reference
+1. Use variables instead of direct register references whenever possible
+2. Declare variables at the beginning of their scope
+3. Use appropriate scoping to manage variable lifetimes
+4. Provide type information for better optimization
+5. Consider variable promotion/demotion for performance-critical code
 
-Each instruction is documented with:
-- Opcode
-- Operand format
-- Behavior description
-- Type restrictions
-- Examples
+### 8.2 ABI Usage
 
-See the individual category documentation files for detailed instruction references.
+1. Use the ABI system for all function calls
+2. Define parameters and return values clearly
+3. Use standard ABIs when interfacing with external code
+4. Document custom ABIs thoroughly
+
+### 8.3 Architecture Independence
+
+1. Use conditional compilation for architecture-specific code
+2. Prefer platform-independent types (TYPE_INT, TYPE_UNT)
+3. Avoid direct register references unless absolutely necessary
+4. Test code on multiple target architectures
+
+## 9. Example: Portable Function
+
+```
+; Architecture-independent function
+SYM calculate_sum, TYPE_PARAM0=BRANCH_CTRL_ABI
+    SCOPEE
+    ; Get parameters via ABI
+    VAR TYPE_INT, a
+    VAR TYPE_INT, b
+    MOV a, TYPE_PARAM0=BRANCH_CTRL_ABI_PARAM, 0
+    MOV b, TYPE_PARAM0=BRANCH_CTRL_ABI_PARAM, 1
+    
+    ; Calculate sum using variables
+    VAR TYPE_INT, result
+    ADD result, a, b
+    
+    ; Return via ABI
+    RET TYPE_PARAM0=BRANCH_CTRL_ABI_RET, result
+    SCOPEL
+```
+
+This function will work correctly on any architecture supported by COIL, as the variable system and ABI system handle the architecture-specific details automatically.
+
+## 10. Comparison with Traditional Assembly
+
+To illustrate COIL's advantages, here's a comparison with traditional assembly:
+
+### Traditional x86-64 Assembly:
+```
+; Function that adds two numbers in x86-64 assembly
+add_function:
+    ; Parameters in RDI, RSI per System V ABI
+    ; Need to know register conventions
+    mov rax, rdi      ; First parameter to RAX
+    add rax, rsi      ; Add second parameter
+    ret               ; Return in RAX
+```
+
+### COIL Equivalent:
+```
+; Same function in COIL with variables and ABI
+SYM add_function, TYPE_PARAM0=BRANCH_CTRL_ABI
+    SCOPEE
+    ; Get parameters through ABI
+    VAR TYPE_INT64, a
+    VAR TYPE_INT64, b
+    MOV a, TYPE_PARAM0=BRANCH_CTRL_ABI_PARAM, 0
+    MOV b, TYPE_PARAM0=BRANCH_CTRL_ABI_PARAM, 1
+    
+    ; Add values (no register knowledge needed)
+    VAR TYPE_INT64, result
+    ADD result, a, b
+    
+    ; Return through ABI
+    RET TYPE_PARAM0=BRANCH_CTRL_ABI_RET, result
+    SCOPEL
+```
+
+### Advantages of COIL:
+- Architecture-independent code
+- No need to know register conventions
+- Variables with automatic memory management
+- Explicit parameter passing through ABI
+- Same code works on any supported architecture

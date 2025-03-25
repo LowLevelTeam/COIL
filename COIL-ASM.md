@@ -9,6 +9,28 @@ The Computer Oriented Intermediate Language (COIL) is fundamentally a **binary i
 3. A debugging representation for COIL tools
 4. A teaching aid for understanding COIL concepts
 
+## 1.5 Key Concepts
+
+### Binary Format Primacy
+COIL is fundamentally a **binary instruction format**. COIL Assembly (COIL-ASM) is a human-readable representation that maps directly to this binary format but is not the primary language of COIL. The binary format is the actual "language" of COIL.
+
+### Type-Determined Instructions
+Instructions derive their behavior from operand types rather than having many specialized opcodes. This allows for a compact instruction set while maintaining extensive capabilities.
+
+### Variable System
+COIL provides a robust variable system that abstracts over registers and memory:
+- Variables are declared with specific types
+- Variables can be scoped for automatic lifetime management
+- The COIL processor optimally allocates variables to registers or memory
+- Variables can be promoted or demoted as needed for performance
+
+### ABI System
+The Application Binary Interface (ABI) system eliminates the need for manual register handling during function calls:
+- Parameter passing is automated based on ABI definitions
+- Return values are managed according to ABI rules
+- Register preservation is handled by the processor
+- Multiple ABIs can coexist in the same program
+
 ## 2. Relationship to COIL Binary Format
 
 COIL-ASM provides a direct mapping to the underlying COIL binary format:
@@ -64,7 +86,7 @@ TYPE_INT32          ; 32-bit signed integer
 TYPE_UNT64          ; 64-bit unsigned integer
 TYPE_FP32           ; 32-bit floating point
 
-; Register types with register specifier
+; Register types with register specifier (use only when necessary)
 TYPE_RGP=RAX        ; General purpose register RAX
 TYPE_RFP=XMM0       ; Floating point register XMM0
 TYPE_RV=YMM1        ; Vector register YMM1
@@ -113,17 +135,17 @@ Directives control the assembler behavior:
 
 ```
 ; Processor selection
-PROC PROC_CPU               ; CPU
-PROC PROC_GPU               ; GPU (reserved for v3)
+PROC 0x01               ; CPU
+PROC 0x02               ; GPU (reserved for v3)
 
 ; Architecture selection
-ARCH ARCH_X86, ARCH_MODE_X86_64    ; x86-64
-ARCH ARCH_ARM, ARCH_MODE_ARM64     ; ARM64
-ARCH ARCH_RISCV, ARCH_MODE_RV64    ; RISC-V 64-bit
+ARCH 0x01, 0x03         ; x86-64
+ARCH 0x02, 0x02         ; ARM64
+ARCH 0x03, 0x02         ; RISC-V 64-bit
 
 ; Section definition
-SECTION .text, SECTION_ATTR_EXEC | SECTION_ATTR_READ  ; Code section
-SECTION .data, SECTION_ATTR_READ | SECTION_ATTR_WRITE ; Data section
+SECTION .text, 0x01 | 0x04  ; Code section
+SECTION .data, 0x02 | 0x04 | 0x08 ; Data section
 
 ; Alignment
 ALIGN 16            ; Align to 16-byte boundary
@@ -137,29 +159,123 @@ DATA TYPE_ARRAY=TYPE_UNT8, "Hello"  ; Define string
 
 ```
 ; Define a symbol
-SYM function_name, TYPE_PARAM0=SYMBOL_PARAM_GLOB  ; Global symbol
+SYM function_name, TYPE_PARAM0=0x02  ; Global symbol
 
 ; Reference a symbol
 CALL function_name          ; Call a function
-MOV TYPE_RGP=RAX, variable  ; Load a variable address
+MOV variable, 42            ; Store value in a variable
 ```
 
 ### 3.8 Conditional Assembly
 
 ```
 ; Conditional assembly
-IF ARCH == ARCH_X86
+IF ARCH == 0x01
     ; x86-specific code
-ELIF ARCH == ARCH_ARM
+ELIF ARCH == 0x02
     ; ARM-specific code
 ELSE
     ; Generic code
 ENDIF
 ```
 
-## 4. Detailed Encoding Examples
+## 4. Variable System
 
-### 4.1 Basic Instruction
+COIL's variable system is a key feature that distinguishes it from traditional assembly languages. Variables abstract away register allocation and memory management.
+
+### 4.1 Variable Declaration
+
+```
+; Declare variables
+VAR TYPE_INT32, counter, 0      ; Typed variable with initialization
+VAR TYPE_FP64, pi, 3.14159      ; Floating point variable
+VAR TYPE_PTR, data_pointer      ; Pointer variable, uninitialized
+```
+
+### 4.2 Variable Scoping
+
+```
+; Enter a scope
+SCOPEE
+    ; Variables declared here
+    VAR TYPE_INT32, local_var, 0
+    
+    ; Nested scope
+    SCOPEE
+        VAR TYPE_INT32, inner_var, 0
+    SCOPEL  ; inner_var destroyed here
+    
+SCOPEL  ; local_var destroyed here
+```
+
+### 4.3 Variable Access
+
+```
+; Direct usage (no register specification needed)
+ADD counter, counter, 1
+MOV result, counter
+
+; Get address of variable
+LEA addr_var, counter
+
+; Indirect access
+MOV [addr_var], 42
+```
+
+## 5. ABI System
+
+The Application Binary Interface (ABI) system provides a platform-independent way to handle function calls, parameter passing, and return values.
+
+### 5.1 Defining an ABI
+
+```
+ABI standard_x86_64
+    PARAMS RAX, RDI, RSI, RDX, RCX, R8, R9
+    RETS RAX, RDX
+    CALLER RAX, RCX, RDX, RSI, RDI, R8, R9, R10, R11
+    CALLEE RBX, RSP, RBP, R12, R13, R14, R15
+    SALLIGN 16
+    RZONE 128
+EXIT
+```
+
+### 5.2 Using an ABI for Function Declaration
+
+```
+; Define a function with ABI
+SYM add_function, TYPE_PARAM0=BRANCH_CTRL_ABI
+    SCOPEE
+    ; Get parameters
+    VAR TYPE_INT32, a
+    VAR TYPE_INT32, b
+    MOV a, TYPE_PARAM0=BRANCH_CTRL_ABI_PARAM, 0  ; First parameter
+    MOV b, TYPE_PARAM0=BRANCH_CTRL_ABI_PARAM, 1  ; Second parameter
+    
+    ; Calculate result
+    VAR TYPE_INT32, result
+    ADD result, a, b
+    
+    ; Return result
+    RET TYPE_PARAM0=BRANCH_CTRL_ABI_RET, result
+    SCOPEL
+```
+
+### 5.3 Calling a Function with ABI
+
+```
+; Call a function with parameters
+VAR TYPE_INT32, x, 10
+VAR TYPE_INT32, y, 20
+CALL add_function, TYPE_PARAM0=BRANCH_CTRL_ABI_PARAM, x, y
+
+; Get the return value
+VAR TYPE_INT32, sum
+MOV sum, TYPE_PARAM0=BRANCH_CTRL_ABI_RET
+```
+
+## 6. Detailed Encoding Examples
+
+### 6.1 Basic Instruction
 
 ```
 ; COIL-ASM:
@@ -173,158 +289,48 @@ MOV TYPE_RGP=RAX, 42
 0x2A 0x00 0x00 0x00 ; Value 42 (little-endian)
 ```
 
-### 4.2 Conditional Instruction
+### 6.2 Variable Declaration and Usage
 
 ```
 ; COIL-ASM:
-ADD_EQ TYPE_RGP=RAX, TYPE_RGP=RBX
+VAR TYPE_INT32, counter, 10
+ADD counter, counter, 1
 
-; Binary Encoding:
+; Binary Encoding for VAR:
+0x16                ; Opcode for VAR
+0x03                ; Three operands
+0x03 0x00           ; TYPE_INT32
+0x91 0x00           ; TYPE_SYM for name
+0x13 0x20           ; TYPE_UNT32 with TYPEEXT_IMM
+0x0A 0x00 0x00 0x00 ; Value 10 (little-endian)
+
+; Binary Encoding for ADD:
 0x60                ; Opcode for ADD
-0x03                ; Three operands (including condition)
-0x92 0x00           ; TYPE_RGP with register ID for RAX 
-0x92 0x01           ; TYPE_RGP with register ID for RBX
-0xF0 0x00           ; TYPE_PARAM5 (condition parameter)
-0x00 0x00 0x00 0x00 ; BRANCH_COND_EQ (0)
+0x03                ; Three operands
+0x90 0x00           ; TYPE_VAR for destination
+[var_id]            ; Variable ID for counter
+0x90 0x00           ; TYPE_VAR for source1
+[var_id]            ; Variable ID for counter
+0x13 0x20           ; TYPE_UNT32 with TYPEEXT_IMM
+0x01 0x00 0x00 0x00 ; Value 1 (little-endian)
 ```
 
-### 4.3 Memory Reference
+### 6.3 ABI Function Call
 
 ```
 ; COIL-ASM:
-MOV TYPE_RGP=RAX, [TYPE_RGP=RBX + TYPE_RGP=RCX*4 + 16]
+VAR TYPE_INT32, x, 5
+CALL add_function, TYPE_PARAM0=BRANCH_CTRL_ABI_PARAM, x
 
-; Binary Encoding:
-0x10                ; Opcode for MOV
-0x02                ; Two operands
-0x92 0x00           ; TYPE_RGP with register ID for RAX
-0xA6 0x00           ; TYPE_PTR (memory reference)
-0x01                ; Base register present (RBX)
-0x02                ; Index register present (RCX)
-0x04                ; Scale factor 4
-0x10 0x00 0x00 0x00 ; Displacement 16
-```
-
-## 5. Implementation Considerations
-
-### 5.1 Assembler Implementation
-
-A COIL assembler should:
-
-1. Parse COIL-ASM syntax according to the rules in this document
-2. Resolve symbols and calculate offsets
-3. Generate the corresponding COIL binary format
-4. Maintain debug information for mapping between source and binary
-
-Recommended assembler architecture:
-- Lexical analyzer for tokenizing input
-- Recursive descent parser for syntax analysis
-- Two-pass approach:
-  - First pass: collect symbols and their definitions
-  - Second pass: resolve references and generate code
-
-### 5.2 Disassembler Implementation
-
-A COIL disassembler should:
-
-1. Parse COIL binary format
-2. Identify instruction boundaries and operands
-3. Map register IDs to register names
-4. Generate readable COIL-ASM syntax
-5. Include helpful comments and symbolic information when available
-
-Recommended disassembler features:
-- Symbol-aware disassembly for better readability
-- Option to show instruction bytes alongside disassembly
-- Cross-reference information for jump targets
-- Structured representation of control flow
-
-### 5.3 Integration with Development Tools
-
-COIL-ASM should integrate with:
-
-1. Source code editors (syntax highlighting, code completion)
-2. Debuggers (source-level debugging, breakpoints)
-3. Build systems (automated assembly and linking)
-4. Analysis tools (static analysis, performance profiling)
-
-## 6. Naming Conventions
-
-Instead of using magic numbers, COIL-ASM implementations should use descriptive constants:
-
-### 6.1 Processor Types
-
-```
-PROC_CPU = 0x01
-PROC_GPU = 0x02  ; Reserved for v3
-PROC_TPU = 0x03  ; Reserved for v3
-PROC_DSP = 0x04  ; Reserved for v3
-PROC_FPGA = 0x05  ; Reserved for v3
-```
-
-### 6.2 Architecture Types
-
-```
-ARCH_X86 = 0x01
-ARCH_ARM = 0x02
-ARCH_RISCV = 0x03
-ARCH_MIPS = 0x04
-ARCH_POWERPC = 0x05
-```
-
-### 6.3 Architecture Modes
-
-```
-; x86 modes
-ARCH_MODE_X86_16 = 0x01  ; 16-bit mode (Real mode)
-ARCH_MODE_X86_32 = 0x02  ; 32-bit mode (Protected mode)
-ARCH_MODE_X86_64 = 0x03  ; 64-bit mode (Long mode)
-
-; ARM modes
-ARCH_MODE_ARM32 = 0x01  ; 32-bit mode (AArch32)
-ARCH_MODE_ARM64 = 0x02  ; 64-bit mode (AArch64)
-
-; RISC-V modes
-ARCH_MODE_RV32 = 0x01  ; 32-bit mode (RV32)
-ARCH_MODE_RV64 = 0x02  ; 64-bit mode (RV64)
-ARCH_MODE_RV128 = 0x03  ; 128-bit mode (RV128)
-```
-
-### 6.4 Section Attributes
-
-```
-SECTION_ATTR_EXEC = 0x01  ; Executable
-SECTION_ATTR_WRITE = 0x02  ; Writable
-SECTION_ATTR_READ = 0x04  ; Readable
-SECTION_ATTR_INIT = 0x08  ; Initialized data
-SECTION_ATTR_UNINIT = 0x10  ; Uninitialized data
-```
-
-### 6.5 Symbol Parameters
-
-```
-SYMBOL_PARAM_TMP = 0x00  ; Symbol is used only in this context
-SYMBOL_PARAM_FILE = 0x01  ; Symbol is used around the file
-SYMBOL_PARAM_GLOB = 0x02  ; Symbol is used in other files
-```
-
-### 6.6 Branch Conditions
-
-```
-BRANCH_COND_EQ = 0x00  ; Equal
-BRANCH_COND_NE = 0x01  ; Not equal
-BRANCH_COND_GE = 0x02  ; Greater than or equal
-BRANCH_COND_LT = 0x03  ; Less than
-BRANCH_COND_GT = 0x04  ; Greater than
-BRANCH_COND_LE = 0x05  ; Less than or equal
-BRANCH_COND_Z = 0x06  ; Zero flag set
-BRANCH_COND_NZ = 0x07  ; Zero flag not set
-BRANCH_COND_C = 0x08  ; Carry flag set
-BRANCH_COND_NC = 0x09  ; Carry flag not set
-BRANCH_COND_O = 0x0A  ; Overflow flag set
-BRANCH_COND_NO = 0x0B  ; Overflow flag not set
-BRANCH_COND_S = 0x0C  ; Sign flag set
-BRANCH_COND_NS = 0x0D  ; Sign flag not set
+; Binary Encoding for CALL:
+0x03                ; Opcode for CALL
+0x03                ; Three operands
+0x91 0x00           ; TYPE_SYM for function name
+[sym_id]            ; Symbol ID for add_function
+0xFE 0x00           ; TYPE_PARAM0
+0x03 0x00 0x00 0x00 ; BRANCH_CTRL_ABI_PARAM
+0x90 0x00           ; TYPE_VAR for x
+[var_id]            ; Variable ID for x
 ```
 
 ## 7. Best Practices
@@ -336,21 +342,28 @@ BRANCH_COND_NS = 0x0D  ; Sign flag not set
 - Maintain consistent indentation and formatting
 - Use descriptive symbol names
 
-### 7.2 Register Usage
+### 7.2 Variable Usage
 
-- Follow ABI conventions for register usage
-- Document register purpose with comments
-- Minimize register spillage with careful planning
-- Use platform-independent register references when possible
+- Use variables instead of direct register references whenever possible
+- Properly scope variables to minimize resource usage
+- Use appropriate variable types for better optimization
+- Consider variable promotion/demotion for performance-critical code
 
-### 7.3 Memory Access
+### 7.3 ABI Usage
+
+- Use the ABI system for all function calls
+- Define custom ABIs only when necessary
+- Document ABI requirements for external interfaces
+- Use architecture-independent ABIs when possible
+
+### 7.4 Memory Access
 
 - Align data structures appropriately
 - Use explicit types for memory accesses
 - Be consistent with memory addressing patterns
 - Document memory layout with comments
 
-### 7.4 Portability
+### 7.5 Portability
 
 - Use conditional assembly for architecture-specific code
 - Prefer platform-independent operations when possible
@@ -388,86 +401,136 @@ The COIL toolchain includes:
 ### 9.1 Hello World
 
 ```
-; Hello World in COIL-ASM
-PROC PROC_CPU
-ARCH ARCH_X86, ARCH_MODE_X86_64
+; Hello World in COIL-ASM using variables and ABI
+PROC 0x01                     ; CPU
+ARCH 0x01, 0x03               ; x86-64
 
-SECTION .data, SECTION_ATTR_READ | SECTION_ATTR_INIT
+SECTION .data, 0x02 | 0x04 | 0x08
 SYM hello_msg
 DATA TYPE_ARRAY=TYPE_UNT8, "Hello, World!", 10, 0
 
-SECTION .text, SECTION_ATTR_EXEC | SECTION_ATTR_READ
-SYM _start, TYPE_PARAM0=SYMBOL_PARAM_GLOB
-    ; Write to stdout
-    MOV TYPE_RGP=RAX, 1         ; syscall: write
-    MOV TYPE_RGP=RDI, 1         ; file descriptor: stdout
-    MOV TYPE_RGP=RSI, hello_msg ; buffer
-    MOV TYPE_RGP=RDX, 14        ; length
-    SYSCALL
-
+SECTION .text, 0x01 | 0x04
+SYM _start, TYPE_PARAM0=0x02
+    SCOPEE
+    ; Declare variables for syscall
+    VAR TYPE_UNT64, syscall_write, 1
+    VAR TYPE_UNT64, stdout_fd, 1
+    VAR TYPE_PTR, message, hello_msg
+    VAR TYPE_UNT64, message_len, 14
+    
+    ; Write to stdout using syscall
+    SYSCALL abi-linux64 (syscall_write, stdout_fd, message, message_len) ()
+    
     ; Exit with code 0
-    MOV TYPE_RGP=RAX, 60        ; syscall: exit
-    MOV TYPE_RGP=RDI, 0         ; status code
-    SYSCALL
+    VAR TYPE_UNT64, syscall_exit, 60
+    VAR TYPE_UNT64, exit_code, 0
+    SYSCALL abi-linux64 (syscall_exit, exit_code) ()
+    SCOPEL
 ```
 
-```
-; Realistc Hello World in COIL-ASM
-PROC PROC_CPU
-ARCH ARCH_X86, ARCH_MODE_X86_64
-
-SECTION .data, SECTION_ATTR_READ | SECTION_ATTR_INIT
-SYM hello_msg
-DATA TYPE_ARRAY=TYPE_UNT8, "Hello, World!", 10, 0
-
-SECTION .text, SECTION_ATTR_EXEC | SECTION_ATTR_READ
-SYM _start, TYPE_PARAM0=SYMBOL_PARAM_GLOB
-    VAR $0, TYPE_UINT64, 1
-    VAR $1, TYPE_UINT64, 1
-    VAR $2, TYPE_PTR, hello_msg
-    VAR $3, TYPE_UINT64, 14
-    SYSCALL abi-linux64 ($0, $1, $2, $3) ($0)
-
-    ; Exit with code 0
-    SYSCALL abi-linux64 (60, 0) ()
-```
-
-
-### 9.2 Function Implementation
+### 9.2 Function Implementation with Variable System
 
 ```
-; Calculate factorial in COIL-ASM
-PROC PROC_CPU
-ARCH ARCH_X86, ARCH_MODE_X86_64
+; Calculate factorial in COIL-ASM using variables and ABI
+PROC 0x01                     ; CPU
+ARCH 0x01, 0x03               ; x86-64
 
-SECTION .text, SECTION_ATTR_EXEC | SECTION_ATTR_READ
-SYM factorial, TYPE_PARAM0=SYMBOL_PARAM_GLOB
+SECTION .text, 0x01 | 0x04
+SYM factorial, TYPE_PARAM0=BRANCH_CTRL_ABI
     ; Function: unsigned long factorial(unsigned int n)
-    ; Input: RDI = n
-    ; Output: RAX = result
+    SCOPEE
+    ; Get input parameter
+    VAR TYPE_UNT64, n
+    MOV n, TYPE_PARAM0=BRANCH_CTRL_ABI_PARAM
     
     ; Base case check
-    CMP TYPE_RGP=RDI, 1
+    CMP n, 1
     BR_LE factorial_base_case
     
     ; Recursive case
-    PUSH TYPE_RGP=RDI
-    DEC TYPE_RGP=RDI
-    CALL factorial
-    POP TYPE_RGP=RDI
-    MUL TYPE_RGP=RAX, TYPE_RGP=RDI
-    RET
+    VAR TYPE_UNT64, n_minus_1
+    SUB n_minus_1, n, 1
+    
+    ; Recursive call
+    CALL factorial, TYPE_PARAM0=BRANCH_CTRL_ABI_PARAM, n_minus_1
+    
+    ; Get result and multiply
+    VAR TYPE_UNT64, result
+    MOV result, TYPE_PARAM0=BRANCH_CTRL_ABI_RET
+    MUL result, result, n
+    
+    ; Return result
+    RET TYPE_PARAM0=BRANCH_CTRL_ABI_RET, result
+    SCOPEL
     
 factorial_base_case:
-    MOV TYPE_RGP=RAX, 1
-    RET
+    VAR TYPE_UNT64, result, 1
+    RET TYPE_PARAM0=BRANCH_CTRL_ABI_RET, result
+    SCOPEL
 ```
 
-## 10. Future Directions
+### 9.3 Architecture-Independent Example
 
-COIL-ASM will continue to evolve alongside the COIL specification:
+```
+; Platform-independent function using variables and ABI
+PROC 0x01                     ; CPU
 
-1. **COIL v2**: Will add standard library representations
-2. **COIL v3**: Will add multi-device operations and syntax
-3. **Tool Improvements**: Enhanced assembler/disassembler features
-4. **IDE Integration**: Better development environment support
+SECTION .text, 0x01 | 0x04
+SYM add_integers, TYPE_PARAM0=BRANCH_CTRL_ABI
+    SCOPEE
+    ; Get parameters
+    VAR TYPE_INT, a
+    VAR TYPE_INT, b
+    MOV a, TYPE_PARAM0=BRANCH_CTRL_ABI_PARAM, 0
+    MOV b, TYPE_PARAM0=BRANCH_CTRL_ABI_PARAM, 1
+    
+    ; Add integers
+    VAR TYPE_INT, result
+    ADD result, a, b
+    
+    ; Return result
+    RET TYPE_PARAM0=BRANCH_CTRL_ABI_RET, result
+    SCOPEL
+```
+
+## 10. Comparison with Traditional Assembly
+
+To highlight COIL's advantages, here's a comparison with traditional assembly:
+
+### Traditional x86-64 Assembly:
+```
+; Function that adds two numbers in x86-64 assembly
+add_function:
+    ; Parameters in RDI, RSI per System V ABI
+    ; Need to know register conventions
+    mov rax, rdi      ; First parameter to RAX
+    add rax, rsi      ; Add second parameter
+    ret               ; Return in RAX
+```
+
+### COIL-ASM Equivalent:
+```
+; Same function in COIL with variables and ABI
+SYM add_function, TYPE_PARAM0=BRANCH_CTRL_ABI
+    SCOPEE
+    ; Get parameters through ABI
+    VAR TYPE_INT64, a
+    VAR TYPE_INT64, b
+    MOV a, TYPE_PARAM0=BRANCH_CTRL_ABI_PARAM, 0
+    MOV b, TYPE_PARAM0=BRANCH_CTRL_ABI_PARAM, 1
+    
+    ; Add values (no register knowledge needed)
+    VAR TYPE_INT64, result
+    ADD result, a, b
+    
+    ; Return through ABI
+    RET TYPE_PARAM0=BRANCH_CTRL_ABI_RET, result
+    SCOPEL
+```
+
+### Advantages of COIL:
+- Architecture-independent code
+- No need to know register conventions
+- Variables with automatic memory management
+- Explicit parameter passing through ABI
+- Same code works on any supported architecture
