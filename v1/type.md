@@ -2,6 +2,10 @@
 
 The COIL type system is central to the architecture, allowing for precise control over data representation and operations. Types are encoded in 16 bits, with the first 8 bits representing the main type and the second 8 bits representing type extensions.
 
+One thing to note about the type system is it is variable. Depending on the type selected more data could be expected after the first 16 bits. For example an anoymous structure would require an inline structure definition or the complex types would require an inline width size.
+
+The type instruction is of variable length.
+
 ## Main Types (First 8 bits)
 
 ```

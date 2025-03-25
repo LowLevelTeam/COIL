@@ -47,7 +47,7 @@ COIL instructions follow a consistent binary format:
 
 Each operand consists of:
 ```
-[Type (16 bits)] [Value (variable length based on type)]
+[Type] [Type Data (variable length based on type) (optional)] [Value (variable length based on type)]
 ```
 
 This format allows for:
@@ -73,6 +73,7 @@ The COIL specification is organized into several key components:
 3. **Instruction Set Architecture (ISA)**: Documents all supported instructions
    - Control Flow
    - Arithmetic Operations
+   - Bit Manipulation Operations
    - Memory Operations
    - Vector Operations
    - Type Manipulation

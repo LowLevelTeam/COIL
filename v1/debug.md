@@ -1,0 +1,2 @@
+# Debug Format
+Debug Symbols and Debug Information should be able to be applied in a COIL file to be propagated into either the final binary or for debuggers to take a standard COIL file and debug through an interpreted setup.

@@ -7,4 +7,43 @@ The ABI is optionally advanced controlling red stack zones, displacement and muc
 
 To define an ABI you need to enter an ABI definition block which has its own opcode set until you use the exit opcode. the ABI opcode set is defined below.
 
-## TODO...
+## Format
+A text based format would look something like the following.
+In practice when the ABI directive is called the instruction set will completly change to just 6 instructions as followed.
+
+```
+abi standard {
+  param_regs: %r0, %r1, %r2, %r3       ; Registers for parameters
+  return_regs: %r0, %r1                ; Registers for return values
+  caller_saved: %r0, %r1, %r2, %r3     ; Caller-saved registers
+  callee_saved: %r4, %r5, %r6, %r7     ; Callee-saved registers
+  stack_align: 16                      ; Stack alignment in bytes
+  red_zone: 128                        ; Red zone size in bytes
+}
+```
+
+
+## Instructions
+
+#### EXIT 0x00
+End Scope
+
+#### PARAMS 0x01
+Define register mapping for parameter values.
+
+#### RETS 0x02
+Define register mapping for return values.
+
+#### CALLER 0x03
+Define registers potentially affected that should be save before hand.
+
+#### CALLEE 0x04
+Define registers potentially affected that should be save in the function.
+
+#### SALLIGN 0x05
+Define the stack allignment
+
+#### RZONE 0x06
+Define the red zone
+
+
