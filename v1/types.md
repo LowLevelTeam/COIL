@@ -1,12 +1,21 @@
-# Type System
+# COIL Type System
 
 The COIL type system is central to the architecture, allowing for precise control over data representation and operations. Types are encoded in 16 bits, with the first 8 bits representing the main type and the second 8 bits representing type extensions.
 
-One thing to note about the type system is it is variable. Depending on the type selected more data could be expected after the first 16 bits. For example an anoymous structure would require an inline structure definition or the complex types would require an inline width size.
+The type system is designed to be complete yet extensible, supporting all common data types while allowing for architectural specialization when needed.
 
-The type instruction is of variable length.
+## 1. Type Encoding
 
-## Main Types (First 8 bits)
+Types are encoded in a 16-bit format:
+- First 8 bits: Main Type - Defines the primary type category
+- Second 8 bits: Type Extensions - Provides qualifiers and additional type information
+
+Some types require additional data beyond the 16-bit type descriptor:
+- Composite types (structures, arrays) include structure definitions
+- Complex types include width specifications
+- Special types may include register identifiers or other implementation-specific data
+
+## 2. Main Types (First 8 bits)
 
 ```
 // Fixed width signed integers
@@ -39,7 +48,7 @@ TYPE_V128 = 0x30  // 128-bit vector
 TYPE_V256 = 0x31  // 256-bit vector
 TYPE_V512 = 0x32  // 512-bit vector
 
-// Optimizable types
+// Boolean type
 TYPE_BIT = 0x40  // 1-bit boolean, special type to allow for creating bitmaps behind the scenes 
 
 // COIL Special Types
@@ -68,7 +77,7 @@ TYPE_PTR  = 0xA6  // Default pointer size for current platform
 
 // Complex Types
 TYPE_CINT = 0xB0  // Complex integer
-TYPE_CUNT = 0xB1  // Complex unsigned (pronounced (see-unt))
+TYPE_CUNT = 0xB1  // Complex unsigned
 TYPE_CFP  = 0xB2  // Complex floating point
 
 // Composite Types
@@ -89,7 +98,7 @@ TYPE_PARAM0 = 0xFE  // Parameter type 0
 TYPE_VOID = 0xFF  // Void type (no value)
 ```
 
-## Type Extensions (Second 8 bits)
+## 3. Type Extensions (Second 8 bits)
 
 Type extensions provide additional qualifiers for type values:
 
@@ -102,24 +111,26 @@ TYPEEXT_VAR      = (1 << 6)  // 0x40 - Variable ID
 TYPEEXT_SYM      = (1 << 7)  // 0x80 - Symbol ID
 ```
 
-Where the type defines the underlying type the type extension not only gives hints about the type but also gives the format of the types encoding. 
+Type extensions not only provide hints about the type but also define the format of the type's encoding. For example:
 
-One confusing parameter may be the TYPEEXT_SYM when there is already a symbol type. Well in this case it refers to a value at the symbols location rather then the symbol as the value itself. If TYPEEXT_SYM is used in par with TYPE_SYM then an error will occur but if you had a program with string data at the symbols location and you used a integral fixed width 8 array type with a symbol extension then the program will automatically dereference the data at the symbols location. TYPE_SYM can not be used as of course symbols are linker time and can not be affected for runtime values which would happen if a symbol could be located at a symbol since a symbol doesn't exist in program memory there is no way to derefence this.
+- `TYPEEXT_SYM` with a non-`TYPE_SYM` main type indicates that the value should be loaded from the memory location specified by the symbol.
+- `TYPEEXT_VAR` indicates that the value represents a variable identifier.
+- `TYPEEXT_CONST` indicates that the value cannot be modified after initialization.
 
-Variables don't have the same feature as the variable id can be gotten with a self explanatory TYPE_VOID with TYPEEXT_VAR where the variable id cacn be obvious in being passed. if it was TYPE_VOID with TYPEEXT_SYM it could be mistaken as the symbol having void data as the symbol can be thought of similar to a pointer or address.
+Note: Using `TYPEEXT_SYM` with `TYPE_SYM` is an error, as it would imply loading a symbol from a symbol address, which is not meaningful in COIL.
 
-### Parameter Definitions
+## 4. Parameter Definitions
 
 Parameters modify instruction behavior and provide additional context for operations.
 
-#### symbol_parameter0_t
+### 4.1 symbol_parameter0_t
 ```
 TMP  = 0x00 // symbol is used only in this context
 FILE = 0x01 // symbol is used around the file
 GLOB = 0x02 // symbol is used in other files
 ```
 
-#### branch_condition_t
+### 4.2 branch_condition_t
 ```
 BRANCH_COND_EQ = 0x00  // Equal
 BRANCH_COND_NE = 0x01  // Not equal
@@ -137,7 +148,7 @@ BRANCH_COND_S  = 0x0C  // Sign flag set
 BRANCH_COND_NS = 0x0D  // Sign flag not set
 ```
 
-#### branch_ctrl_t
+### 4.3 branch_ctrl_t
 ```
 BRANCH_CTRL_FAR       = 0x00  // Far jump/call
 BRANCH_CTRL_INL       = 0x01  // Inline
@@ -146,7 +157,7 @@ BRANCH_CTRL_ABI_PARAM = 0x03  // Following operands are parameters
 BRANCH_CTRL_ABI_RET   = 0x04  // Following operands are return destinations
 ```
 
-#### Memory Control
+### 4.4 Memory Control
 ```
 MEMORY_CTRL_ATOMIC    = 0x01  // Atomic operation
 MEMORY_CTRL_VOLATILE  = 0x02  // Volatile access
@@ -154,4 +165,33 @@ MEMORY_CTRL_ALIGNED   = 0x03  // Enforce alignment
 MEMORY_CTRL_UNALIGNED = 0x04  // Allow unaligned access
 ```
 
+## 5. Type Handling Rules
 
+### 5.1 Type Compatibility
+
+Types are compatible under the following conditions:
+1. The main types match exactly
+2. One type is a platform-dependent type and the other is its currently selected fixed-width equivalent
+3. Both types are integer types with the same signedness and the destination type has equal or greater width
+4. Both types are floating-point types and the destination type has equal or greater precision
+
+### 5.2 Type Conversions
+
+Explicit type conversions are performed using the `CONVERT` and `CAST` instructions:
+- `CONVERT` performs a value-preserving conversion (may involve rounding, truncation, etc.)
+- `CAST` reinterprets the bit pattern without changing the underlying data
+
+### 5.3 Composite Type Definitions
+
+Composite types (structures, unions, arrays) are defined using specific instructions:
+- `STRUCT` defines a structure type with named fields
+- Arrays include their element type and size information
+
+## 6. Implementation Notes
+
+COIL processors must implement the full type system but may optimize internal representations:
+
+1. Platform-dependent types must map to appropriate fixed-width types based on the target architecture
+2. Vector types may be implemented using SIMD hardware where available
+3. Boolean values may be packed for efficiency
+4. Register types map to the actual hardware registers of the target architecture

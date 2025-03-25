@@ -1,43 +1,10 @@
-# COIL Specification Overview
+# COIL Instruction Set Architecture Overview
 
-## Introduction
+## 1. Introduction
 
-The Computer Oriented Intermediate Language (COIL) is a universal binary instruction format designed for maximum portability while retaining native performance across diverse processing units and architectures. COIL serves as an intermediate representation that bridges the gap between high-level programming languages and hardware-specific machine code.
+The COIL Instruction Set Architecture (ISA) defines the complete set of operations that can be performed in COIL. The instruction set is organized into logical categories, with clear separation between universal operations and architecture-specific operations.
 
-## Core Design Philosophy
-
-COIL is built on several foundational principles:
-
-### Type-Determined Instruction Philosophy
-
-Instructions in COIL derive their behavior from the types of their operands, rather than having numerous specialized opcodes. This allows for:
-
-- Compact binary representation
-- Consistent behavior across data types
-- Extensibility without opcode explosion
-- Simplified instruction decoding
-
-### Architecture Independence
-
-COIL maintains a clean separation between:
-
-- Universal operations (available on all platforms)
-- Processing unit specific operations
-- Architecture specific operations
-- Implementation specific extensions
-
-This separation ensures maximum portability while still allowing direct access to hardware-specific features when needed.
-
-### Performance-First Approach
-
-COIL is designed to compile efficiently to native code without sacrificing performance:
-
-- No abstraction penalties for universal operations
-- Direct mapping to hardware capabilities where possible
-- Optimization hints through type extensions
-- Explicit control over performance-critical aspects
-
-## Instruction Format
+## 2. Instruction Format
 
 COIL instructions follow a consistent binary format:
 
@@ -47,47 +14,160 @@ COIL instructions follow a consistent binary format:
 
 Each operand consists of:
 ```
-[Type] [Type Data (variable length based on type) (optional)] [Value (variable length based on type)]
+[Type (16 bits)] [Type-Specific Data (variable)] [Value (variable)]
 ```
 
-This format allows for:
-- Efficient encoding of common operations
-- Extensibility through type system
-- Consistent decoding across implementations
+## 3. Opcode Organization
 
-## Implementation Approaches
+The 8-bit opcode space is organized into functional categories:
 
-COIL can be implemented through various methods:
+```
+0x00      - No Operation
+0x01-0x0F - Control Flow
+0x10-0x2F - Memory Operations
+0x30-0x4F - Reserved for Multi-Device Operations (v3)
+0x50-0x5F - Bit Manipulation
+0x60-0x8F - Arithmetic
+0x90-0x9F - Vector/Array Operations
+0xA0-0xAF - Type Instructions
+0xB0-0xBF - Directive Instructions
+0xC0-0xFE - Architecture/Processor-Specific Instructions
+0xFF      - COIL Processor-Specific Extensions
+```
 
-1. **Just-In-Time (JIT) Compilation**: Converting COIL to native code at runtime
-2. **Ahead-Of-Time (AOT) Compilation**: Preprocessing COIL to target architectures
-3. **Interpretation**: Direct execution of COIL instructions
-4. **Hardware Implementation**: Direct execution in compatible processing units
+## 4. Instruction Categories
 
-## Specification Organization
+### 4.1 Control Flow (0x01-0x0F)
 
-The COIL specification is organized into several key components:
+Instructions for controlling program execution flow:
+- Symbol definition
+- Conditional and unconditional branching
+- Function calls and returns
+- Comparison operations for setting flags
 
-1. **Type System**: Defines the data types and their representations
-2. **Register System**: Describes the register model and mapping to hardware
-3. **Instruction Set Architecture (ISA)**: Documents all supported instructions
-   - Control Flow
-   - Arithmetic Operations
-   - Bit Manipulation Operations
-   - Memory Operations
-   - Vector Operations
-   - Type Manipulation
-   - Directives
-   - Special Instructions
-4. **Implementation Guidelines**: Provides guidance for implementers
-5. **ABI Specifications**: Defines calling conventions for interoperability
+[Detailed documentation](./isa/cf.md)
 
-## Version Control
+### 4.2 Memory Operations (0x10-0x2F)
 
-The COIL specification uses semantic versioning:
+Instructions for memory access and management:
+- Data movement
+- Stack operations
+- Memory allocation and scope management
+- Variable declarations
+- Memory copying, comparison, and manipulation
 
-- Major version changes (v1.0 → v2.0) indicate breaking changes
-- Minor version changes (v1.0 → v1.1) indicate additions without breaking compatibility
-- Patch version changes (v1.0.0 → v1.0.1) indicate clarifications or bug fixes
+[Detailed documentation](./isa/memops.md)
 
-Each major version maintains its own directory in the specification repository.
+### 4.3 Reserved Instructions (0x30-0x4F)
+
+This range is reserved for multi-device operations in COIL v3.
+
+[Placeholder documentation](./isa/resv.md)
+
+### 4.4 Bit Manipulation (0x50-0x5F)
+
+Instructions for binary operations:
+- Logical operations (AND, OR, XOR, NOT)
+- Shift and rotate operations
+- Bit counting and manipulation
+
+[Detailed documentation](./isa/bit.md)
+
+### 4.5 Arithmetic (0x60-0x8F)
+
+Instructions for mathematical operations:
+- Basic arithmetic (add, subtract, multiply, divide)
+- Advanced arithmetic (fused multiply-add, etc.)
+- Comparison operations
+- Conversion operations
+
+[Detailed documentation](./isa/arith.md)
+
+### 4.6 Vector/Array Operations (0x90-0x9F)
+
+Instructions for operations on multiple values:
+- Vector dot products
+- Array operations
+- SIMD-style operations
+
+[Detailed documentation](./isa/vec.md)
+
+### 4.7 Type Instructions (0xA0-0xAF)
+
+Instructions for type manipulation:
+- Type queries and information
+- Type conversions
+- Composite type operations
+- Field and element access
+
+[Detailed documentation](./isa/type.md)
+
+### 4.8 Directive Instructions (0xB0-0xBF)
+
+Instructions for controlling the compilation process:
+- Architecture and processor selection
+- Alignment and section control
+- Conditional compilation
+- ABI definitions
+- Data insertion
+
+[Detailed documentation](./isa/dir.md)
+
+### 4.9 Special Instructions (0x00, 0xC0-0xFF)
+
+Instructions specific to certain processors or architectures:
+- No Operation (0x00)
+- Processor-specific instructions (0xC0-0xFE)
+- COIL processor extensions (0xFF)
+
+[Detailed documentation](./isa/spec.md)
+
+## 5. Instruction Operands
+
+Instruction operands use the COIL type system to specify their type and behavior. Most instructions support a wide range of operand types, with behavior determined by the types provided.
+
+Common operand patterns include:
+- Source and destination
+- Left and right operands with destination
+- Conditional execution flags
+- Control parameters
+
+## 6. Conditional Execution
+
+Many COIL instructions support conditional execution based on CPU flags:
+- Equal/Not Equal
+- Greater/Less Than
+- Zero/Non-Zero
+- Carry/No Carry
+- Overflow/No Overflow
+- Sign/No Sign
+
+This allows for compact conditional code without branch instructions.
+
+## 7. Implementation Requirements
+
+A COIL v1 processor must:
+1. Implement all instructions in categories 0x00-0x2F and 0x50-0xBF
+2. Implement appropriate architecture-specific instructions for supported architectures
+3. Reject instructions from the reserved range (0x30-0x4F)
+4. Handle conditional execution correctly
+5. Follow the operand type rules for each instruction
+
+## 8. Recommended Extensions
+
+While not required, COIL processors are encouraged to implement:
+1. Common optimization patterns for instruction sequences
+2. Hardware acceleration where available
+3. Software fallbacks for instructions not directly supported by hardware
+4. Efficient handling of conditional execution
+
+## 9. Instruction Reference
+
+Each instruction is documented with:
+- Opcode
+- Operand format
+- Behavior description
+- Type restrictions
+- Examples
+
+See the individual category documentation files for detailed instruction references.

@@ -1,22 +1,157 @@
-# Configuration
+# COIL Configuration Format
 
-The COIL Configuration Format is a unified interface for interaction with the COIL processor through a easy and shareable file format controlling all stages of the compilation cycle through specifying features of an architecture the target supports. Although specifiying a specific target is not possible in COIL you can specify the architecture to access low level features like the register system of your target.
+## 1. Introduction
 
-COIL does not have a place for specifying a target as its seen as not needed, any features of the architecture you don't support can for the most part be emulated in either an inline or a statically available practice. Like vectors and cryptography, the COIL processor will use native features as available to it with backup plans when not supported to allow for a write once compile anywhere build system.
+The COIL Configuration Format provides a unified interface for controlling the compilation process, specifying target capabilities, and configuring COIL processors. It allows for detailed specification of architecture features, memory models, security settings, and linker behavior.
 
-Transferring a static optimized COIL file is one goal of the COIL processor. The ability to take multiple COIL files, optimize them and join them into a single output COIL file allows for creating a library that can be passed across machines with the ability to have optimal performance on each as well as being incredibily low memory impact even allowing for some possibilities of being in a network protocol.
+## 2. Format Structure
 
-The configuration format is defined below as a simple '${ident} = ${value}\n' with important markers separated by square brace enclosed headers
+The configuration uses a simple key-value format with section headers:
 
-## Device Targets
+```
+[section_name]
+key1 = value1
+key2 = value2
 
-As of version 1 there is only support for compiling to a host device where the host device can have different targets. There is currently no support for other processing devices like GPU, TPU, QPU etc... Version 2 of COIL will implement this but will most likely come at the cost of some JIT and operating system support with larger binaries.
+[another_section]
+key3 = value3
+```
 
-A device target separate from another device defines the features for a processing unit with multiple architectures. A more practical use case this is mainly designed for ARM32 with AMR64 and x86, x86 protected mode and x86 long mode. Switching between these is important in bootloaders and bare metal devices.
+Section headers are enclosed in square brackets, and each key-value pair is on a separate line with an equals sign separator.
 
-Defining the features for each mode of your proecssing unit will help in the COIL code. There is a directive for defining the mode of your processing unit correlating to a configuration id for a device target. This will change the native binary to be outputted as defined by the target mode.
+## 3. Core Sections
 
-## Targeting Multiple Separate Devices
+### 3.1 Device Section
 
-## Sections
-The Configuration Format will also have sections beside feature processing, each device having information about security features, memory layout and memory model, resources (threads, registers, etc...) and even power. On top of this copmlex device information there will also be configuration for the linker with a simple linker script format to be passed on through the COIL processor into a COIL compatible linker.
+The device section specifies the target processing unit and architecture:
+
+```
+[device]
+type = cpu          ; Processing unit type (cpu, gpu, etc.)
+arch = x86_64       ; Architecture
+processor = intel   ; Processor manufacturer
+model = skylake     ; Specific processor model
+features = avx2,bmi2,fma    ; Supported features
+```
+
+In COIL v1, only CPU is fully supported as the device type, but the configuration format includes placeholders for other device types to be supported in future versions.
+
+### 3.2 Memory Section
+
+The memory section defines the memory model and alignment requirements:
+
+```
+[memory]
+model = x86_64      ; Memory model
+endian = little     ; Endianness (little, big)
+alignment = 16      ; Default alignment
+pointer_size = 64   ; Pointer size in bits
+```
+
+### 3.3 Security Section
+
+The security section specifies security features to consider during compilation:
+
+```
+[security]
+features = nx,aslr  ; Security features to support
+sanitize = address  ; Sanitizer to apply
+```
+
+### 3.4 Linker Section
+
+The linker section defines how the code should be linked:
+
+```
+[linker]
+sections = .text,.data,.bss
+entry = main
+symbols = global
+```
+
+### 3.5 Optimization Section
+
+The optimization section controls compilation optimizations:
+
+```
+[optimization]
+level = 2           ; Optimization level (0-3)
+size = false        ; Optimize for size
+inline = auto       ; Inlining strategy
+vectorize = true    ; Enable vectorization
+```
+
+## 4. Device Mode Configuration
+
+For targets with multiple modes (e.g., x86 protected mode vs. long mode), each mode can be configured separately:
+
+```
+[device.mode.0]
+name = protected     ; Mode name
+features = ...       ; Features in this mode
+
+[device.mode.1]
+name = long          ; Mode name
+features = ...       ; Features in this mode
+```
+
+These modes can be selected at compile time using the `MODE` directive in COIL code.
+
+## 5. Multi-Device Configuration (v3)
+
+While COIL v1 focuses on single-device targeting, the configuration format includes placeholder sections for multi-device support in v3:
+
+```
+[devices]
+count = 2
+
+[device.0]
+type = cpu
+...
+
+[device.1]
+type = gpu
+...
+
+[interconnect]
+topology = bus
+bandwidth = 16GB/s
+latency = 100ns
+```
+
+## 6. Usage in COIL Processors
+
+COIL processors use the configuration file to:
+
+1. Determine what features to enable or disable
+2. Select the appropriate instruction encoding
+3. Optimize code for the target architecture
+4. Configure the linker for the target platform
+5. Set up the debug environment
+
+## 7. Configuration Distribution
+
+Configuration files can be:
+
+1. Distributed with COIL processors as presets for common platforms
+2. Generated by build systems based on target detection
+3. Created manually for specific custom targets
+4. Embedded in COIL object files for self-contained distribution
+
+## 8. Implementation Requirements
+
+A COIL v1 processor must:
+
+1. Be able to parse the full configuration format
+2. Apply all relevant settings for CPU targets
+3. Issue clear errors for unsupported configurations
+4. Provide default values for missing settings
+5. Support at least a basic set of predefined configurations for common architectures
+
+## 9. Best Practices
+
+1. Use the most specific configuration possible for your target
+2. Include all relevant security features for production builds
+3. Document any custom configuration settings
+4. Validate configurations before using them in production
+5. Use conditional compilation with different configurations for multi-architecture support

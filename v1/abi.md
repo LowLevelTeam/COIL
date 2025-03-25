@@ -1,15 +1,22 @@
 # Application Binary Interface (ABI)
-COIL supports creating your own custom calling conventions called an ABI. You define the underlying registers you wish to map parameters and return values for either using a virtual register system for each processing unit or an architectural specific system using the [architectural register system](./reg.md).
 
-COIL understands that systems control calling conventions based on the architecture but the similarities between the C ABI allows you to use directives to get the architecture at compile time and control which ABI should be used.
+## 1. Introduction
 
-The ABI is optionally advanced controlling red stack zones, displacement and much more or can be as simple as defining a couple of registers for parameters and a couple of registers for return values.
+COIL supports creating custom calling conventions through Application Binary Interface (ABI) definitions. The ABI system allows for precise control over function calls, parameter passing, and return value handling across different architectures and execution environments.
 
-To define an ABI you need to enter an ABI definition block which has its own opcode set until you use the exit opcode. the ABI opcode set is defined below.
+An ABI definition specifies:
+- Which registers are used for parameter passing
+- Which registers are used for return values
+- Which registers are caller-saved vs. callee-saved
+- Stack alignment requirements
+- Red zone size (if applicable)
+- Other architecture-specific calling convention details
 
-## Format
-A text based format would look something like the following.
-In practice when the ABI directive is called the instruction set will completly change to just 6 instructions as followed.
+## 2. ABI Definition Format
+
+### 2.1 Text Representation
+
+A text-based ABI definition looks like the following:
 
 ```
 abi standard {
@@ -22,28 +29,109 @@ abi standard {
 }
 ```
 
+### 2.2 Binary Encoding
 
-## Instructions
+When the `ABI` directive is used, the instruction set temporarily changes to use a special set of ABI definition opcodes until the `EXIT` opcode is encountered:
 
-#### EXIT 0x00
-End Scope
+```
+0x00 EXIT     - End ABI definition block
+0x01 PARAMS   - Define register mapping for parameter values
+0x02 RETS     - Define register mapping for return values
+0x03 CALLER   - Define caller-saved registers
+0x04 CALLEE   - Define callee-saved registers
+0x05 SALLIGN  - Define stack alignment
+0x06 RZONE    - Define the red zone size
+```
 
-#### PARAMS 0x01
-Define register mapping for parameter values.
+## 3. Using ABIs
 
-#### RETS 0x02
-Define register mapping for return values.
+### 3.1 ABI Selection
 
-#### CALLER 0x03
-Define registers potentially affected that should be save before hand.
+ABIs can be selected at different levels:
 
-#### CALLEE 0x04
-Define registers potentially affected that should be save in the function.
+1. **Global Default**: Set through configuration
+2. **File-Level**: Set with a directive at the file beginning
+3. **Function-Level**: Specified in the function declaration
+4. **Call-Site**: Specified in the call instruction
 
-#### SALLIGN 0x05
-Define the stack allignment
+### 3.2 Function Declaration with ABI
 
-#### RZONE 0x06
-Define the red zone
+To declare a function with an ABI:
 
+```
+SYM function_name, TYPE_PARAM0=BRANCH_CTRL_ABI
+```
 
+Parameter and return types can be specified following the ABI declaration.
+
+### 3.3 Function Call with ABI
+
+To call a function using a specific ABI:
+
+```
+CALL function_name, TYPE_PARAM0=BRANCH_CTRL_ABI
+```
+
+### 3.4 Architecture-Specific ABI Selection
+
+For code that targets multiple architectures, conditional ABI selection can be used:
+
+```
+ABI standard_x86 {
+  // x86-specific ABI definition
+}
+
+ABI standard_arm {
+  // ARM-specific ABI definition
+}
+
+// Then use conditionals to select the appropriate ABI:
+IF ARCH == X86
+  CALL function, TYPE_PARAM0=BRANCH_CTRL_ABI, standard_x86
+ELIF ARCH == ARM
+  CALL function, TYPE_PARAM0=BRANCH_CTRL_ABI, standard_arm
+ENDIF
+```
+
+## 4. Standard ABI Definitions
+
+COIL does not mandate specific ABIs but recognizes common calling conventions for major architectures. Implementations may provide built-in definitions for:
+
+- System V AMD64 ABI (x86-64 Linux/BSD/macOS)
+- Microsoft x64 ABI (Windows)
+- ARM AAPCS
+- RISC-V calling conventions
+
+## 5. ABI Interoperability
+
+### 5.1 Foreign Function Interface
+
+ABIs enable interoperability with external code:
+
+1. Call foreign functions by defining an ABI that matches their calling convention
+2. Export COIL functions for external use by declaring them with the appropriate ABI
+
+### 5.2 Mixed ABI Usage
+
+Multiple ABIs can be used within the same program to interface with different components:
+
+- Operating system system calls
+- External libraries
+- Architecture-specific optimized routines
+
+## 6. Implementation Requirements
+
+A COIL v1 processor must:
+
+1. Support the full ABI definition format
+2. Correctly implement ABI-controlled function calls and returns
+3. Provide a mechanism for defining custom ABIs
+4. Handle the standard ABIs for each supported architecture
+
+## 7. Best Practices
+
+1. Use consistent ABIs for related functions
+2. Document custom ABIs thoroughly
+3. Prefer standard ABIs where possible for better interoperability
+4. Use the configuration system to manage ABIs across multiple architectures
+5. Test ABI compliance thoroughly, especially when interfacing with external code
