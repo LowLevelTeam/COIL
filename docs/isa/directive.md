@@ -2,317 +2,258 @@
 
 ## Purpose
 
-This document defines the directive instructions in COIL, which control the assembly process rather than generating runtime code. Directives provide information to the COIL processor about how to handle the code, which processor to target, and other aspects of the compilation environment.
+This document defines the directive instructions in COIL, which control the assembly process rather than generating runtime code. Directives provide information to the COIL processor about how to handle code, target architectures, and other aspects of the compilation environment.
 
-## Processor and Architecture Selection
+## Instruction List
+
+| Opcode | Mnemonic | Assembly Syntax | Description |
+|--------|----------|-----------------|-------------|
+| 0xB0   | ARCH     | `ARCH architecture[, mode]` | Set target architecture |
+| 0xB1   | PROC     | `PROC processor` | Set processor type |
+| 0xB2   | MODE     | `MODE mode` | Set processor mode |
+| 0xB3   | ALIGN    | `ALIGN alignment` | Align to boundary |
+| 0xB4   | SECTION  | `SECTION name, attributes` | Define section |
+| 0xB5   | DATA     | `DATA type, value` | Insert data |
+| 0xB6   | IF       | `IF condition` | Begin conditional assembly |
+| 0xB7   | ELIF     | `ELIF condition` | Alternative in conditional assembly |
+| 0xB8   | ELSE     | `ELSE` | Default case in conditional assembly |
+| 0xB9   | ENDIF    | `ENDIF` | End conditional assembly |
+| 0xBA   | ABI      | `ABI name` | Begin ABI definition |
+| 0xBB   | EXTERN   | `EXTERN symbol[, type]` | Declare external symbol |
+| 0xBC   | GLOBAL   | `GLOBAL symbol` | Declare global symbol |
+| 0xBD   | INCLUDE  | `INCLUDE filename` | Include file |
+| 0xBE   | VERSION  | `VERSION major, minor, patch` | Specify COIL version |
+
+## Detailed Descriptions
 
 ### PROC (0xB1)
 Set the target processor type.
 
+#### Assembly Syntax
 ```
-Operands:
-- Processor: TYPE_UNT8 (processor code)
-```
-
-Processor codes:
-```
-0x01 - CPU
-0x02 - GPU (reserved for v3)
-0x03 - TPU (reserved for v3)
-0x04 - DSP (reserved for v3)
-0x05 - FPGA (reserved for v3)
-0x06-0xFE - Reserved for future processor types
-0xFF - Custom processor
+PROC processor_code
 ```
 
-Example:
+#### Binary Encoding
 ```
+0xB1                  ; Opcode for PROC
+0x01                  ; One operand
+[type]                ; Type of processor code
+[value]               ; Processor code value
+```
+
+#### Processor Codes
+- `0x01`: CPU
+- `0x02`: GPU (reserved for v3)
+- `0x03`: TPU (reserved for v3)
+- `0x04`: DSP (reserved for v3)
+- `0x05`: FPGA (reserved for v3)
+- `0x06-0xFE`: Reserved for future processor types
+- `0xFF`: Custom processor
+
+#### Example
+```
+; Assembly
 PROC 0x01  ; Select CPU processor type
-```
 
-Binary encoding:
-```
-0xB1      ; Opcode for PROC
+; Binary
+0xB1      ; PROC
 0x01      ; One operand
 0x1020    ; TYPE_UNT8+IMM
-0x01      ; Value 0x01 (CPU)
+0x01      ; CPU (0x01)
 ```
 
 ### ARCH (0xB0)
-Set the target architecture and optionally its mode. This directive must be preceded by the PROC directive as architecture is specific to a processor type.
+Set the target architecture and optionally its mode.
 
+#### Assembly Syntax
 ```
-Operands:
-- Architecture: TYPE_UNT8 (architecture code)
-- Mode: TYPE_UNT8 (mode code, optional)
-```
-
-CPU architecture codes:
-```
-0x01 - x86
-0x02 - ARM
-0x03 - RISC-V
-0x04 - MIPS
-0x05 - PowerPC
-0x06-0xFE - Reserved for future architectures
-0xFF - Custom architecture
+ARCH architecture_code[, mode_code]
 ```
 
-Mode codes for x86:
+#### Binary Encoding
 ```
-0x01 - 16-bit mode (Real mode)
-0x02 - 32-bit mode (Protected mode)
-0x03 - 64-bit mode (Long mode)
-```
-
-Mode codes for ARM:
-```
-0x01 - 32-bit mode (AArch32)
-0x02 - 64-bit mode (AArch64)
+0xB0                  ; Opcode for ARCH
+0x01/0x02             ; One or two operands
+[arch_type]           ; Type of architecture code
+[arch_value]          ; Architecture code value
+[mode_type]           ; Type of mode code (if specified)
+[mode_value]          ; Mode code value (if specified)
 ```
 
-Mode codes for RISC-V:
-```
-0x01 - 32-bit mode (RV32)
-0x02 - 64-bit mode (RV64)
-0x03 - 128-bit mode (RV128)
-```
+#### Architecture Codes
+- `0x01`: x86
+- `0x02`: ARM
+- `0x03`: RISC-V
+- `0x04`: MIPS
+- `0x05`: PowerPC
+- `0x06-0xFE`: Reserved for future architectures
+- `0xFF`: Custom architecture
 
-Example:
-```
-PROC 0x01           ; Select CPU
-ARCH 0x01, 0x03     ; Select x86 architecture in 64-bit mode
-```
+#### Mode Codes
+For x86 (0x01):
+- `0x01`: 16-bit mode (Real mode)
+- `0x02`: 32-bit mode (Protected mode)
+- `0x03`: 64-bit mode (Long mode)
 
-Binary encoding:
+For ARM (0x02):
+- `0x01`: 32-bit mode (AArch32)
+- `0x02`: 64-bit mode (AArch64)
+
+For RISC-V (0x03):
+- `0x01`: 32-bit mode (RV32)
+- `0x02`: 64-bit mode (RV64)
+- `0x03`: 128-bit mode (RV128)
+
+#### Example
 ```
-0xB0      ; Opcode for ARCH
-0x01/0x02 ; One or two operands
+; Assembly
+ARCH 0x01, 0x03  ; Select x86 architecture in 64-bit mode
+
+; Binary
+0xB0      ; ARCH
+0x02      ; Two operands
 0x1020    ; TYPE_UNT8+IMM
-0x01      ; Value 0x01 (x86)
-0x1020    ; TYPE_UNT8+IMM (if mode specified)
-0x03      ; Value 0x03 (64-bit mode)
-```
-
-## Memory and Data Organization
-
-### ALIGN (0xB3)
-Align the next instruction or data to a specified boundary.
-
-```
-Operands:
-- Alignment: Non TYPE_VOID
-```
-
-Example:
-```
-ALIGN 16            ; Align to 16-byte boundary
-```
-
-Binary encoding:
-```
-0xB3      ; Opcode for ALIGN
-0x01      ; One operand
-[type1]   ; Type of alignment value
-[value1]  ; Alignment value
+0x01      ; x86 (0x01)
+0x1020    ; TYPE_UNT8+IMM
+0x03      ; 64-bit mode (0x03)
 ```
 
 ### SECTION (0xB4)
 Define a new section in the output.
 
+#### Assembly Syntax
 ```
-Operands:
-- Name: TYPE_SYM
-- Attributes: Non TYPE_VOID
+SECTION name, attributes
 ```
 
+#### Binary Encoding
+```
+0xB4                  ; Opcode for SECTION
+0x02                  ; Two operands
+[name_type]           ; Type of section name
+[name_value]          ; Section name value
+[attr_type]           ; Type of attributes
+[attr_value]          ; Attributes value
+```
+
+#### Section Attributes
 Section attributes are bit flags:
-```
-0x01 - Executable
-0x02 - Writable
-0x04 - Readable
-0x08 - Initialized data
-0x10 - Uninitialized data
-```
+- `0x01`: Executable
+- `0x02`: Writable
+- `0x04`: Readable
+- `0x08`: Initialized data
+- `0x10`: Uninitialized data
 
-Example:
+#### Example
 ```
+; Assembly
 SECTION .text, 0x01 | 0x04  ; Executable and readable section
-SECTION .data, 0x02 | 0x04 | 0x08  ; Writable, readable, initialized data
-SECTION .bss, 0x02 | 0x04 | 0x10   ; Writable, readable, uninitialized data
-```
 
-Binary encoding:
-```
-0xB4      ; Opcode for SECTION
+; Binary
+0xB4      ; SECTION
 0x02      ; Two operands
 0x9100    ; TYPE_SYM
-[sym_id]  ; Symbol ID for section name
-[type2]   ; Type of attributes
-[value2]  ; Attributes value
+[id]      ; Symbol ID for ".text"
+0x1320    ; TYPE_UNT32+IMM
+0x05000000 ; Value 0x05 (0x01 | 0x04)
 ```
 
 ### DATA (0xB5)
 Insert data into the program.
 
+#### Assembly Syntax
 ```
-Operands:
-- Type: TYPE_*
-- Value: Non TYPE_VOID
+DATA type, value
 ```
 
-Example:
+#### Binary Encoding
 ```
-; Define integer data
+0xB5                  ; Opcode for DATA
+0x02                  ; Two operands
+[data_type]           ; Type of data
+[value_type]          ; Type of value
+[value]               ; Value
+```
+
+#### Example
+```
+; Assembly - Define integer
 DATA TYPE_INT32, 42
 
-; Define string data
+; Binary
+0xB5      ; DATA
+0x02      ; Two operands
+0x0300    ; TYPE_INT32
+0x1320    ; TYPE_UNT32+IMM
+0x2A000000 ; Value 42
+
+; Assembly - Define string
 DATA TYPE_ARRAY=TYPE_UNT8, "Hello, World", 0
 
-; Define array
-DATA TYPE_ARRAY=TYPE_INT32, (1, 2, 3, 4, 5)
-
-; Define uninitialized buffer
-DATA TYPE_ARRAY=TYPE_UNT8[100]  ; 100 bytes of uninitialized data
-```
-
-Binary encoding:
-```
-0xB5      ; Opcode for DATA
+; Binary
+0xB5      ; DATA
 0x02      ; Two operands
-[type1]   ; Type of data
-[type2]   ; Type of value
-[value2]  ; Value
+0xD310    ; TYPE_ARRAY=TYPE_UNT8
+0xD320    ; String with null
+[string]  ; String data
 ```
-
-## Conditional Assembly
-
-### IF (0xB6)
-Begin a conditional assembly block. This allows for processor-specific code without complicating the runtime model.
-
-```
-Operands:
-- Condition: Non TYPE_VOID
-```
-
-Common condition patterns:
-```
-IF ARCH == 0x01         ; If architecture is x86
-IF ARCH == 0x01 && MODE == 0x03  ; If architecture is x86 in 64-bit mode
-IF PROC == 0x01         ; If processor is CPU
-```
-
-Example:
-```
-IF ARCH == 0x01
-    ; x86-specific code
-    MOV TYPE_RGP=RAX, 42
-ENDIF
-```
-
-Binary encoding:
-```
-0xB6      ; Opcode for IF
-0x01      ; One operand
-[type1]   ; Type of condition
-[value1]  ; Condition value
-```
-
-Note: Conditional assembly directives are processed during assembly and do not appear in the final binary output.
-
-### ELIF (0xB7)
-Alternative condition for conditional assembly.
-
-```
-Operands:
-- Condition: Non TYPE_VOID
-```
-
-Example:
-```
-IF ARCH == 0x01
-    ; x86-specific code
-ELIF ARCH == 0x02
-    ; ARM-specific code
-ENDIF
-```
-
-Binary encoding:
-```
-0xB7      ; Opcode for ELIF
-0x01      ; One operand
-[type1]   ; Type of condition
-[value1]  ; Condition value
-```
-
-### ELSE (0xB8)
-Default case for conditional assembly.
-
-```
-Operands:
-- None
-```
-
-Example:
-```
-IF ARCH == 0x01
-    ; x86-specific code
-ELSE
-    ; Generic code for other architectures
-ENDIF
-```
-
-Binary encoding:
-```
-0xB8      ; Opcode for ELSE
-0x00      ; Zero operands
-```
-
-### ENDIF (0xB9)
-End conditional assembly block.
-
-```
-Operands:
-- None
-```
-
-Example:
-```
-IF PROC == 0x01
-    ; CPU-specific code
-ENDIF
-```
-
-Binary encoding:
-```
-0xB9      ; Opcode for ENDIF
-0x00      ; Zero operands
-```
-
-## ABI Management
 
 ### ABI (0xBA)
-Define an Application Binary Interface (ABI). Once this directive is encountered, the instruction set temporarily changes to the ABI-specific instruction set until EXIT is encountered.
+Define an Application Binary Interface (ABI).
 
+#### Assembly Syntax
 ```
-Operands:
-- Name: TYPE_SYM
-```
-
-ABI-specific instructions:
-```
-0x00 EXIT    - End ABI definition block
-0x01 PARAMS  - Parameter registers
-0x02 RETS    - Return registers
-0x03 CALLER  - Caller-saved registers
-0x04 CALLEE  - Callee-saved registers
-0x05 SALLIGN - Stack alignment
-0x06 RZONE   - Red zone size
+ABI abi_name
+  PARAMS register_list
+  RETS register_list
+  CALLER register_list
+  CALLEE register_list
+  SALLIGN alignment_value
+  RZONE size_value
+EXIT
 ```
 
-Example:
+#### Binary Encoding
+ABI instruction:
 ```
-ABI standard_x86_64
+0xBA                  ; Opcode for ABI
+0x01                  ; One operand
+[name_type]           ; Type of ABI name
+[name_value]          ; ABI name value
+```
+
+Followed by ABI-specific instructions until EXIT (0x00):
+```
+0x01                  ; PARAMS
+[count]               ; Parameter count
+[reg1, reg2, ...]     ; Register list
+
+0x02                  ; RETS
+[count]               ; Return register count
+[reg1, reg2, ...]     ; Register list
+
+0x03                  ; CALLER
+[count]               ; Caller-saved register count
+[reg1, reg2, ...]     ; Register list
+
+0x04                  ; CALLEE
+[count]               ; Callee-saved register count
+[reg1, reg2, ...]     ; Register list
+
+0x05                  ; SALLIGN
+[value]               ; Stack alignment value
+
+0x06                  ; RZONE
+[value]               ; Red zone size value
+
+0x00                  ; EXIT
+```
+
+#### Example
+```
+; Assembly
+ABI linux_x86_64
   PARAMS RDI, RSI, RDX, RCX, R8, R9
   RETS RAX, RDX
   CALLER RAX, RCX, RDX, RSI, RDI, R8, R9, R10, R11
@@ -320,266 +261,223 @@ ABI standard_x86_64
   SALLIGN 16
   RZONE 128
 EXIT
-```
 
-Binary encoding:
-```
-0xBA      ; Opcode for ABI
+; Binary
+0xBA      ; ABI
 0x01      ; One operand
 0x9100    ; TYPE_SYM
-[sym_id]  ; Symbol ID for ABI name
+[id]      ; Symbol ID for "linux_x86_64"
 
-; ABI-specific instructions follow, until EXIT
 0x01      ; PARAMS
-...
+0x06      ; 6 parameters
+0x00      ; RDI
+0x01      ; RSI
+... 
+
+0x02      ; RETS
+0x02      ; 2 return registers
+0x00      ; RAX
+0x02      ; RDX
+
+... 
+
+0x05      ; SALLIGN
+0x10      ; 16 byte alignment
+
+0x06      ; RZONE
+0x80      ; 128 byte red zone
 
 0x00      ; EXIT
 ```
 
-## Specialized Directives
+### Conditional Assembly Directives (0xB6-0xB9)
+Control conditional assembly during assembly process.
 
-### MODE (0xB2)
-Set the processor mode without changing the architecture. This is an alternative to specifying the mode in the ARCH directive.
-
+#### Assembly Syntax
 ```
-Operands:
-- Mode: TYPE_UNT8 (mode code)
-```
-
-Example:
-```
-PROC 0x01           ; Select CPU
-ARCH 0x01           ; Select x86 architecture
-MODE 0x03           ; Set 64-bit mode
+IF condition
+  ; Code for when condition is true
+ELIF alternative_condition
+  ; Code for when alternative condition is true
+ELSE
+  ; Code for when no conditions are true
+ENDIF
 ```
 
-Binary encoding:
+#### Binary Encoding
+These directives are processed during assembly and do not appear in the final binary output.
+
+IF:
 ```
-0xB2      ; Opcode for MODE
-0x01      ; One operand
-0x1020    ; TYPE_UNT8+IMM
-0x03      ; Value 0x03 (64-bit mode)
+0xB6                  ; Opcode for IF
+0x01                  ; One operand
+[cond_type]           ; Type of condition
+[cond_value]          ; Condition value
+```
+
+ELIF:
+```
+0xB7                  ; Opcode for ELIF
+0x01                  ; One operand
+[cond_type]           ; Type of condition
+[cond_value]          ; Condition value
+```
+
+ELSE:
+```
+0xB8                  ; Opcode for ELSE
+0x00                  ; No operands
+```
+
+ENDIF:
+```
+0xB9                  ; Opcode for ENDIF
+0x00                  ; No operands
+```
+
+#### Example
+```
+; Assembly
+IF ARCH == 0x01
+  ; x86-specific code
+ELIF ARCH == 0x02
+  ; ARM-specific code
+ELSE
+  ; Generic code
+ENDIF
 ```
 
 ### EXTERN (0xBB)
 Declare an external symbol reference.
 
+#### Assembly Syntax
 ```
-Operands:
-- Symbol: TYPE_SYM
-- Type: TYPE_* (optional)
+EXTERN symbol[, type]
 ```
 
-Example:
+#### Binary Encoding
 ```
+0xBB                  ; Opcode for EXTERN
+0x01/0x02             ; One or two operands
+[sym_type]            ; Type of symbol
+[sym_value]           ; Symbol value
+[type]                ; Type information (if provided)
+```
+
+#### Example
+```
+; Assembly
 EXTERN printf, TYPE_ABICTL=ABICTL_STANDARD=linux_x86_64
-```
 
-Binary encoding:
-```
-0xBB      ; Opcode for EXTERN
-0x01/0x02 ; One or two operands
+; Binary
+0xBB      ; EXTERN
+0x02      ; Two operands
 0x9100    ; TYPE_SYM
-[sym_id]  ; Symbol ID
-[type2]   ; Type information (if provided)
+[id]      ; Symbol ID for "printf"
+0xF800    ; TYPE_ABICTL
+0x00      ; ABICTL_STANDARD
+[abi_id]  ; ABI ID for "linux_x86_64"
 ```
 
 ### GLOBAL (0xBC)
 Declare a symbol as globally visible.
 
+#### Assembly Syntax
 ```
-Operands:
-- Symbol: TYPE_SYM
+GLOBAL symbol
 ```
 
-Example:
+#### Binary Encoding
 ```
+0xBC                  ; Opcode for GLOBAL
+0x01                  ; One operand
+[sym_type]            ; Type of symbol
+[sym_value]           ; Symbol value
+```
+
+#### Example
+```
+; Assembly
 GLOBAL main
-```
 
-Binary encoding:
-```
-0xBC      ; Opcode for GLOBAL
+; Binary
+0xBC      ; GLOBAL
 0x01      ; One operand
 0x9100    ; TYPE_SYM
-[sym_id]  ; Symbol ID
+[id]      ; Symbol ID for "main"
 ```
-
-### INCLUDE (0xBD)
-Include another COIL file.
-
-```
-Operands:
-- Filename: TYPE_ARRAY=TYPE_UNT8
-```
-
-Example:
-```
-INCLUDE "header.coilh"
-```
-
-Binary encoding:
-```
-0xBD      ; Opcode for INCLUDE
-0x01      ; One operand
-0xD310    ; TYPE_ARRAY=TYPE_UNT8
-[string]  ; Filename string
-```
-
-Note: The INCLUDE directive is processed during assembly and does not appear in the final binary output.
-
-### VERSION (0xBE)
-Specify the minimum COIL version required.
-
-```
-Operands:
-- Major: TYPE_UNT8
-- Minor: TYPE_UNT8
-- Patch: TYPE_UNT8
-```
-
-Example:
-```
-VERSION 1, 0, 0  ; Requires COIL v1.0.0 or later
-```
-
-Binary encoding:
-```
-0xBE      ; Opcode for VERSION
-0x03      ; Three operands
-0x1020    ; TYPE_UNT8+IMM
-0x01      ; Major version
-0x1020    ; TYPE_UNT8+IMM
-0x00      ; Minor version
-0x1020    ; TYPE_UNT8+IMM
-0x00      ; Patch version
-```
-
-## Usage Patterns
-
-### Organization of Sections
-
-Typical section organization in a COIL program:
-
-```
-PROC 0x01                     ; Select CPU
-ARCH 0x01, 0x03               ; Select x86-64
-
-SECTION .text, 0x01 | 0x04    ; Executable code
-    ; Code goes here...
-
-SECTION .data, 0x02 | 0x04 | 0x08  ; Initialized data
-    ; Initialized data goes here...
-
-SECTION .bss, 0x02 | 0x04 | 0x10   ; Uninitialized data
-    ; Uninitialized data goes here...
-```
-
-### Processor-Specific Optimizations
-
-Using conditional assembly for processor-specific optimizations:
-
-```
-; Function with processor-specific optimizations
-SYM optimized_function
-    IF ARCH == 0x01  ; x86
-        ; x86-specific implementation
-        IF MODE == 0x03  ; 64-bit
-            ; x86-64 specific code
-        ELSE
-            ; x86-32 specific code
-        ENDIF
-    ELIF ARCH == 0x02  ; ARM
-        ; ARM-specific implementation
-    ELSE
-        ; Generic implementation
-    ENDIF
-```
-
-### Custom ABI Definition
-
-Defining a custom ABI:
-
-```
-; Define a custom ABI for a specialized calling convention
-ABI my_custom_abi
-    PARAMS R0, R1, R2          ; Parameters in R0, R1, R2
-    RETS R0                    ; Return value in R0
-    CALLER R0, R1, R2, R3      ; Caller-saved registers
-    CALLEE R4, R5, R6, R7, SP  ; Callee-saved registers
-    SALLIGN 8                  ; 8-byte stack alignment
-    RZONE 0                    ; No red zone
-EXIT
-
-; Use the custom ABI
-SYM specialized_function, TYPE_ABICTL=ABICTL_STANDARD=my_custom_abi
-    ; Function implementation
-```
-
-### Data Initialization
-
-Different ways to initialize data:
-
-```
-SECTION .data, 0x02 | 0x04 | 0x08
-    ; Integer data
-    SYM int_value
-    DATA TYPE_INT32, 42
-    
-    ; String data
-    SYM hello_string
-    DATA TYPE_ARRAY=TYPE_UNT8, "Hello, World!", 0
-    
-    ; Array data
-    SYM int_array
-    DATA TYPE_ARRAY=TYPE_INT32, (1, 2, 3, 4, 5)
-    
-    ; Structure data
-    SYM point
-    DATA TYPE_STRUCT=point_type, 10, 20  ; x=10, y=20
-
-SECTION .bss, 0x02 | 0x04 | 0x10
-    ; Uninitialized buffer
-    SYM buffer
-    ALIGN 16                       ; Align to 16-byte boundary
-    DATA TYPE_ARRAY=TYPE_UNT8[1024]  ; 1KB buffer
-```
-
-## Best Practices
-
-1. **Start with processor selection**: Begin each file with PROC and ARCH directives to establish the target context.
-
-2. **Organize code into sections**: Use appropriate sections for code, data, and BSS.
-
-3. **Align data appropriately**: Use ALIGN directive to ensure proper alignment for data types, especially for SIMD operations.
-
-4. **Use conditional assembly for portability**: Wrap processor-specific code in IF/ENDIF blocks to maintain portability.
-
-5. **Define ABIs clearly**: Document custom ABIs thoroughly and follow standard ABIs when possible.
-
-6. **Group related directives**: Keep related directives together for better readability.
-
-7. **Use namespaces with sections**: When defining symbols, consider using name prefixes or separate sections to avoid conflicts.
-
-8. **Document version requirements**: Use the VERSION directive to specify the minimum required COIL version.
 
 ## Directive Processing
 
 Directives are processed by the COIL processor during different phases:
 
 1. **Preprocessing Phase**:
-   - INCLUDE directive
-   - VERSION directive
-   - Conditional assembly directives (IF, ELIF, ELSE, ENDIF)
+   - `INCLUDE` directive
+   - `VERSION` directive
+   - Conditional assembly directives (`IF`, `ELIF`, `ELSE`, `ENDIF`)
 
 2. **Assembly Phase**:
-   - PROC, ARCH, MODE directives
-   - SECTION, ALIGN directives
-   - ABI definition
-   - DATA directive
+   - `PROC`, `ARCH`, `MODE` directives
+   - `SECTION`, `ALIGN` directives
+   - `ABI` definition
+   - `DATA` directive
 
 3. **Linking Phase**:
-   - EXTERN directive
-   - GLOBAL directive
+   - `EXTERN` directive
+   - `GLOBAL` directive
 
-Some directives influence the processing of subsequent code, while others affect the final output format. The COIL processor ensures all directives are applied appropriately to produce the correct result.
+## Common Usage Patterns
+
+### Target Specification
+```
+; Set the target processor and architecture
+PROC 0x01                     ; CPU
+ARCH 0x01, 0x03               ; x86-64
+```
+
+### Section Definition
+```
+; Define standard sections
+SECTION .text, 0x01 | 0x04    ; Executable and readable
+SECTION .data, 0x02 | 0x04 | 0x08  ; Writable, readable, initialized
+SECTION .bss, 0x02 | 0x04 | 0x10   ; Writable, readable, uninitialized
+```
+
+### Architecture-Specific Code
+```
+; Include processor-specific optimizations
+IF ARCH == 0x01  ; x86
+  ; x86-specific implementation
+ELIF ARCH == 0x02  ; ARM
+  ; ARM-specific implementation
+ELSE
+  ; Generic implementation
+ENDIF
+```
+
+### ABI Definition
+```
+; Define a platform-specific ABI
+ABI windows_x64
+  PARAMS RCX, RDX, R8, R9
+  RETS RAX
+  CALLER RAX, RCX, RDX, R8, R9, R10, R11
+  CALLEE RBX, RSP, RBP, RDI, RSI, R12, R13, R14, R15
+  SALLIGN 16
+  RZONE 0
+EXIT
+```
+
+### Data Definition
+```
+; Define constant data
+SECTION .data, 0x02 | 0x04 | 0x08
+SYM hello_msg
+DATA TYPE_ARRAY=TYPE_UNT8, "Hello, World!", 10, 0
+
+; Define uninitialized data
+SECTION .bss, 0x02 | 0x04 | 0x10
+SYM buffer
+ALIGN 16
+DATA TYPE_ARRAY=TYPE_UNT8[1024]  ; 1KB buffer
+```

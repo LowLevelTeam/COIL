@@ -2,528 +2,390 @@
 
 ## Purpose
 
-This document defines the type operation instructions in COIL, which provide functionality for working with the type system, converting between types, and manipulating composite types. These instructions form the foundation for type-safe operations and enable flexible type manipulation.
+This document defines the type operation instructions in COIL, which provide functionality for working with the type system, converting between types, and manipulating composite types.
 
-## Type Information Instructions
+## Instruction List
+
+| Opcode | Mnemonic | Assembly Syntax | Description |
+|--------|----------|-----------------|-------------|
+| 0xA0   | TYPEOF   | `TYPEOF dest, src[, TYPE_PARAM5]` | Get type information |
+| 0xA1   | SIZEOF   | `SIZEOF dest, src[, TYPE_PARAM5]` | Get size in bytes |
+| 0xA2   | ALIGNOF  | `ALIGNOF dest, src[, TYPE_PARAM5]` | Get alignment requirement |
+| 0xA3   | CONVERT  | `CONVERT dest, src[, TYPE_PARAM5]` | Convert between types |
+| 0xA4   | CAST     | `CAST dest, src[, TYPE_PARAM5]` | Reinterpret bit pattern |
+| 0xA5   | STRUCT   | `STRUCT dest, field_types_and_names...` | Define structure type |
+| 0xA6   | GET      | `GET dest, src, field[, TYPE_PARAM5]` | Get structure field |
+| 0xA7   | SET      | `SET dest, field, value[, TYPE_PARAM5]` | Set structure field |
+| 0xA8   | INDEX    | `INDEX dest, src, index[, TYPE_PARAM5]` | Access array element |
+| 0xA9   | UPDT     | `UPDT dest, index, value[, TYPE_PARAM5]` | Update array element |
+| 0xAA   | TYPEDEF  | `TYPEDEF dest, src` | Create type alias |
+| 0xAB   | ARRAY    | `ARRAY dest, element_type, size` | Define array type |
+
+## Detailed Descriptions
 
 ### TYPEOF (0xA0)
 Get the type of a value.
 
+#### Assembly Syntax
 ```
-Operands:
-- Destination: Non TYPE_VOID
-- Source: Any type
-- TYPE_PARAM5: branch_condition_t (optional)
+TYPEOF dest, src[, TYPE_PARAM5=condition]
 ```
 
-The destination receives a numeric value representing the type of the source operand, including both the main type and type extensions.
-
-Example:
+#### Binary Encoding
 ```
-; Get the type of a value
+0xA0                  ; Opcode for TYPEOF
+0x02/0x03             ; Two or three operands
+[dest_type]           ; Type of destination
+[dest_value]          ; Destination value
+[src_type]            ; Type of source
+[src_value]           ; Source value
+[TYPE_PARAM5]         ; Optional condition
+[condition_value]     ; Condition value
+```
+
+#### Example
+```
+; Assembly
 TYPEOF type_id, variable
 
-; Use type information for conditional logic
-TYPEOF type_id, unknown_value
-CMP type_id, TYPE_INT32
-BR_EQ handle_int32
-```
-
-Binary encoding:
-```
-0xA0      ; Opcode for TYPEOF
-0x02/0x03 ; Two or three operands
-[type1]   ; Type of destination
-[value1]  ; Destination value
-[type2]   ; Type of source
-[value2]  ; Source value
-[type3]   ; TYPE_PARAM5 (if conditional)
-[value3]  ; Condition code (if conditional)
+; Binary
+0xA0      ; TYPEOF
+0x02      ; Two operands
+0x1400    ; TYPE_UNT64
+[id]      ; Type ID identifier
+0x9000    ; TYPE_VAR
+[id]      ; Variable identifier
 ```
 
 ### SIZEOF (0xA1)
 Get the size of a type or value in bytes.
 
+#### Assembly Syntax
 ```
-Operands:
-- Destination: Non TYPE_VOID
-- Source: Any type
-- TYPE_PARAM5: branch_condition_t (optional)
+SIZEOF dest, src[, TYPE_PARAM5=condition]
 ```
 
-The destination receives the size in bytes of the source operand's type.
-
-Example:
+#### Binary Encoding
 ```
-; Get the size of a type
+0xA1                  ; Opcode for SIZEOF
+0x02/0x03             ; Two or three operands
+[dest_type]           ; Type of destination
+[dest_value]          ; Destination value
+[src_type]            ; Type of source
+[src_value]           ; Source value
+[TYPE_PARAM5]         ; Optional condition
+[condition_value]     ; Condition value
+```
+
+#### Example
+```
+; Assembly (size of a type)
 SIZEOF size_bytes, TYPE_INT64    ; size_bytes = 8
 
-; Get the size of a variable's type
-SIZEOF arr_elem_size, array_element
+; Binary
+0xA1      ; SIZEOF
+0x02      ; Two operands
+0x1400    ; TYPE_UNT64
+[id]      ; Size bytes identifier
+0x0400    ; TYPE_INT64
+0x00      ; No specific value needed for type information
 
-; Use size for memory allocation
-SIZEOF elem_size, TYPE_STRUCT=point
-MUL total_size, elem_size, count
-```
+; Assembly (size of a variable's type)
+SIZEOF elem_size, array_element
 
-Binary encoding:
+; Binary
+0xA1      ; SIZEOF
+0x02      ; Two operands
+0x1400    ; TYPE_UNT64
+[id]      ; Element size identifier
+0x9000    ; TYPE_VAR
+[id]      ; Array element identifier
 ```
-0xA1      ; Opcode for SIZEOF
-0x02/0x03 ; Two or three operands
-[type1]   ; Type of destination
-[value1]  ; Destination value
-[type2]   ; Type of source
-[value2]  ; Source value
-[type3]   ; TYPE_PARAM5 (if conditional)
-[value3]  ; Condition code (if conditional)
-```
-
-### ALIGNOF (0xA2)
-Get the alignment requirement of a type or value in bytes.
-
-```
-Operands:
-- Destination: Non TYPE_VOID
-- Source: Any type
-- TYPE_PARAM5: branch_condition_t (optional)
-```
-
-The destination receives the alignment requirement in bytes of the source operand's type.
-
-Example:
-```
-; Get the alignment of a type
-ALIGNOF align_bytes, TYPE_V128   ; align_bytes = 16
-
-; Get alignment for memory allocation
-ALIGNOF struct_align, my_struct
-```
-
-Binary encoding:
-```
-0xA2      ; Opcode for ALIGNOF
-0x02/0x03 ; Two or three operands
-[type1]   ; Type of destination
-[value1]  ; Destination value
-[type2]   ; Type of source
-[value2]  ; Source value
-[type3]   ; TYPE_PARAM5 (if conditional)
-[value3]  ; Condition code (if conditional)
-```
-
-## Type Conversion Instructions
 
 ### CONVERT (0xA3)
 Convert a value from one type to another with proper value preservation.
 
+#### Assembly Syntax
 ```
-Operands:
-- Destination: Non TYPE_VOID
-- Source: Non TYPE_VOID
-- TYPE_PARAM5: branch_condition_t (optional)
+CONVERT dest, src[, TYPE_PARAM5=condition]
 ```
 
-CONVERT performs an appropriate conversion based on the source and destination types, using value-preserving semantics:
-- Integer to integer: Sign-extension or truncation
-- Integer to floating-point: Mathematical conversion
-- Floating-point to integer: Rounding to nearest
-- Floating-point to floating-point: Precision adjustment
-
-Example:
+#### Binary Encoding
 ```
-; Convert integer to floating-point
-VAR TYPE_INT32, int_value, 42
-VAR TYPE_FP32, float_value
-CONVERT float_value, int_value    ; float_value = 42.0
-
-; Convert between different integer widths
-VAR TYPE_INT8, byte_value
-CONVERT byte_value, int_value     ; With range checking/truncation
-
-; Convert floating-point precision
-VAR TYPE_FP64, double_value, 3.14159265359
-VAR TYPE_FP32, float_value
-CONVERT float_value, double_value ; With precision adjustment
+0xA3                  ; Opcode for CONVERT
+0x02/0x03             ; Two or three operands
+[dest_type]           ; Type of destination
+[dest_value]          ; Destination value
+[src_type]            ; Type of source
+[src_value]           ; Source value
+[TYPE_PARAM5]         ; Optional condition
+[condition_value]     ; Condition value
 ```
 
-Binary encoding:
+#### Conversion Rules
+- Numeric types are converted with appropriate rules (rounding, sign extension, etc.)
+- Conversions preserve the semantic value as closely as possible
+- Incompatible conversions generate errors
+
+#### Example
 ```
-0xA3      ; Opcode for CONVERT
-0x02/0x03 ; Two or three operands
-[type1]   ; Type of destination
-[value1]  ; Destination value
-[type2]   ; Type of source
-[value2]  ; Source value
-[type3]   ; TYPE_PARAM5 (if conditional)
-[value3]  ; Condition code (if conditional)
+; Assembly (integer to float)
+CONVERT TYPE_FP32, float_result, TYPE_INT32, int_value
+
+; Binary
+0xA3      ; CONVERT
+0x02      ; Two operands
+0x2500    ; TYPE_FP32
+[id]      ; Float result identifier
+0x0300    ; TYPE_INT32
+[id]      ; Int value identifier
 ```
 
 ### CAST (0xA4)
 Reinterpret a value as another type without changing the bit pattern.
 
+#### Assembly Syntax
 ```
-Operands:
-- Destination: Non TYPE_VOID
-- Source: Non TYPE_VOID
-- TYPE_PARAM5: branch_condition_t (optional)
+CAST dest, src[, TYPE_PARAM5=condition]
 ```
 
-CAST reinterprets the bit pattern of the source value as the destination type, without modifying the bits:
+#### Binary Encoding
+```
+0xA4                  ; Opcode for CAST
+0x02/0x03             ; Two or three operands
+[dest_type]           ; Type of destination
+[dest_value]          ; Destination value
+[src_type]            ; Type of source
+[src_value]           ; Source value
+[TYPE_PARAM5]         ; Optional condition
+[condition_value]     ; Condition value
+```
+
+#### Cast Rules
 - Types must have the same size
-- No semantic conversion is performed
-- Useful for bit-level manipulations and type punning
+- No value conversion is performed (pure bit pattern reinterpretation)
+- Used for low-level bit manipulation or type punning
 
-Example:
+#### Example
 ```
-; Reinterpret float as integer (for bit manipulation)
-VAR TYPE_FP32, float_value, 1.0
-VAR TYPE_UNT32, bits
-CAST bits, float_value    ; Access bit representation
+; Assembly (float to int for bit manipulation)
+CAST TYPE_UNT32, bits, TYPE_FP32, float_value
 
-; Manipulate bits
-OR bits, bits, 0x80000000  ; Set sign bit
-VAR TYPE_FP32, modified_float
-CAST modified_float, bits  ; Convert back to float (-1.0)
-
-; Cast between pointer types
-VAR TYPE_PTR=TYPE_UNT8, byte_ptr, buffer
-VAR TYPE_PTR=TYPE_INT32, int_ptr
-CAST int_ptr, byte_ptr    ; Reinterpret as pointer to integers
+; Binary
+0xA4      ; CAST
+0x02      ; Two operands
+0x1300    ; TYPE_UNT32
+[id]      ; Bits identifier
+0x2500    ; TYPE_FP32
+[id]      ; Float value identifier
 ```
-
-Binary encoding:
-```
-0xA4      ; Opcode for CAST
-0x02/0x03 ; Two or three operands
-[type1]   ; Type of destination
-[value1]  ; Destination value
-[type2]   ; Type of source
-[value2]  ; Source value
-[type3]   ; TYPE_PARAM5 (if conditional)
-[value3]  ; Condition code (if conditional)
-```
-
-## Composite Type Instructions
 
 ### STRUCT (0xA5)
 Define a structure type.
 
+#### Assembly Syntax
 ```
-Operands:
-- Destination: TYPE_STRUCT
-- Field1Type: TYPE_*
-- Field1Name: TYPE_SYM
-- Field2Type: TYPE_*
-- Field2Name: TYPE_SYM
-- ...
+STRUCT dest, field1_type, field1_name, field2_type, field2_name, ...
 ```
 
-STRUCT defines a new structure type with the specified fields and field types.
-
-Example:
+#### Binary Encoding
 ```
-; Define a point structure type
-STRUCT TYPE_STRUCT=point, TYPE_INT32, x, TYPE_INT32, y
-
-; Define a more complex structure
-STRUCT TYPE_STRUCT=rectangle, 
-       TYPE_STRUCT=point, top_left,
-       TYPE_STRUCT=point, bottom_right,
-       TYPE_FP32, area
-```
-
-Binary encoding:
-```
-0xA5      ; Opcode for STRUCT
-0x01+     ; One plus 2*N operands (N = number of fields)
-0xD000    ; TYPE_STRUCT
-[type_id] ; Type ID for structure
-[type2]   ; Type of first field
-[value2]  ; Symbol ID for first field name
-[type3]   ; Type of second field
-[value3]  ; Symbol ID for second field name
+0xA5                  ; Opcode for STRUCT
+0x01+                 ; One plus 2*N operands (N = number of fields)
+[dest_type]           ; TYPE_STRUCT
+[dest_value]          ; Struct type ID
+[field1_type]         ; Type of first field
+[field1_name]         ; Name of first field
+[field2_type]         ; Type of second field
+[field2_name]         ; Name of second field
 ...
 ```
 
+#### Example
+```
+; Assembly (define point structure)
+STRUCT TYPE_STRUCT=point, TYPE_INT32, x, TYPE_INT32, y
+
+; Binary
+0xA5      ; STRUCT
+0x05      ; Five operands (dest + 2*2 field definitions)
+0xD000    ; TYPE_STRUCT
+[id]      ; Struct type ID for "point"
+0x0300    ; TYPE_INT32
+0x9100    ; TYPE_SYM
+[id]      ; Symbol ID for "x"
+0x0300    ; TYPE_INT32
+0x9100    ; TYPE_SYM
+[id]      ; Symbol ID for "y"
+```
+
 ### GET (0xA6)
-Access a field in a structure or union.
+Access a field in a structure.
 
+#### Assembly Syntax
 ```
-Operands:
-- Destination: Non TYPE_VOID
-- Source: TYPE_STRUCT or TYPE_UNION
-- Field: TYPE_SYM
-- TYPE_PARAM5: branch_condition_t (optional)
+GET dest, src, field[, TYPE_PARAM5=condition]
 ```
 
-GET extracts a field from a structure or union and places it in the destination.
-
-Example:
+#### Binary Encoding
 ```
-; Access structure fields
-VAR TYPE_STRUCT=point, p, 10, 20
-VAR TYPE_INT32, x_coord
-GET x_coord, p, x     ; x_coord = p.x (= 10)
-
-; Conditional field access
-GET_NZ value, record, active_field
+0xA6                  ; Opcode for GET
+0x03/0x04             ; Three or four operands
+[dest_type]           ; Type of destination
+[dest_value]          ; Destination value
+[src_type]            ; Type of source structure
+[src_value]           ; Source structure value
+[field_type]          ; TYPE_SYM for field name
+[field_value]         ; Field name value
+[TYPE_PARAM5]         ; Optional condition
+[condition_value]     ; Condition value
 ```
 
-Binary encoding:
+#### Example
 ```
-0xA6      ; Opcode for GET
-0x03/0x04 ; Three or four operands
-[type1]   ; Type of destination
-[value1]  ; Destination value
-[type2]   ; Type of source structure
-[value2]  ; Source structure value
-0x9100    ; TYPE_SYM for field name
-[value3]  ; Symbol ID for field name
-[type4]   ; TYPE_PARAM5 (if conditional)
-[value4]  ; Condition code (if conditional)
+; Assembly
+GET x_coord, point, x
+
+; Binary
+0xA6      ; GET
+0x03      ; Three operands
+0x0300    ; TYPE_INT32
+[id]      ; X coordinate identifier
+0xD000    ; TYPE_STRUCT=point
+[id]      ; Point structure identifier
+0x9100    ; TYPE_SYM
+[id]      ; Symbol ID for "x"
 ```
 
 ### SET (0xA7)
-Set a field in a structure or union.
+Set a field in a structure.
 
+#### Assembly Syntax
 ```
-Operands:
-- Destination: TYPE_STRUCT or TYPE_UNION
-- Field: TYPE_SYM
-- Value: Non TYPE_VOID
-- TYPE_PARAM5: branch_condition_t (optional)
+SET dest, field, value[, TYPE_PARAM5=condition]
 ```
 
-SET updates a field in a structure or union with the specified value.
-
-Example:
+#### Binary Encoding
 ```
-; Set structure fields
-VAR TYPE_STRUCT=point, p, 0, 0
-VAR TYPE_INT32, new_x, 15
-SET p, x, new_x      ; p.x = 15
-
-; Set multiple fields
-SET p, x, 10
-SET p, y, 20
-
-; Conditional field update
-SET_NZ record, modified, 1
+0xA7                  ; Opcode for SET
+0x03/0x04             ; Three or four operands
+[dest_type]           ; Type of destination structure
+[dest_value]          ; Destination structure value
+[field_type]          ; TYPE_SYM for field name
+[field_value]         ; Field name value
+[value_type]          ; Type of value to set
+[value_value]         ; Value to set
+[TYPE_PARAM5]         ; Optional condition
+[condition_value]     ; Condition value
 ```
 
-Binary encoding:
+#### Example
 ```
-0xA7      ; Opcode for SET
-0x03/0x04 ; Three or four operands
-[type1]   ; Type of destination structure
-[value1]  ; Destination structure value
-0x9100    ; TYPE_SYM for field name
-[value2]  ; Symbol ID for field name
-[type3]   ; Type of value
-[value3]  ; Value
-[type4]   ; TYPE_PARAM5 (if conditional)
-[value4]  ; Condition code (if conditional)
+; Assembly
+SET point, y, 20
+
+; Binary
+0xA7      ; SET
+0x03      ; Three operands
+0xD000    ; TYPE_STRUCT=point
+[id]      ; Point structure identifier
+0x9100    ; TYPE_SYM
+[id]      ; Symbol ID for "y"
+0x0320    ; TYPE_INT32+IMM
+0x14000000 ; Value 20
 ```
 
 ### INDEX (0xA8)
 Access an element in an array.
 
+#### Assembly Syntax
 ```
-Operands:
-- Destination: Non TYPE_VOID
-- Source: TYPE_ARRAY
-- Index: Non TYPE_VOID
-- TYPE_PARAM5: branch_condition_t (optional)
+INDEX dest, src, index[, TYPE_PARAM5=condition]
 ```
 
-INDEX extracts an element from an array at the specified index and places it in the destination.
-
-Example:
+#### Binary Encoding
 ```
-; Access array element
-VAR TYPE_ARRAY=TYPE_INT32, numbers, (10, 20, 30, 40, 50)
-VAR TYPE_INT32, value
-INDEX value, numbers, 2     ; value = numbers[2] (= 30)
-
-; Use variable as index
-VAR TYPE_UNT32, i, 1
-INDEX value, numbers, i     ; value = numbers[1] (= 20)
-
-; Conditional array access
-INDEX_NZ value, array, index
+0xA8                  ; Opcode for INDEX
+0x03/0x04             ; Three or four operands
+[dest_type]           ; Type of destination
+[dest_value]          ; Destination value
+[src_type]            ; Type of source array
+[src_value]           ; Source array value
+[index_type]          ; Type of index
+[index_value]         ; Index value
+[TYPE_PARAM5]         ; Optional condition
+[condition_value]     ; Condition value
 ```
 
-Binary encoding:
+#### Example
 ```
-0xA8      ; Opcode for INDEX
-0x03/0x04 ; Three or four operands
-[type1]   ; Type of destination
-[value1]  ; Destination value
-[type2]   ; Type of source array
-[value2]  ; Source array value
-[type3]   ; Type of index
-[value3]  ; Index value
-[type4]   ; TYPE_PARAM5 (if conditional)
-[value4]  ; Condition code (if conditional)
+; Assembly
+INDEX element, numbers, 2
+
+; Binary
+0xA8      ; INDEX
+0x03      ; Three operands
+0x0300    ; TYPE_INT32
+[id]      ; Element identifier
+0xD303    ; TYPE_ARRAY=TYPE_INT32
+[id]      ; Numbers array identifier
+0x1320    ; TYPE_UNT32+IMM
+0x02000000 ; Index 2
 ```
 
 ### UPDT (0xA9)
 Update an element in an array.
 
+#### Assembly Syntax
 ```
-Operands:
-- Destination: TYPE_ARRAY
-- Index: Non TYPE_VOID
-- Value: Non TYPE_VOID
-- TYPE_PARAM5: branch_condition_t (optional)
+UPDT dest, index, value[, TYPE_PARAM5=condition]
 ```
 
-UPDT updates an element in an array at the specified index with the provided value.
-
-Example:
+#### Binary Encoding
 ```
-; Update array element
-VAR TYPE_ARRAY=TYPE_INT32, numbers, (10, 20, 30, 40, 50)
-VAR TYPE_INT32, new_value, 25
-UPDT numbers, 1, new_value  ; numbers[1] = 25
-
-; Use variable as index
-VAR TYPE_UNT32, i, 3
-UPDT numbers, i, 45         ; numbers[3] = 45
-
-; Conditional array update
-UPDT_NZ array, index, value
+0xA9                  ; Opcode for UPDT
+0x03/0x04             ; Three or four operands
+[dest_type]           ; Type of destination array
+[dest_value]          ; Destination array value
+[index_type]          ; Type of index
+[index_value]         ; Index value
+[value_type]          ; Type of value to set
+[value_value]         ; Value to set
+[TYPE_PARAM5]         ; Optional condition
+[condition_value]     ; Condition value
 ```
 
-Binary encoding:
+#### Example
 ```
-0xA9      ; Opcode for UPDT
-0x03/0x04 ; Three or four operands
-[type1]   ; Type of destination array
-[value1]  ; Destination array value
-[type2]   ; Type of index
-[value2]  ; Index value
-[type3]   ; Type of value
-[value3]  ; Value
-[type4]   ; TYPE_PARAM5 (if conditional)
-[value4]  ; Condition code (if conditional)
-```
+; Assembly
+UPDT numbers, 1, 25
 
-## Type Creation and Manipulation
-
-### TYPEDEF (0xAA)
-Create a type alias.
-
-```
-Operands:
-- Destination: TYPE_SYM
-- Source: TYPE_*
-```
-
-TYPEDEF creates a named alias for a type.
-
-Example:
-```
-; Create type aliases
-TYPEDEF integer, TYPE_INT32
-TYPEDEF coordinates, TYPE_STRUCT=point
-
-; Use the type alias
-VAR integer, counter, 0
-```
-
-Binary encoding:
-```
-0xAA      ; Opcode for TYPEDEF
-0x02      ; Two operands
-0x9100    ; TYPE_SYM for type name
-[value1]  ; Symbol ID for type name
-[type2]   ; Type to alias
-```
-
-### ARRAY (0xAB)
-Define an array type.
-
-```
-Operands:
-- Destination: TYPE_ARRAY
-- ElementType: TYPE_*
-- Size: Non TYPE_VOID
-```
-
-ARRAY defines a new array type with the specified element type and size.
-
-Example:
-```
-; Define array types
-ARRAY TYPE_ARRAY=int_array, TYPE_INT32, 10
-ARRAY TYPE_ARRAY=matrix, TYPE_ARRAY=TYPE_FP32, (4, 4)
-
-; Use the array type
-VAR TYPE_ARRAY=int_array, numbers
-```
-
-Binary encoding:
-```
-0xAB      ; Opcode for ARRAY
+; Binary
+0xA9      ; UPDT
 0x03      ; Three operands
-0xD300    ; TYPE_ARRAY
-[type_id] ; Type ID for array
-[type2]   ; Element type
-[type3]   ; Size type
-[value3]  ; Size value
+0xD303    ; TYPE_ARRAY=TYPE_INT32
+[id]      ; Numbers array identifier
+0x1320    ; TYPE_UNT32+IMM
+0x01000000 ; Index 1
+0x0320    ; TYPE_INT32+IMM
+0x19000000 ; Value 25
 ```
 
-## Type Operations Examples
+## Type Manipulation Patterns
 
-### Type Conversion Examples
+### Type Conversion Patterns
 
 ```
 ; Numeric type conversions
 VAR TYPE_INT32, int_value, 42
 VAR TYPE_FP32, float_value
-VAR TYPE_FP64, double_value
-VAR TYPE_INT8, byte_value
 
 ; Integer to floating-point
 CONVERT float_value, int_value   ; float_value = 42.0
 
-; Widen floating-point
-CONVERT double_value, float_value
-
-; Narrow integer with potential truncation
-CONVERT byte_value, int_value
-
-; Integer-to-integer sign conversion
-VAR TYPE_INT32, signed_value, -10
-VAR TYPE_UNT32, unsigned_value
-CONVERT unsigned_value, signed_value  ; Conversion handles sign difference
-```
-
-### Type Reinterpretation
-
-```
-; IEEE 754 floating-point bit manipulation
-VAR TYPE_FP32, original, 1.0
-VAR TYPE_UNT32, bits
-
-; Extract bits from float
-CAST bits, original
-
-; Manipulate exponent (bits 23-30)
-VAR TYPE_UNT32, exponent_mask, 0x7F800000
-VAR TYPE_UNT32, exponent
-AND exponent, bits, exponent_mask
-ADD exponent, exponent, 0x00800000  ; Increase exponent by 1
-
-; Clear old exponent and set new one
-NOT exponent_mask, exponent_mask
-AND bits, bits, exponent_mask
-OR bits, bits, exponent
-
-; Convert back to float
-VAR TYPE_FP32, result
-CAST result, bits                    ; result = 2.0 (doubled)
+; Type system introspection
+VAR TYPE_UNT64, type_size
+SIZEOF type_size, TYPE_INT32     ; type_size = 4
 ```
 
 ### Structure Manipulation
@@ -535,7 +397,7 @@ STRUCT TYPE_STRUCT=person,
        TYPE_UNT8, age,
        TYPE_FP32, height
 
-; Create and populate a person variable
+; Create and populate a person
 VAR TYPE_STRUCT=person, p
 VAR TYPE_ARRAY=TYPE_UNT8, name_field, "John"
 SET p, name, name_field
@@ -545,85 +407,37 @@ SET p, height, 1.75
 ; Access structure fields
 VAR TYPE_UNT8, person_age
 GET person_age, p, age
-
-; Nested structures
-STRUCT TYPE_STRUCT=employee,
-       TYPE_STRUCT=person, person_info,
-       TYPE_INT32, employee_id,
-       TYPE_FP32, salary
-
-; Create employee and access fields
-VAR TYPE_STRUCT=employee, emp
-SET emp, person_info, p
-SET emp, employee_id, 12345
-SET emp, salary, 50000.0
-
-; Access nested field
-VAR TYPE_FP32, emp_height
-VAR TYPE_STRUCT=person, person_info
-GET person_info, emp, person_info
-GET emp_height, person_info, height
 ```
 
 ### Array Operations
 
 ```
-; Create an array of integers
+; Create an array
 VAR TYPE_ARRAY=TYPE_INT32, numbers, (10, 20, 30, 40, 50)
 
-; Access array elements
+; Access array element
 VAR TYPE_INT32, third_element
-INDEX third_element, numbers, 2  ; Zero-based indexing
+INDEX third_element, numbers, 2  ; Zero-based indexing, gets 30
 
 ; Update array element
-VAR TYPE_INT32, new_value, 35
-UPDT numbers, 2, new_value
-
-; Two-dimensional array
-VAR TYPE_ARRAY=TYPE_ARRAY=TYPE_INT32, matrix, (
-    (1, 2, 3),
-    (4, 5, 6),
-    (7, 8, 9)
-)
-
-; Access 2D array element
-VAR TYPE_ARRAY=TYPE_INT32, row
-VAR TYPE_INT32, element
-INDEX row, matrix, 1       ; Get second row
-INDEX element, row, 2      ; Get third element of second row
-
-; Update 2D array element
-UPDT row, 2, 99            ; Update third element of second row
-UPDT matrix, 1, row        ; Update second row in matrix
+UPDT numbers, 2, 35              ; Changes third element to 35
 ```
 
-### Type Information and Memory Management
+### Type-Safe Memory Access
 
 ```
-; Use type information for memory allocation
-VAR TYPE_INT32, element_count, 100
-VAR TYPE_ARRAY=TYPE_FP32, data_array
+; Safely access memory through typed pointers
+VAR TYPE_PTR=TYPE_INT32, int_ptr, address
+VAR TYPE_INT32, value
 
-; Get size of element type
-VAR TYPE_UNT32, element_size
-SIZEOF element_size, TYPE_FP32
+; Load value from typed pointer
+MOV value, [int_ptr]
 
-; Calculate total size
-VAR TYPE_UNT32, total_size
-MUL total_size, element_size, element_count
-
-; Allocate memory (pseudocode, as memory allocation is implementation-defined)
-VAR TYPE_PTR, memory_ptr
-ALLOC memory_ptr, total_size
-
-; Get alignment for proper memory access
-VAR TYPE_UNT32, alignment
-ALIGNOF alignment, TYPE_FP32
+; Store value to typed pointer
+MOV [int_ptr], 42
 ```
 
 ## Type Safety Considerations
-
-### Type Compatibility
 
 The type system ensures safe operations by enforcing compatibility rules:
 
@@ -642,45 +456,8 @@ The type system ensures safe operations by enforcing compatibility rules:
    CAST int_bits, float_value  ; Reinterprets bits without semantic conversion
    ```
 
-### Bounds Checking
-
-Array operations include automatic bounds checking:
-
-```
-; Array bounds are checked
-INDEX element, array, index  ; Fails if index >= array.length
-UPDT array, index, value     ; Fails if index >= array.length
-```
-
-The COIL processor determines how to handle bounds violations (error, exception, etc.).
-
-### Type-Driven Design
-
-COIL's type system encourages a type-driven design approach:
-
-1. Define types that capture domain concepts
-2. Use structures and arrays for complex data
-3. Write functions with explicit type signatures
-4. Allow the COIL processor to optimize based on type information
-
-## Processor-Specific Considerations
-
-While type operations are universal across all processor types, implementation details may vary:
-
-1. **Type Size and Alignment**:
-   - Different processors may have different natural sizes and alignment requirements
-   - Platform-dependent types (TYPE_INT, TYPE_PTR) adapt to the processor
-
-2. **Type Conversion Performance**:
-   - Some processors have dedicated hardware for certain conversions
-   - COIL processor may optimize conversions based on available instructions
-
-3. **Memory Layout**:
-   - Structure packing and alignment may vary by processor
-   - COIL processor ensures consistent memory layout when needed
-
-4. **Type Information Overhead**:
-   - Debug builds may include full type information
-   - Release builds may optimize out type operations where possible
-
-The COIL processor is responsible for mapping type operations to the most efficient implementation for the target processor while maintaining consistent behavior across platforms.
+4. **Bounds Checking**: Array operations include automatic bounds checking
+   ```
+   INDEX element, array, index  ; Fails if index >= array.length
+   UPDT array, index, value     ; Fails if index >= array.length
+   ```

@@ -2,594 +2,525 @@
 
 ## Purpose
 
-This document defines the arithmetic instructions in COIL, which perform mathematical operations on numeric data. These instructions form a fundamental part of COIL's computational capabilities across all processor types.
+This document defines the arithmetic instructions in COIL, which perform mathematical operations on numeric data across different data types.
 
-## Basic Arithmetic Operations
+## Instruction List
+
+| Opcode | Mnemonic | Assembly Syntax | Description |
+|--------|----------|-----------------|-------------|
+| 0x60   | ADD      | `ADD dest, left, right[, TYPE_PARAM5]` | Addition |
+| 0x61   | SUB      | `SUB dest, left, right[, TYPE_PARAM5]` | Subtraction |
+| 0x62   | MUL      | `MUL dest, left, right[, TYPE_PARAM5]` | Multiplication |
+| 0x63   | DIV      | `DIV dest, left, right[, TYPE_PARAM5]` | Division |
+| 0x64   | MOD      | `MOD dest, left, right[, TYPE_PARAM5]` | Modulo |
+| 0x65   | INC      | `INC dest[, TYPE_PARAM5]` | Increment by 1 |
+| 0x66   | DEC      | `DEC dest[, TYPE_PARAM5]` | Decrement by 1 |
+| 0x67   | NEG      | `NEG dest, src[, TYPE_PARAM5]` | Negate (change sign) |
+| 0x68   | ABS      | `ABS dest, src[, TYPE_PARAM5]` | Absolute value |
+| 0x69   | SQRT     | `SQRT dest, src[, TYPE_PARAM5]` | Square root |
+| 0x6A   | FMA      | `FMA dest, a, b, c[, TYPE_PARAM5]` | Fused multiply-add (a*b+c) |
+| 0x6B   | CEIL     | `CEIL dest, src[, TYPE_PARAM5]` | Round up to integer |
+| 0x6C   | FLOOR    | `FLOOR dest, src[, TYPE_PARAM5]` | Round down to integer |
+| 0x6D   | ROUND    | `ROUND dest, src[, TYPE_PARAM5]` | Round to nearest integer |
+| 0x6E   | TRUNC    | `TRUNC dest, src[, TYPE_PARAM5]` | Truncate to integer |
+| 0x7B   | MIN      | `MIN dest, left, right[, TYPE_PARAM5]` | Minimum value |
+| 0x7C   | MAX      | `MAX dest, left, right[, TYPE_PARAM5]` | Maximum value |
+
+## Detailed Descriptions
 
 ### ADD (0x60)
-Add two values and store the result.
+Add two values.
 
+#### Assembly Syntax
 ```
-Operands:
-- Destination: Non TYPE_VOID
-- Left: Non TYPE_VOID
-- Right: Non TYPE_VOID
-- TYPE_PARAM5: branch_condition_t (optional)
+ADD dest, left, right[, TYPE_PARAM5=condition]
 ```
 
-The ADD instruction can be used with two or three operands:
-- Three operands: `ADD dst, src1, src2` (dst = src1 + src2)
-- Two operands: `ADD dst, src` (dst = dst + src)
-
-Example:
+Two-operand form (implied first operand):
 ```
-; Three-operand form
-VAR TYPE_INT32, result
+ADD dest, src[, TYPE_PARAM5=condition]  ; Equivalent to ADD dest, dest, src
+```
+
+#### Binary Encoding
+```
+0x60                  ; Opcode for ADD
+0x02/0x03/0x04        ; Two, three, or four operands
+[dest_type]           ; Type of destination
+[dest_value]          ; Destination value
+[left_type]           ; Type of left operand (if three-operand form)
+[left_value]          ; Left operand value (if three-operand form)
+[right_type]          ; Type of right operand
+[right_value]         ; Right operand value
+[TYPE_PARAM5]         ; Optional condition
+[condition_value]     ; Condition value
+```
+
+#### Example
+```
+; Assembly (three-operand form)
 ADD result, a, b
 
-; Two-operand form (implied first operand)
+; Binary
+0x60      ; ADD
+0x03      ; Three operands
+0x9000    ; TYPE_VAR
+[id]      ; Variable ID for "result"
+0x9000    ; TYPE_VAR
+[id]      ; Variable ID for "a"
+0x9000    ; TYPE_VAR
+[id]      ; Variable ID for "b"
+
+; Assembly (two-operand form)
 ADD counter, 1
 
-; ADD with different numeric types
-ADD TYPE_FP32, float_result, float_a, float_b
-
-; ADD with condition
-ADD_NZ result, a, b
-```
-
-Binary encoding:
-```
-0x60      ; Opcode for ADD
-0x02/0x03/0x04 ; Two, three, or four operands
-[type1]   ; Type of destination
-[value1]  ; Destination value
-[type2]   ; Type of left operand
-[value2]  ; Left operand value
-[type3]   ; Type of right operand (if three-operand form)
-[value3]  ; Right operand value (if three-operand form)
-[type4]   ; TYPE_PARAM5 (if conditional)
-[value4]  ; Condition code (if conditional)
+; Binary
+0x60      ; ADD
+0x02      ; Two operands
+0x9000    ; TYPE_VAR
+[id]      ; Variable ID for "counter"
+0x1320    ; TYPE_UNT32+IMM
+0x01000000 ; Value 1
 ```
 
 ### SUB (0x61)
-Subtract the second value from the first and store the result.
+Subtract the second value from the first.
 
+#### Assembly Syntax
 ```
-Operands:
-- Destination: Non TYPE_VOID
-- Left: Non TYPE_VOID
-- Right: Non TYPE_VOID
-- TYPE_PARAM5: branch_condition_t (optional)
+SUB dest, left, right[, TYPE_PARAM5=condition]
 ```
 
-Example:
+Two-operand form (implied first operand):
 ```
-; Three-operand form
-SUB result, a, b    ; result = a - b
-
-; Two-operand form
-SUB counter, 1      ; counter = counter - 1
-
-; SUB with condition
-SUB_GT value, 10
+SUB dest, src[, TYPE_PARAM5=condition]  ; Equivalent to SUB dest, dest, src
 ```
 
-Binary encoding:
+#### Binary Encoding
 ```
-0x61      ; Opcode for SUB
-0x02/0x03/0x04 ; Two, three, or four operands
-[type1]   ; Type of destination
-[value1]  ; Destination value
-[type2]   ; Type of left operand
-[value2]  ; Left operand value
-[type3]   ; Type of right operand (if three-operand form)
-[value3]  ; Right operand value (if three-operand form)
-[type4]   ; TYPE_PARAM5 (if conditional)
-[value4]  ; Condition code (if conditional)
+0x61                  ; Opcode for SUB
+0x02/0x03/0x04        ; Two, three, or four operands
+[dest_type]           ; Type of destination
+[dest_value]          ; Destination value
+[left_type]           ; Type of left operand (if three-operand form)
+[left_value]          ; Left operand value (if three-operand form)
+[right_type]          ; Type of right operand
+[right_value]         ; Right operand value
+[TYPE_PARAM5]         ; Optional condition
+[condition_value]     ; Condition value
+```
+
+#### Example
+```
+; Assembly (three-operand form)
+SUB result, a, b
+
+; Binary
+0x61      ; SUB
+0x03      ; Three operands
+0x9000    ; TYPE_VAR
+[id]      ; Variable ID for "result"
+0x9000    ; TYPE_VAR
+[id]      ; Variable ID for "a"
+0x9000    ; TYPE_VAR
+[id]      ; Variable ID for "b"
+
+; Assembly (two-operand form)
+SUB counter, 1
+
+; Binary
+0x61      ; SUB
+0x02      ; Two operands
+0x9000    ; TYPE_VAR
+[id]      ; Variable ID for "counter"
+0x1320    ; TYPE_UNT32+IMM
+0x01000000 ; Value 1
 ```
 
 ### MUL (0x62)
-Multiply two values and store the result.
+Multiply two values.
 
+#### Assembly Syntax
 ```
-Operands:
-- Destination: Non TYPE_VOID
-- Left: Non TYPE_VOID
-- Right: Non TYPE_VOID
-- TYPE_PARAM5: branch_condition_t (optional)
+MUL dest, left, right[, TYPE_PARAM5=condition]
 ```
 
-Example:
+Two-operand form (implied first operand):
 ```
-; Three-operand form
-MUL result, a, b    ; result = a * b
-
-; Two-operand form
-MUL value, 2        ; value = value * 2
-
-; Integer multiplication
-MUL TYPE_INT32, int_result, int_a, int_b
-
-; Floating-point multiplication
-MUL TYPE_FP64, fp_result, fp_a, fp_b
+MUL dest, src[, TYPE_PARAM5=condition]  ; Equivalent to MUL dest, dest, src
 ```
 
-Binary encoding:
+#### Binary Encoding
 ```
-0x62      ; Opcode for MUL
-0x02/0x03/0x04 ; Two, three, or four operands
-[type1]   ; Type of destination
-[value1]  ; Destination value
-[type2]   ; Type of left operand
-[value2]  ; Left operand value
-[type3]   ; Type of right operand (if three-operand form)
-[value3]  ; Right operand value (if three-operand form)
-[type4]   ; TYPE_PARAM5 (if conditional)
-[value4]  ; Condition code (if conditional)
+0x62                  ; Opcode for MUL
+0x02/0x03/0x04        ; Two, three, or four operands
+[dest_type]           ; Type of destination
+[dest_value]          ; Destination value
+[left_type]           ; Type of left operand (if three-operand form)
+[left_value]          ; Left operand value (if three-operand form)
+[right_type]          ; Type of right operand
+[right_value]         ; Right operand value
+[TYPE_PARAM5]         ; Optional condition
+[condition_value]     ; Condition value
+```
+
+#### Example
+```
+; Assembly (three-operand form)
+MUL result, a, b
+
+; Binary
+0x62      ; MUL
+0x03      ; Three operands
+0x9000    ; TYPE_VAR
+[id]      ; Variable ID for "result"
+0x9000    ; TYPE_VAR
+[id]      ; Variable ID for "a"
+0x9000    ; TYPE_VAR
+[id]      ; Variable ID for "b"
+
+; Assembly (two-operand form)
+MUL value, 2
+
+; Binary
+0x62      ; MUL
+0x02      ; Two operands
+0x9000    ; TYPE_VAR
+[id]      ; Variable ID for "value"
+0x1320    ; TYPE_UNT32+IMM
+0x02000000 ; Value 2
 ```
 
 ### DIV (0x63)
-Divide the first value by the second and store the result.
+Divide the first value by the second.
 
+#### Assembly Syntax
 ```
-Operands:
-- Destination: Non TYPE_VOID
-- Left: Non TYPE_VOID
-- Right: Non TYPE_VOID
-- TYPE_PARAM5: branch_condition_t (optional)
+DIV dest, left, right[, TYPE_PARAM5=condition]
 ```
 
-Example:
+Two-operand form (implied first operand):
 ```
-; Three-operand form
-DIV result, a, b    ; result = a / b
-
-; Two-operand form
-DIV value, 2        ; value = value / 2
-
-; Integer division
-DIV TYPE_INT32, int_result, int_a, int_b
-
-; Floating-point division
-DIV TYPE_FP64, fp_result, fp_a, fp_b
+DIV dest, src[, TYPE_PARAM5=condition]  ; Equivalent to DIV dest, dest, src
 ```
 
-Binary encoding:
+#### Binary Encoding
 ```
-0x63      ; Opcode for DIV
-0x02/0x03/0x04 ; Two, three, or four operands
-[type1]   ; Type of destination
-[value1]  ; Destination value
-[type2]   ; Type of left operand
-[value2]  ; Left operand value
-[type3]   ; Type of right operand (if three-operand form)
-[value3]  ; Right operand value (if three-operand form)
-[type4]   ; TYPE_PARAM5 (if conditional)
-[value4]  ; Condition code (if conditional)
-```
-
-### MOD (0x64)
-Compute the remainder of dividing the first value by the second.
-
-```
-Operands:
-- Destination: Non TYPE_VOID
-- Left: Non TYPE_VOID
-- Right: Non TYPE_VOID
-- TYPE_PARAM5: branch_condition_t (optional)
+0x63                  ; Opcode for DIV
+0x02/0x03/0x04        ; Two, three, or four operands
+[dest_type]           ; Type of destination
+[dest_value]          ; Destination value
+[left_type]           ; Type of left operand (if three-operand form)
+[left_value]          ; Left operand value (if three-operand form)
+[right_type]          ; Type of right operand
+[right_value]         ; Right operand value
+[TYPE_PARAM5]         ; Optional condition
+[condition_value]     ; Condition value
 ```
 
-Example:
+#### Example
 ```
-; Three-operand form
-MOD result, a, b    ; result = a % b
+; Assembly (three-operand form)
+DIV result, a, b
 
-; Two-operand form
-MOD value, 10       ; value = value % 10
-```
-
-Binary encoding:
-```
-0x64      ; Opcode for MOD
-0x02/0x03/0x04 ; Two, three, or four operands
-[type1]   ; Type of destination
-[value1]  ; Destination value
-[type2]   ; Type of left operand
-[value2]  ; Left operand value
-[type3]   ; Type of right operand (if three-operand form)
-[value3]  ; Right operand value (if three-operand form)
-[type4]   ; TYPE_PARAM5 (if conditional)
-[value4]  ; Condition code (if conditional)
+; Binary
+0x63      ; DIV
+0x03      ; Three operands
+0x9000    ; TYPE_VAR
+[id]      ; Variable ID for "result"
+0x9000    ; TYPE_VAR
+[id]      ; Variable ID for "a"
+0x9000    ; TYPE_VAR
+[id]      ; Variable ID for "b"
 ```
 
 ### INC (0x65)
 Increment a value by 1.
 
+#### Assembly Syntax
 ```
-Operands:
-- Destination: Non TYPE_VOID
-- TYPE_PARAM5: branch_condition_t (optional)
-```
-
-Example:
-```
-; Increment a variable
-INC counter         ; counter = counter + 1
-
-; Conditional increment
-INC_NZ counter      ; Increment if not zero
+INC dest[, TYPE_PARAM5=condition]
 ```
 
-Binary encoding:
+#### Binary Encoding
 ```
-0x65      ; Opcode for INC
-0x01/0x02 ; One or two operands
-[type1]   ; Type of destination
-[value1]  ; Destination value
-[type2]   ; TYPE_PARAM5 (if conditional)
-[value2]  ; Condition code (if conditional)
+0x65                  ; Opcode for INC
+0x01/0x02             ; One or two operands
+[dest_type]           ; Type of destination
+[dest_value]          ; Destination value
+[TYPE_PARAM5]         ; Optional condition
+[condition_value]     ; Condition value
+```
+
+#### Example
+```
+; Assembly
+INC counter
+
+; Binary
+0x65      ; INC
+0x01      ; One operand
+0x9000    ; TYPE_VAR
+[id]      ; Variable ID for "counter"
 ```
 
 ### DEC (0x66)
 Decrement a value by 1.
 
+#### Assembly Syntax
 ```
-Operands:
-- Destination: Non TYPE_VOID
-- TYPE_PARAM5: branch_condition_t (optional)
-```
-
-Example:
-```
-; Decrement a variable
-DEC counter         ; counter = counter - 1
-
-; Conditional decrement
-DEC_GT counter      ; Decrement if greater than
+DEC dest[, TYPE_PARAM5=condition]
 ```
 
-Binary encoding:
+#### Binary Encoding
 ```
-0x66      ; Opcode for DEC
-0x01/0x02 ; One or two operands
-[type1]   ; Type of destination
-[value1]  ; Destination value
-[type2]   ; TYPE_PARAM5 (if conditional)
-[value2]  ; Condition code (if conditional)
-```
-
-## Unary Operations
-
-### NEG (0x67)
-Negate a value (change sign).
-
-```
-Operands:
-- Destination: Non TYPE_VOID
-- Source: Non TYPE_VOID
-- TYPE_PARAM5: branch_condition_t (optional)
+0x66                  ; Opcode for DEC
+0x01/0x02             ; One or two operands
+[dest_type]           ; Type of destination
+[dest_value]          ; Destination value
+[TYPE_PARAM5]         ; Optional condition
+[condition_value]     ; Condition value
 ```
 
-Example:
+#### Example
 ```
-; Two-operand form
-NEG result, value   ; result = -value
+; Assembly
+DEC counter
 
-; One-operand form
-NEG value           ; value = -value
-```
-
-Binary encoding:
-```
-0x67      ; Opcode for NEG
-0x01/0x02/0x03 ; One, two, or three operands
-[type1]   ; Type of destination
-[value1]  ; Destination value
-[type2]   ; Type of source (if two-operand form)
-[value2]  ; Source value (if two-operand form)
-[type3]   ; TYPE_PARAM5 (if conditional)
-[value3]  ; Condition code (if conditional)
-```
-
-### ABS (0x68)
-Compute the absolute value.
-
-```
-Operands:
-- Destination: Non TYPE_VOID
-- Source: Non TYPE_VOID
-- TYPE_PARAM5: branch_condition_t (optional)
-```
-
-Example:
-```
-; Two-operand form
-ABS result, value   ; result = |value|
-
-; One-operand form
-ABS value           ; value = |value|
-```
-
-Binary encoding:
-```
-0x68      ; Opcode for ABS
-0x01/0x02/0x03 ; One, two, or three operands
-[type1]   ; Type of destination
-[value1]  ; Destination value
-[type2]   ; Type of source (if two-operand form)
-[value2]  ; Source value (if two-operand form)
-[type3]   ; TYPE_PARAM5 (if conditional)
-[value3]  ; Condition code (if conditional)
+; Binary
+0x66      ; DEC
+0x01      ; One operand
+0x9000    ; TYPE_VAR
+[id]      ; Variable ID for "counter"
 ```
 
 ### SQRT (0x69)
 Compute the square root.
 
+#### Assembly Syntax
 ```
-Operands:
-- Destination: Non TYPE_VOID (floating-point type)
-- Source: Non TYPE_VOID (floating-point type)
-- TYPE_PARAM5: branch_condition_t (optional)
+SQRT dest, src[, TYPE_PARAM5=condition]
 ```
 
-Example:
+#### Binary Encoding
 ```
-; Compute square root
-SQRT result, value  ; result = √value
-
-; With explicit types
-SQRT TYPE_FP64, double_result, double_value
-```
-
-Binary encoding:
-```
-0x69      ; Opcode for SQRT
-0x02/0x03 ; Two or three operands
-[type1]   ; Type of destination
-[value1]  ; Destination value
-[type2]   ; Type of source
-[value2]  ; Source value
-[type3]   ; TYPE_PARAM5 (if conditional)
-[value3]  ; Condition code (if conditional)
+0x69                  ; Opcode for SQRT
+0x02/0x03             ; Two or three operands
+[dest_type]           ; Type of destination
+[dest_value]          ; Destination value
+[src_type]            ; Type of source
+[src_value]           ; Source value
+[TYPE_PARAM5]         ; Optional condition
+[condition_value]     ; Condition value
 ```
 
-## Advanced Arithmetic
+#### Example
+```
+; Assembly
+SQRT result, value
+
+; Binary
+0x69      ; SQRT
+0x02      ; Two operands
+0x9000    ; TYPE_VAR
+[id]      ; Variable ID for "result"
+0x9000    ; TYPE_VAR
+[id]      ; Variable ID for "value"
+```
 
 ### FMA (0x6A)
 Fused multiply-add: (a * b) + c with a single rounding step.
 
+#### Assembly Syntax
 ```
-Operands:
-- Destination: Non TYPE_VOID (floating-point type)
-- A: Non TYPE_VOID (floating-point type)
-- B: Non TYPE_VOID (floating-point type)
-- C: Non TYPE_VOID (floating-point type)
-- TYPE_PARAM5: branch_condition_t (optional)
+FMA dest, a, b, c[, TYPE_PARAM5=condition]
 ```
 
-Example:
+#### Binary Encoding
 ```
-; Compute a*b+c with a single rounding
-FMA result, a, b, c    ; result = a*b + c
+0x6A                  ; Opcode for FMA
+0x04/0x05             ; Four or five operands
+[dest_type]           ; Type of destination
+[dest_value]          ; Destination value
+[a_type]              ; Type of first multiplicand
+[a_value]             ; First multiplicand value
+[b_type]              ; Type of second multiplicand
+[b_value]             ; Second multiplicand value
+[c_type]              ; Type of addend
+[c_value]             ; Addend value
+[TYPE_PARAM5]         ; Optional condition
+[condition_value]     ; Condition value
+```
 
-; With explicit type
-FMA TYPE_FP32, float_result, float_a, float_b, float_c
+#### Example
 ```
+; Assembly
+FMA result, a, b, c
 
-Binary encoding:
-```
-0x6A      ; Opcode for FMA
-0x04/0x05 ; Four or five operands
-[type1]   ; Type of destination
-[value1]  ; Destination value
-[type2]   ; Type of A
-[value2]  ; A value
-[type3]   ; Type of B
-[value3]  ; B value
-[type4]   ; Type of C
-[value4]  ; C value
-[type5]   ; TYPE_PARAM5 (if conditional)
-[value5]  ; Condition code (if conditional)
+; Binary
+0x6A      ; FMA
+0x04      ; Four operands
+0x9000    ; TYPE_VAR
+[id]      ; Variable ID for "result"
+0x9000    ; TYPE_VAR
+[id]      ; Variable ID for "a"
+0x9000    ; TYPE_VAR
+[id]      ; Variable ID for "b"
+0x9000    ; TYPE_VAR
+[id]      ; Variable ID for "c"
 ```
 
 ### MIN (0x7B)
-Compute the minimum of two values.
+Find the minimum of two values.
 
+#### Assembly Syntax
 ```
-Operands:
-- Destination: Non TYPE_VOID
-- Left: Non TYPE_VOID
-- Right: Non TYPE_VOID
-- TYPE_PARAM5: branch_condition_t (optional)
+MIN dest, left, right[, TYPE_PARAM5=condition]
 ```
 
-Example:
+Two-operand form (implied first operand):
 ```
-; Three-operand form
-MIN result, a, b    ; result = min(a, b)
-
-; Two-operand form
-MIN value, 100      ; value = min(value, 100)
+MIN dest, src[, TYPE_PARAM5=condition]  ; Equivalent to MIN dest, dest, src
 ```
 
-Binary encoding:
+#### Binary Encoding
 ```
-0x7B      ; Opcode for MIN
-0x02/0x03/0x04 ; Two, three, or four operands
-[type1]   ; Type of destination
-[value1]  ; Destination value
-[type2]   ; Type of left operand
-[value2]  ; Left operand value
-[type3]   ; Type of right operand (if three-operand form)
-[value3]  ; Right operand value (if three-operand form)
-[type4]   ; TYPE_PARAM5 (if conditional)
-[value4]  ; Condition code (if conditional)
+0x7B                  ; Opcode for MIN
+0x02/0x03/0x04        ; Two, three, or four operands
+[dest_type]           ; Type of destination
+[dest_value]          ; Destination value
+[left_type]           ; Type of left operand (if three-operand form)
+[left_value]          ; Left operand value (if three-operand form)
+[right_type]          ; Type of right operand
+[right_value]         ; Right operand value
+[TYPE_PARAM5]         ; Optional condition
+[condition_value]     ; Condition value
+```
+
+#### Example
+```
+; Assembly (three-operand form)
+MIN result, a, b
+
+; Binary
+0x7B      ; MIN
+0x03      ; Three operands
+0x9000    ; TYPE_VAR
+[id]      ; Variable ID for "result"
+0x9000    ; TYPE_VAR
+[id]      ; Variable ID for "a"
+0x9000    ; TYPE_VAR
+[id]      ; Variable ID for "b"
+
+; Assembly (two-operand form)
+MIN value, 100      ; Clamp upper limit to 100
+
+; Binary
+0x7B      ; MIN
+0x02      ; Two operands
+0x9000    ; TYPE_VAR
+[id]      ; Variable ID for "value"
+0x1320    ; TYPE_UNT32+IMM
+0x64000000 ; Value 100
 ```
 
 ### MAX (0x7C)
-Compute the maximum of two values.
+Find the maximum of two values.
 
+#### Assembly Syntax
 ```
-Operands:
-- Destination: Non TYPE_VOID
-- Left: Non TYPE_VOID
-- Right: Non TYPE_VOID
-- TYPE_PARAM5: branch_condition_t (optional)
+MAX dest, left, right[, TYPE_PARAM5=condition]
 ```
 
-Example:
+Two-operand form (implied first operand):
 ```
-; Three-operand form
-MAX result, a, b    ; result = max(a, b)
-
-; Two-operand form
-MAX value, 0        ; value = max(value, 0)
+MAX dest, src[, TYPE_PARAM5=condition]  ; Equivalent to MAX dest, dest, src
 ```
 
-Binary encoding:
+#### Binary Encoding
 ```
-0x7C      ; Opcode for MAX
-0x02/0x03/0x04 ; Two, three, or four operands
-[type1]   ; Type of destination
-[value1]  ; Destination value
-[type2]   ; Type of left operand
-[value2]  ; Left operand value
-[type3]   ; Type of right operand (if three-operand form)
-[value3]  ; Right operand value (if three-operand form)
-[type4]   ; TYPE_PARAM5 (if conditional)
-[value4]  ; Condition code (if conditional)
-```
-
-## Additional Arithmetic Instructions
-
-### CEIL (0x6B)
-Round up to the nearest integer.
-
-```
-Operands:
-- Destination: Non TYPE_VOID
-- Source: Non TYPE_VOID (floating-point type)
-- TYPE_PARAM5: branch_condition_t (optional)
+0x7C                  ; Opcode for MAX
+0x02/0x03/0x04        ; Two, three, or four operands
+[dest_type]           ; Type of destination
+[dest_value]          ; Destination value
+[left_type]           ; Type of left operand (if three-operand form)
+[left_value]          ; Left operand value (if three-operand form)
+[right_type]          ; Type of right operand
+[right_value]         ; Right operand value
+[TYPE_PARAM5]         ; Optional condition
+[condition_value]     ; Condition value
 ```
 
-Example:
+#### Example
 ```
-; Ceiling function
-CEIL result, value  ; result = ⌈value⌉
+; Assembly (three-operand form)
+MAX result, a, b
+
+; Binary
+0x7C      ; MAX
+0x03      ; Three operands
+0x9000    ; TYPE_VAR
+[id]      ; Variable ID for "result"
+0x9000    ; TYPE_VAR
+[id]      ; Variable ID for "a"
+0x9000    ; TYPE_VAR
+[id]      ; Variable ID for "b"
+
+; Assembly (two-operand form)
+MAX value, 0         ; Ensure non-negative value
+
+; Binary
+0x7C      ; MAX
+0x02      ; Two operands
+0x9000    ; TYPE_VAR
+[id]      ; Variable ID for "value"
+0x1320    ; TYPE_UNT32+IMM
+0x00000000 ; Value 0
 ```
 
-### FLOOR (0x6C)
-Round down to the nearest integer.
+## Type-Dependent Behavior
 
-```
-Operands:
-- Destination: Non TYPE_VOID
-- Source: Non TYPE_VOID (floating-point type)
-- TYPE_PARAM5: branch_condition_t (optional)
-```
-
-Example:
-```
-; Floor function
-FLOOR result, value  ; result = ⌊value⌋
-```
-
-### ROUND (0x6D)
-Round to the nearest integer.
-
-```
-Operands:
-- Destination: Non TYPE_VOID
-- Source: Non TYPE_VOID (floating-point type)
-- TYPE_PARAM5: branch_condition_t (optional)
-```
-
-Example:
-```
-; Round to nearest
-ROUND result, value  ; result = round(value)
-```
-
-### TRUNC (0x6E)
-Truncate to integer (round toward zero).
-
-```
-Operands:
-- Destination: Non TYPE_VOID
-- Source: Non TYPE_VOID (floating-point type)
-- TYPE_PARAM5: branch_condition_t (optional)
-```
-
-Example:
-```
-; Truncate to integer
-TRUNC result, value  ; result = trunc(value)
-```
-
-## Type Behavior
-
-Arithmetic instructions adapt their behavior based on operand types:
+The behavior of arithmetic instructions depends on operand types:
 
 1. **Integer Operations**:
    - Based on two's complement arithmetic
-   - Overflow behavior depends on signedness
-   - Exact rules determined by the specific processor
+   - Divide-by-zero causes an error
+   - Overflow behavior is type-dependent (wrap for unsigned, implementation-defined for signed)
 
 2. **Floating-Point Operations**:
-   - Based on IEEE 754 arithmetic
-   - Default rounding mode is round-to-nearest
-   - Special value handling (NaN, Infinity) follows IEEE 754
+   - Follow IEEE 754 arithmetic rules
+   - Support special values (NaN, Infinity)
+   - Default rounding mode is round-to-nearest-even
 
-3. **Mixed-Type Operations**:
-   - When operands have different types, COIL follows specific promotion rules
-   - Generally, operands are promoted to the wider type
-   - Explicit conversion may be required for some mixed-type operations
+3. **Mixed Type Operations**:
+   - Operand promotion rules apply
+   - Explicit type conversion recommended for clarity
 
 ## Common Arithmetic Patterns
 
 ### Counter Loop
 
 ```
-; Initialize counter
+; Loop with counter
 VAR TYPE_INT32, i, 0
 VAR TYPE_INT32, limit, 10
 
-; Loop
-SYM loop_start
-CMP i, limit
-BR_GE loop_end
-
-; Loop body...
-
-; Increment counter
-INC i
-BR loop_start
-SYM loop_end
+loop_start:
+  CMP i, limit
+  BR_GE loop_end
+  
+  ; Loop body...
+  
+  INC i
+  BR loop_start
+loop_end:
 ```
 
-### Summation
-
+Binary encoding (key parts):
 ```
-; Initialize sum
-VAR TYPE_INT32, sum, 0
-VAR TYPE_ARRAY=TYPE_INT32, values, (1, 2, 3, 4, 5)
-VAR TYPE_INT32, count, 5
-VAR TYPE_INT32, i, 0
-
-; Loop to sum values
-SYM sum_loop
-CMP i, count
-BR_GE sum_done
-
-; Get array element and add to sum
-VAR TYPE_INT32, element
-INDEX element, values, i
-ADD sum, sum, element
-
-; Next element
-INC i
-BR sum_loop
-SYM sum_done
+0x65      ; INC
+0x01      ; One operand
+0x9000    ; TYPE_VAR
+[id]      ; Variable ID for "i"
 ```
 
 ### Absolute Difference
@@ -605,6 +536,23 @@ SUB diff, a, b
 
 ; Take absolute value
 ABS diff
+```
+
+Binary encoding (key parts):
+```
+0x61      ; SUB
+0x03      ; Three operands
+0x9000    ; TYPE_VAR (diff)
+[id]      ; Variable ID
+0x9000    ; TYPE_VAR (a)
+[id]      ; Variable ID
+0x9000    ; TYPE_VAR (b)
+[id]      ; Variable ID
+
+0x68      ; ABS
+0x01      ; One operand
+0x9000    ; TYPE_VAR (diff)
+[id]      ; Variable ID
 ```
 
 ### Polynomial Evaluation
@@ -634,46 +582,18 @@ ADD result, term1, term2
 ADD result, result, c
 ```
 
-### Fast Multiplication by Powers of Two
+### Clamping a Value
 
 ```
-; Multiply by power of 2 using SHL (left shift)
-VAR TYPE_INT32, value, 5
-VAR TYPE_INT32, result
+; Clamp value to [min_val, max_val]
+VAR TYPE_INT32, value, 42
+VAR TYPE_INT32, min_val, 0
+VAR TYPE_INT32, max_val, 100
+VAR TYPE_INT32, clamped
 
-; Multiply by 4 (2^2)
-SHL result, value, 2  ; result = 5 * 4 = 20
+; First ensure value >= min_val
+MAX clamped, value, min_val
+
+; Then ensure result <= max_val
+MIN clamped, clamped, max_val
 ```
-
-### Efficient Division by Powers of Two
-
-```
-; Divide by power of 2 using SHR (right shift)
-VAR TYPE_INT32, value, 20
-VAR TYPE_INT32, result
-
-; Divide by 4 (2^2)
-SHR result, value, 2  ; result = 20 / 4 = 5
-```
-
-## Processor-Specific Considerations
-
-While arithmetic instructions are universal across all processor types, implementation details may vary:
-
-1. **Rounding Behavior**:
-   - May depend on processor floating-point rounding mode
-   - Can be explicitly controlled with additional parameters
-
-2. **Overflow Handling**:
-   - Integer overflow behavior may vary
-   - Some processors may set status flags or trap
-
-3. **FMA Implementation**:
-   - Hardware FMA may not be available on all processors
-   - COIL processor may implement it using separate multiply and add
-
-4. **SIMD Acceleration**:
-   - Arithmetic on vector types may be accelerated using SIMD hardware
-   - Implementation strategy depends on available hardware capabilities
-
-The COIL processor is responsible for mapping arithmetic instructions to the most efficient implementation for the target processor while maintaining consistent behavior across platforms.
