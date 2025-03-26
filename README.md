@@ -15,6 +15,14 @@ Instructions in COIL derive their behavior from the types of their operands, rat
 - Extensibility without opcode explosion
 - Simplified instruction decoding
 
+### Multi-Processor Design
+
+COIL is designed from the ground up to support multiple processing unit types:
+
+- Version 1: Focus on CPU processing units
+- Version 2: Standard library implementation
+- Version 3: Comprehensive multi-device support (GPUs, TPUs, etc.)
+
 ### Architecture Independence
 
 COIL maintains a clean separation between:
@@ -35,38 +43,49 @@ COIL is designed to compile efficiently to native code without sacrificing perfo
 - Optimization hints through type extensions
 - Explicit control over performance-critical aspects
 
-## Version 1 Specification
+## Key Features
 
-COIL v1 focuses on:
-- Complete CPU-oriented instruction set
-- Comprehensive type system
-- Foundational binary formats
-- Application Binary Interface (ABI) mechanisms
+### Variable System
 
-The v1 specification is structured to allow future extensions to support other processing units (GPUs, TPUs, etc.) while maintaining backward compatibility.
+COIL's variable system abstracts over registers and memory:
+- Variables are declared with specific types
+- Variables can be scoped for automatic lifetime management
+- The COIL processor optimally allocates variables to registers or memory
+- Variables can be promoted or demoted as needed for performance
 
-## Directory Structure
+### ABI System
 
-- `/spec/v1/` - Version 1 specification
-  - `core.md` - Core concepts and instruction format
-  - `types.md` - Type system specification
-  - `isa/` - Instruction Set Architecture
-  - `abi.md` - Application Binary Interface
-  - `obj.md` - Object format
-  - `reg.md` - Register system
-  - `config.md` - Configuration format
-  - `debug.md` - Debug information format
-- `/examples/v1/` - Example COIL programs for v1
+The Application Binary Interface (ABI) system eliminates the need for manual register handling during function calls:
+- Parameter passing is automated based on ABI definitions
+- Return values are managed according to ABI rules
+- Register preservation is handled by the processor
+- Multiple ABIs can coexist in the same program
 
-## Future Versions
+### Binary Format Primacy
 
-- **Version 2:** Standard library implementation
-- **Version 3:** Multi-device support (GPUs, TPUs, etc.)
+COIL is fundamentally a **binary instruction format**. While a text representation (COIL-ASM) is provided for documentation and human interaction, the binary format is the actual "language" of COIL.
 
-## The Team Behind COIL
+## Specification Structure
 
-The Low Level Team is a group of developers who contribute to creating a new framework under the COIL specification. We focus on creating clean and efficient software that enables development across all levels of the stack, from assembly replacement to high-level applications.
+The COIL specification is organized into the following sections:
+
+- **[Core Concepts](spec/core/)**: Fundamental principles and mechanisms
+- **[Instruction Set Architecture](spec/isa/)**: Complete instruction definitions
+- **[Text Format](spec/text-format/)**: COIL Assembly language definition
+- **[Multi-Processor Support](spec/multi-processor/)**: Processing unit abstraction
+- **[File Formats](spec/formats/)**: Object and debug format specifications
+- **[Reference Materials](reference/)**: Comprehensive reference documentation
+- **[Examples](examples/)**: Example COIL programs
+
+## Version Information
+
+Current specification version: 1.0.0
+
+Specification versions follow semantic versioning:
+- **Major**: Incompatible changes to the instruction set or binary format
+- **Minor**: Backwards-compatible additions
+- **Patch**: Clarifications and documentation improvements
 
 ## License
 
-COIL is released into the public domain under the Unlicense. See the LICENSE file for details.
+COIL is released into the public domain under the Unlicense. See the [LICENSE](LICENSE) file for details.
