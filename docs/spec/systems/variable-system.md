@@ -2,15 +2,7 @@
 
 ## Purpose
 
-This document defines the COIL variable system, which provides an abstraction over processor registers and memory, allowing for architecture-independent code with automatic management of storage allocation, lifetime, and optimization.
-
-## Key Concepts
-
-- **Variables vs. Registers**: How variables abstract over hardware details
-- **Scoping**: How variable lifetimes are managed
-- **Allocation Strategy**: How variables are assigned to storage
-- **Optimization**: How variables can be optimized for performance
-- **Type Integration**: How variables interact with the type system
+This document defines the COIL variable system, which provides an abstraction over processor registers and memory. This system enables architecture-independent code with automatic management of storage allocation, variable lifetime, and optimization.
 
 ## Variables vs. Registers
 
@@ -20,16 +12,18 @@ Traditional assembly languages require programmers to manage registers manually:
 - Save and restore registers around function calls
 - Manage register spilling when running out of registers
 
-COIL's variable system abstracts away these details:
+COIL's variable system eliminates these complexities:
 - Variables are declared with types
 - The COIL processor decides where to store each variable
 - Variables are automatically allocated to registers or memory
 - The processor handles register saving and restoration
 - Register spilling happens automatically when needed
 
-## Variable Declaration and Lifetime
+## Variable Declaration and Usage
 
-Variables in COIL are declared using the `VAR` instruction:
+### Basic Declaration
+
+Variables are declared using the `VAR` instruction:
 
 ```
 VAR type, name [, initial_value]
@@ -44,25 +38,44 @@ Examples:
 ```
 VAR TYPE_INT32, counter, 0       ; Integer with initialization
 VAR TYPE_PTR, data_pointer       ; Pointer without initialization
-VAR TYPE_ARRAY=TYPE_UNT8, buffer, "Hello"  ; Array initialization
+VAR TYPE_FP32, pi, 3.14159       ; Floating-point with initialization
 ```
 
-Variables are scoped with explicit lifetimes based on lexical scopes:
-- Variables exist from declaration until the end of their scope
-- Nested scopes allow for organized variable management
-- When a scope ends, all variables in that scope are automatically deallocated
-- Resources (registers or memory) are automatically freed when variables go out of scope
+### Using Variables
+
+Once declared, variables can be used directly in instructions:
+
+```
+; Use variables in arithmetic
+ADD counter, counter, 1
+MUL result, a, b
+
+; Use variables in comparisons
+CMP counter, limit
+BR_LT loop_start
+
+; Use variables with memory operations
+MOV [data_pointer], value
+```
+
+The COIL processor automatically:
+1. Allocates appropriate storage for each variable (register or memory)
+2. Generates the correct code to access the variables
+3. Handles any necessary register spilling or reloading
+4. Optimizes access patterns based on usage
 
 ## Scope Management
 
-Scopes are defined by the `SCOPEE` and `SCOPEL` instructions:
+### Defining Scopes
+
+Scopes define variable lifetimes using the `SCOPEE` and `SCOPEL` instructions:
 
 ```
 SCOPEE
-    ; Variables declared here...
+    ; Variables declared here exist within this scope
     VAR TYPE_INT32, local_var, 0
     
-    ; Variable can be used here...
+    ; Variables can be used here
     ADD local_var, local_var, 1
     
     ; Nested scopes are supported
@@ -75,28 +88,26 @@ SCOPEE
 SCOPEL  ; local_var is destroyed here
 ```
 
-## Variable Usage
+### Scope Benefits
 
-Once declared, variables can be used directly in instructions without specifying registers:
+The scope system provides several benefits:
 
-```
-; Declare variables
-VAR TYPE_INT32, counter, 0
-VAR TYPE_INT32, max_value, 100
+1. **Automatic Resource Management**:
+   - Variables are automatically allocated when declared
+   - Variables are automatically released at scope end
+   - No manual resource tracking needed
 
-; Use variables directly
-ADD counter, counter, 1
-CMP counter, max_value
-BR_LT loop_start
-```
+2. **Memory Safety**:
+   - Prevents accessing variables outside their lifetime
+   - Helps prevent resource leaks
+   - Makes code more maintainable
 
-The COIL processor automatically:
-1. Allocates appropriate storage for each variable (register or memory)
-2. Generates the correct code to access the variables
-3. Handles any necessary register spilling or reloading
-4. Optimizes access patterns based on usage
+3. **Optimization Opportunity**:
+   - Allows the processor to reuse registers and memory
+   - Provides clear lifetime information for optimization
+   - Enables more efficient code generation
 
-## Variable Optimization
+## Variable Storage Optimization
 
 ### Promotion and Demotion
 
@@ -110,7 +121,7 @@ PUSH counter           ; Suggest storing counter in memory
 POP counter            ; Suggest loading counter into a register
 ```
 
-These operations serve dual purposes:
+These operations have dual purposes:
 1. As normal stack operations when used with values
 2. As optimization hints when used with variables
 
@@ -129,21 +140,60 @@ POP counter
 
 While these hints are available, they should be used sparingly as they reduce portability.
 
-## Implementation Strategy
+## Integration with Other Systems
 
-The COIL processor implements the variable system through:
+### Type System Integration
 
-1. **Symbol Table**: Tracks all variable declarations
-2. **Scope Tracking**: Maintains the current scope nesting
-3. **Usage Analysis**: Analyzes variable access patterns
-4. **Register Allocation**: Determines optimal storage for each variable
-5. **Lifetime Management**: Handles variable creation and destruction
+Variables are strongly typed and integrated with COIL's type system:
 
-The specific algorithms used for register allocation depend on the implementation, but common approaches include:
-- Graph coloring allocation
-- Linear scan allocation
-- Usage frequency analysis
-- Liveness analysis
+```
+; Variables with different types
+VAR TYPE_INT32, int_value, 42
+VAR TYPE_FP32, float_value
+
+; Type conversion using CONVERT
+CONVERT float_value, int_value  ; float_value = 42.0
+```
+
+### ABI System Integration
+
+The variable system integrates with the ABI system for function parameters and return values:
+
+```
+; Function using variables with ABI
+SYM add_numbers, TYPE_ABICTL=ABICTL_STANDARD=platform_default
+    SCOPEE
+    ; Get parameters as variables
+    VAR TYPE_INT32, a
+    VAR TYPE_INT32, b
+    MOV a, TYPE_ABICTL=ABICTL_PARAM=platform_default, 0
+    MOV b, TYPE_ABICTL=ABICTL_PARAM=platform_default, 1
+    
+    ; Compute result in a variable
+    VAR TYPE_INT32, result
+    ADD result, a, b
+    
+    ; Return result variable via ABI
+    RET TYPE_ABICTL=ABICTL_RET=platform_default, result
+    SCOPEL
+```
+
+### Memory System Integration
+
+Variables can be used with memory operations seamlessly:
+
+```
+; Array operations using variables
+VAR TYPE_PTR, array_ptr
+VAR TYPE_INT32, index, 0
+VAR TYPE_INT32, value
+
+; Load from array
+MOV value, [array_ptr + index*4]
+
+; Store to array
+MOV [array_ptr + index*4], 42
+```
 
 ## Advanced Variable Features
 
@@ -153,11 +203,11 @@ Variables can have composite types:
 
 ```
 ; Structure variable
-VAR TYPE_STRUCT=point, position, 0, 0
+VAR TYPE_STRUCT=point, position, (10, 20)
 
 ; Access structure fields
 GET x_coord, position, x
-SET position, y, 20
+SET position, y, 30
 
 ; Array variable
 VAR TYPE_ARRAY=TYPE_INT32, numbers, (1, 2, 3, 4, 5)
@@ -184,51 +234,15 @@ SYM main
 
 Global variables have program lifetime and are typically stored in memory rather than registers.
 
-## Integration with Other Systems
+## Implementation Strategy
 
-### ABI Integration
+The COIL processor implements the variable system through:
 
-The variable system integrates with the ABI system for function parameters and return values:
-
-```
-; Function using variables with ABI
-SYM add_numbers, TYPE_ABICTL=ABICTL_STANDARD=platform_default
-    SCOPEE
-    ; Get parameters as variables
-    VAR TYPE_INT32, a, b
-    MOV a, TYPE_ABICTL=ABICTL_PARAM=platform_default, 0
-    MOV b, TYPE_ABICTL=ABICTL_PARAM=platform_default, 1
-    
-    ; Compute and return result
-    VAR TYPE_INT32, result
-    ADD result, a, b
-    RET TYPE_ABICTL=ABICTL_RET=platform_default, result
-    SCOPEL
-```
-
-### Type System Integration
-
-Variables are strongly typed and interact closely with the type system:
-
-```
-; Variables with different types
-VAR TYPE_INT32, int_value, 42
-VAR TYPE_FP32, float_value
-
-; Type conversion using CONVERT
-CONVERT float_value, int_value  ; float_value = 42.0
-```
-
-## Benefits Over Traditional Assembly
-
-The COIL variable system provides several advantages:
-
-1. **Processor Independence**: Code works on any processor
-2. **Simplified Programming**: No manual register management
-3. **Automatic Optimization**: Optimal register allocation
-4. **Reduced Errors**: No register usage conflicts
-5. **Better Readability**: Clear variable names and scope
-6. **Automatic Resource Management**: Variables cleaned up automatically
+1. **Symbol Table**: Tracks all variable declarations
+2. **Scope Tracking**: Maintains the current scope nesting
+3. **Usage Analysis**: Analyzes variable access patterns
+4. **Register Allocation**: Determines optimal storage for each variable
+5. **Lifetime Management**: Handles variable creation and destruction
 
 ## Related Documentation
 

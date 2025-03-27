@@ -4,30 +4,21 @@
 
 This document defines the Application Binary Interface (ABI) system for COIL, providing a processor-independent mechanism for function calls, parameter passing, and return value handling. The ABI system eliminates the need for manual register management while maintaining native performance.
 
-## Key Concepts
-
-- **ABI Definition**: How ABIs are specified in COIL
-- **Parameter Passing**: How function arguments are handled
-- **Return Values**: How function results are returned
-- **Register Management**: How registers are preserved across calls
-- **Platform Independence**: How ABIs enable cross-platform support
-
 ## What Is an ABI?
 
 An ABI (Application Binary Interface) defines the conventions for:
-- How parameters are passed to functions
-- How return values are handled
+- How parameters are passed to functions (which registers or stack locations)
+- How return values are handled (which registers or memory locations)
 - Which registers must be preserved by callers vs. callees
-- Stack alignment requirements
-- Other calling convention details
+- Stack alignment requirements and calling convention details
 
 Traditional assembly languages require programmers to manually implement these conventions. COIL's ABI system automates this process while maintaining native performance.
 
 ## ABI Definition
 
-### Definition Syntax
+### Defining an ABI
 
-An ABI definition in CASM follows this format:
+An ABI is defined using the `ABI` directive followed by ABI-specific instructions:
 
 ```
 ABI abi_name
@@ -52,18 +43,47 @@ ABI linux_x86_64
 EXIT
 ```
 
-### Binary Encoding
+### Standard ABIs
 
-The ABI definition has special binary encoding:
+COIL includes definitions for standard platform ABIs:
+
+#### x86-64 System V ABI (Linux/macOS/BSD)
 
 ```
-0xBA                  ; Opcode for ABI
-0x01                  ; One operand
-0x9100                ; TYPE_SYM for ABI name
-[sym_id]              ; Symbol ID for ABI name
-
-; ABI-specific instructions follow until EXIT
+ABI linux_x86_64
+  PARAMS RDI, RSI, RDX, RCX, R8, R9
+  RETS RAX, RDX
+  CALLER RAX, RCX, RDX, RSI, RDI, R8, R9, R10, R11
+  CALLEE RBX, RSP, RBP, R12, R13, R14, R15
+  SALLIGN 16
+  RZONE 128
+EXIT
 ```
+
+#### x64 Microsoft ABI (Windows)
+
+```
+ABI windows_x64
+  PARAMS RCX, RDX, R8, R9
+  RETS RAX
+  CALLER RAX, RCX, RDX, R8, R9, R10, R11
+  CALLEE RBX, RBP, RDI, RSI, RSP, R12, R13, R14, R15
+  SALLIGN 16
+  RZONE 0
+EXIT
+```
+
+### Platform-Independent ABI
+
+For maximum portability, COIL provides a special platform-independent ABI:
+
+```
+ABI platform_default  ; Maps to the default ABI of the current target
+  ; No explicit register listing - determined by the processor
+EXIT
+```
+
+Code using `platform_default` will be compatible with any processor, as the COIL processor will map to the appropriate ABI for the current target.
 
 ## Using ABIs
 
@@ -93,7 +113,44 @@ Example:
 SYM calculate_sum, TYPE_ABICTL=ABICTL_STANDARD=linux_x86_64
 ```
 
-### Parameter Passing
+### Complete Function Example
+
+```
+; Define a function with a specific ABI
+SYM add_numbers, TYPE_ABICTL=ABICTL_STANDARD=platform_default
+    SCOPEE
+    ; Get parameters
+    VAR TYPE_INT32, a
+    VAR TYPE_INT32, b
+    MOV a, TYPE_ABICTL=ABICTL_PARAM=platform_default, 0  ; First parameter
+    MOV b, TYPE_ABICTL=ABICTL_PARAM=platform_default, 1  ; Second parameter
+    
+    ; Calculate result
+    VAR TYPE_INT32, result
+    ADD result, a, b
+    
+    ; Return result
+    RET TYPE_ABICTL=ABICTL_RET=platform_default, result
+    SCOPEL
+
+; Call the function and use its result
+SYM main
+    SCOPEE
+    VAR TYPE_INT32, x, 10
+    VAR TYPE_INT32, y, 20
+    VAR TYPE_INT32, sum
+    
+    ; Call function with parameters
+    CALL add_numbers, TYPE_ABICTL=ABICTL_PARAM=platform_default, x, y
+    
+    ; Get return value
+    MOV sum, TYPE_ABICTL=ABICTL_RET=platform_default
+    SCOPEL
+```
+
+## Parameter Handling
+
+### Passing Parameters
 
 To call a function with parameters using an ABI:
 
@@ -107,7 +164,7 @@ Example:
 CALL calculate_sum, TYPE_ABICTL=ABICTL_PARAM=linux_x86_64, value1, value2
 ```
 
-### Parameter Reception
+### Receiving Parameters
 
 Within a function, parameters are accessed using the same ABI control:
 
@@ -121,19 +178,14 @@ MOV param2, TYPE_ABICTL=ABICTL_PARAM=abi_name, 1
 
 Example:
 ```
-SYM calculate_sum, TYPE_ABICTL=ABICTL_STANDARD=linux_x86_64
-  SCOPEE
-  ; Get parameters
-  VAR TYPE_INT32, a
-  VAR TYPE_INT32, b
-  MOV a, TYPE_ABICTL=ABICTL_PARAM=linux_x86_64, 0
-  MOV b, TYPE_ABICTL=ABICTL_PARAM=linux_x86_64, 1
-  
-  ; ... function body ...
-  SCOPEL
+; Get parameters from the platform default ABI
+MOV a, TYPE_ABICTL=ABICTL_PARAM=platform_default, 0
+MOV b, TYPE_ABICTL=ABICTL_PARAM=platform_default, 1
 ```
 
-### Return Value Handling
+## Return Value Handling
+
+### Returning Values
 
 To return values from a function:
 
@@ -143,77 +195,41 @@ RET TYPE_ABICTL=ABICTL_RET=abi_name, result1, result2, ...
 
 Example:
 ```
-; Calculate result
-VAR TYPE_INT32, result
-ADD result, a, b
-
-; Return result via ABI
+; Return a single value via ABI
 RET TYPE_ABICTL=ABICTL_RET=linux_x86_64, result
+
+; Return multiple values
+RET TYPE_ABICTL=ABICTL_RET=linux_x86_64, quotient, remainder
 ```
 
-### Return Value Reception
+### Receiving Return Values
 
 After calling a function, return values are accessed:
 
 ```
-; Get the return value
+; Get the single return value
 MOV result, TYPE_ABICTL=ABICTL_RET=abi_name
-```
 
-For multiple return values:
-```
-; Get the first return value
+; Get multiple return values
 MOV result1, TYPE_ABICTL=ABICTL_RET=abi_name, 0
-
-; Get the second return value
 MOV result2, TYPE_ABICTL=ABICTL_RET=abi_name, 1
 ```
 
-## Platform Independence
-
-For maximum portability, COIL provides a special platform-independent ABI:
-
+Example:
 ```
-ABI platform_default  ; Maps to the default ABI of the current target
-  ; No explicit register listing - determined by the processor
-EXIT
-```
+; Call function that returns multiple values
+CALL divmod, TYPE_ABICTL=ABICTL_PARAM=platform_default, num, div
 
-Code using `platform_default` will be compatible with any processor, as the COIL processor will map to the appropriate ABI for the current target.
-
-## Standard ABIs
-
-COIL includes definitions for standard platform ABIs:
-
-### x86-64 System V ABI (Linux/macOS/BSD)
-
-```
-ABI linux_x86_64
-  PARAMS RDI, RSI, RDX, RCX, R8, R9
-  RETS RAX, RDX
-  CALLER RAX, RCX, RDX, RSI, RDI, R8, R9, R10, R11
-  CALLEE RBX, RSP, RBP, R12, R13, R14, R15
-  SALLIGN 16
-  RZONE 128
-EXIT
+; Get both return values
+MOV quotient, TYPE_ABICTL=ABICTL_RET=platform_default, 0
+MOV remainder, TYPE_ABICTL=ABICTL_RET=platform_default, 1
 ```
 
-### x64 Microsoft ABI (Windows)
+## Advanced ABI Features
 
-```
-ABI windows_x64
-  PARAMS RCX, RDX, R8, R9
-  RETS RAX
-  CALLER RAX, RCX, RDX, R8, R9, R10, R11
-  CALLEE RBX, RBP, RDI, RSI, RSP, R12, R13, R14, R15
-  SALLIGN 16
-  RZONE 0
-EXIT
-```
+### Variadic Functions
 
-## Variadic Function Support
-
-COIL supports variadic functions through the ABI system:
+COIL supports variadic functions (functions with variable argument counts):
 
 ```
 ; Access variadic arguments
@@ -221,34 +237,46 @@ VAR TYPE_INT32, arg
 MOV arg, TYPE_ABICTL=ABICTL_VARIADIC=abi_name, index
 ```
 
-## Register Management
-
-The ABI system automatically handles:
-
-1. **Parameter Registers**: Maps function parameters to appropriate registers or stack locations
-2. **Return Registers**: Maps function return values to appropriate registers or memory
-3. **Register Preservation**: Automatically saves and restores caller-saved or callee-saved registers
-4. **Stack Maintenance**: Manages stack space and alignment according to ABI requirements
+Example:
+```
+; Print function with format string and variable arguments
+SYM printf, TYPE_ABICTL=ABICTL_STANDARD=platform_default
+    SCOPEE
+    ; Get format string
+    VAR TYPE_PTR, format
+    MOV format, TYPE_ABICTL=ABICTL_PARAM=platform_default, 0
+    
+    ; Get variadic arguments
+    VAR TYPE_INT32, arg1
+    MOV arg1, TYPE_ABICTL=ABICTL_VARIADIC=platform_default, 0
+    
+    ; ... process arguments ...
+    SCOPEL
+```
 
 ## Implementation Details
 
-When a COIL processor encounters ABI operations, it:
+The ABI system automatically handles:
 
-1. **For function calls**:
-   - Places parameters in the appropriate registers or stack locations
-   - Saves caller-saved registers as needed
-   - Performs the call
-   - Restores caller-saved registers
-   - Makes return values available through the ABI control
+1. **Parameter Passing**: 
+   - Maps function parameters to appropriate registers or stack locations
+   - Follows the specific ABI conventions for parameter order and location
+   - Handles overflow parameters to stack when registers are exhausted
 
-2. **For function entries**:
-   - Makes parameters available through the ABI control
-   - Saves callee-saved registers as needed
+2. **Return Value Handling**:
+   - Maps function return values to appropriate registers or memory
+   - Handles multiple return values according to ABI rules
+   - Ensures consistent access to return values for the caller
 
-3. **For function returns**:
-   - Places return values in the appropriate registers or memory locations
-   - Restores callee-saved registers
-   - Returns to the caller
+3. **Register Preservation**:
+   - Automatically saves and restores caller-saved registers as needed
+   - Ensures callee-saved registers are preserved across function calls
+   - Manages the stack frame according to ABI requirements
+
+4. **Stack Management**:
+   - Maintains proper stack alignment as required by the ABI
+   - Allocates stack space for local variables and spilled registers
+   - Cleans up stack resources on function return
 
 ## Related Documentation
 

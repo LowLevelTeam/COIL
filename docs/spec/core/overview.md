@@ -4,13 +4,6 @@
 
 This document provides a high-level introduction to the Computer Oriented Intermediate Language (COIL), explaining its core design principles, key features, and overall architecture. It serves as an entry point to the COIL documentation.
 
-## Key Concepts
-
-- **Design Philosophy**: The foundational principles guiding COIL's design
-- **Version Strategy**: How COIL evolves across major versions
-- **Core Features**: The primary capabilities that differentiate COIL
-- **Architecture Independence**: How COIL achieves portability across hardware
-
 ## What is COIL?
 
 The Computer Oriented Intermediate Language (COIL) is a universal binary instruction format designed for maximum portability while retaining native performance across diverse processing architectures. COIL bridges the gap between high-level programming languages and hardware-specific machine code through its type-determined instruction philosophy.
@@ -19,43 +12,37 @@ The Computer Oriented Intermediate Language (COIL) is a universal binary instruc
 
 ### Type-Determined Instruction Philosophy
 
-COIL's most distinctive characteristic is its type-determined instruction approach. Rather than having separate opcodes for each variant of an operation, COIL instructions derive their behavior from the types of their operands.
+COIL's most distinctive characteristic is that instructions derive their behavior from the types of their operands, rather than having separate opcodes for each operation variant. This approach provides:
 
-**Key benefits:**
-- Compact instruction set with fewer opcodes
-- Consistent behavior across different data types
-- Extensibility without opcode explosion
-- Simplified instruction decoding
+- **Compact instruction set** with fewer opcodes
+- **Consistent behavior** across different data types
+- **Extensibility** without opcode explosion
+- **Simplified instruction decoding**
 
 For example, a single `ADD` instruction works across integers, floating-point values, and vectors, with behavior determined by operand types.
 
 ### Binary Format Primacy
 
-COIL is fundamentally a binary instruction format. The text representation (COIL-ASM) is a human-readable interface to this binary format, but the binary encoding is the authoritative definition.
-
-This approach ensures:
-- Clear specification boundaries
-- Simplified tool implementation
-- Direct mapping between text and binary forms
+COIL is fundamentally a binary instruction format. The text representation (COIL Assembly or CASM) is a human-readable interface to this binary format, but the binary encoding is the authoritative definition.
 
 ### Architecture Independence
 
-COIL maintains a clean separation between universal operations and architecture-specific features:
+COIL maintains a clean separation between:
 
-- Universal operations work identically across architectures
-- Architecture-specific operations are cleanly isolated
-- The variable system abstracts over registers
-- The ABI system abstracts over calling conventions
+- **Universal operations** (available on all platforms)
+- **Processing unit specific operations** (cleanly isolated)
+- **Architecture specific operations** (explicitly marked)
+- **Implementation specific extensions** (clearly designated)
 
-This separation enables maximum portability while still allowing direct access to hardware-specific features when needed.
+This separation ensures maximum portability while still allowing direct access to hardware-specific features when needed.
 
 ### Performance-First Approach
 
 While providing abstractions, COIL never sacrifices performance:
 
-- Direct mapping to hardware capabilities where possible
 - No abstraction penalties for universal operations
-- Variable promotion/demotion for register optimization
+- Direct mapping to hardware capabilities where possible
+- Optimization hints through type extensions
 - Explicit control over performance-critical aspects
 
 ## Key Features
@@ -63,26 +50,42 @@ While providing abstractions, COIL never sacrifices performance:
 ### Variable System
 
 COIL's variable system abstracts over registers and memory:
+
 - Variables are declared with specific types
-- Variables can be scoped for automatic lifetime management
+- Variables are scoped for automatic lifetime management
 - The COIL processor optimally allocates variables to registers or memory
 - Variables can be promoted or demoted as needed for performance
+
+```
+; Example of variable usage
+SCOPEE
+    VAR TYPE_INT32, counter, 0
+    ADD counter, counter, 1
+SCOPEL  ; counter is automatically released here
+```
 
 ### ABI System
 
 The Application Binary Interface (ABI) system eliminates the need for manual register handling during function calls:
+
 - Parameter passing is automated based on ABI definitions
 - Return values are managed according to ABI rules
 - Register preservation is handled by the processor
 - Multiple ABIs can coexist in the same program
 
+```
+; Example of ABI usage
+CALL calculate_sum, TYPE_ABICTL=ABICTL_PARAM=platform_default, x, y
+MOV result, TYPE_ABICTL=ABICTL_RET=platform_default
+```
+
 ### Multi-Processor Design
 
-COIL is designed from the ground up to support multiple processing unit types:
+COIL is designed with a clear progression plan for supporting multiple processing unit types:
 
-- Version 1: Focus on CPU processing units
-- Version 2: Standard library implementation
-- Version 3: Comprehensive multi-device support (GPUs, TPUs, etc.)
+- **Version 1**: Focus on CPU processing units
+- **Version 2**: Standard library implementation
+- **Version 3**: Comprehensive multi-device support (GPUs, TPUs, etc.)
 
 ## Version Evolution Strategy
 
@@ -116,18 +119,6 @@ The COIL specification is organized into the following sections:
 - **Implementation**: Requirements and formats for implementation
 - **Reference**: Comprehensive reference materials
 - **Examples**: Sample COIL programs
-
-## Relationship to Other Technologies
-
-COIL draws inspiration from:
-
-- LLVM IR's type system
-- Traditional assembly languages' direct hardware access
-- High-level languages' variable and scope concepts
-- Virtual machines' portability
-- GPU programming models' data parallelism
-
-However, COIL is unique in its combination of these ideas into a coherent whole focused on portability with native performance.
 
 ## Getting Started
 

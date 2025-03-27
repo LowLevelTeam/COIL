@@ -4,38 +4,30 @@
 
 This document explores the fundamental design principles that guide COIL (Computer Oriented Intermediate Language), explaining the reasoning behind key architectural decisions and the tradeoffs involved.
 
-## Key Concepts
-
-- **Type-Determined Instruction Philosophy**: The core principle driving COIL's design
-- **Abstraction Without Penalty**: How COIL provides abstractions without sacrificing performance
-- **Platform Independence**: Design approaches for achieving cross-architecture compatibility
-- **Direct Hardware Access**: How COIL maintains low-level control
-- **Future-Oriented Design**: How COIL evolves across versions
-
 ## Type-Determined Instruction Philosophy
 
 ### Core Principle
 
-COIL's most distinctive characteristic is that instructions derive their behavior from the types of their operands, rather than having numerous specialized opcodes. This approach was inspired by how modern high-level languages dispatch methods based on parameter types.
+COIL's most distinctive characteristic is that instructions derive their behavior from the types of their operands, rather than having separate opcodes for different data types. This approach was inspired by how modern high-level languages dispatch methods based on parameter types.
 
 ### Design Benefits
 
 1. **Opcode Efficiency**: 
    - A single `ADD` opcode handles addition across integers, floating-point values, and vectors
-   - No need for separate `ADDI`, `ADDF`, `ADDV` instructions for different types
-   - Results in a smaller, more coherent instruction set
+   - No need for separate `ADDI`, `ADDF`, `ADDV` instructions
+   - Results in a more coherent and compact instruction set
 
 2. **Extensibility**:
    - New types can be added without requiring new opcodes
    - The instruction set remains stable even as capabilities expand
-   - Eliminates "opcode explosion" seen in some ISAs
+   - Prevents "opcode explosion" commonly seen in traditional ISAs
 
 3. **Conceptual Clarity**:
    - Developers think in terms of operations, not specific instruction variants
    - Consistent behavior across different data types
    - Simpler mental model for programming
 
-### Implementation Considerations
+### Implementation Approach
 
 The type-determined approach requires:
 - Efficient type encoding in the binary format
@@ -63,7 +55,7 @@ COIL aims to provide useful abstractions while ensuring these abstractions don't
    - Compiles to native calling conventions with no overhead
 
 3. **Scope-Based Memory Management**:
-   - SCOPEE/SCOPEL provide explicit lifetime control
+   - `SCOPEE`/`SCOPEL` provide explicit lifetime control
    - Resources are automatically managed
    - Compiles to efficient stack operations
 
@@ -81,10 +73,10 @@ To ensure "abstraction without penalty":
 COIL achieves platform independence through several complementary strategies:
 
 1. **Clear Separation of Concerns**:
-   - Universal operations (available on all processors)
-   - Processor-specific operations (cleanly isolated)
-   - Architecture-specific operations (explicitly marked)
-   - Implementation-specific extensions (clearly designated)
+   - Universal operations (opcodes 0x00-0xBF) work on all platforms
+   - Processor-specific operations (opcodes 0xC0-0xFE) are isolated
+   - Architecture-specific operations are explicitly marked
+   - Implementation-specific extensions are clearly designated
 
 2. **Platform-Aware Types**:
    - `TYPE_INT` adapts to the platform's natural integer size
@@ -150,7 +142,7 @@ COIL is designed to evolve across multiple versions:
    - Extended type system
 
 3. **Version 3** (Future):
-   - Multi-device operations
+   - Multi-device operations (GPU, TPU, DSP, FPGA)
    - Heterogeneous computing
    - Advanced memory models
 
@@ -162,29 +154,15 @@ Several architectural decisions support future evolution:
 - Clear versioning in the binary format
 - Backward compatibility requirements
 
-## Relationship to Other Technologies
+## Vector Operations and SIMD
 
-COIL draws inspiration from multiple sources:
+An important aspect of COIL's design is its approach to vector operations:
 
-1. **Traditional Assembly Languages**:
-   - Direct hardware access
-   - Explicit control flow
-   - Simple mapping to machine code
-
-2. **Intermediate Representations**:
-   - Type systems (LLVM IR)
-   - Platform independence
-   - Optimization potential
-
-3. **High-Level Languages**:
-   - Variable concept
-   - Scope-based resource management
-   - Type-based dispatch
-
-4. **Modern ISAs**:
-   - RISC design principles
-   - Orthogonal instruction design
-   - Extensibility mechanisms
+- Vector operations (opcodes 0x90-0x9F) are universal across all processor types
+- They're not processor-specific, unlike opcodes in the 0xC0-0xFE range
+- The COIL processor automatically maps these to native SIMD instructions when available
+- On processors without SIMD support, the operations are implemented using scalar operations
+- This allows COIL code to benefit from SIMD acceleration without requiring architecture-specific code
 
 ## Related Documentation
 

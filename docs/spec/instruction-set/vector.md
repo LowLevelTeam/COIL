@@ -2,15 +2,32 @@
 
 ## Purpose
 
-This document defines the vector and array operations in COIL, which enable efficient parallel processing of multiple data elements. These instructions provide SIMD (Single Instruction Multiple Data) capabilities that are automatically mapped to the target architecture's vector processing features when available.
+This document defines the vector and array operations in COIL, which enable efficient parallel processing of multiple data elements. These instructions provide SIMD (Single Instruction Multiple Data) capabilities and are universal across all processor types.
 
 ## Key Concepts
 
+- **Universal Operations**: Vector operations are available on all processors (opcodes 0x90-0x9F)
+- **Automatic Implementation**: Operations map to SIMD instructions when available or scalar operations when not 
 - **Vector Types**: Special types that contain multiple elements of the same base type
-- **SIMD Operations**: Operations that process multiple data elements in parallel
 - **Element Access**: How to extract or insert individual elements
-- **Vector Manipulation**: How to reorganize vector elements
-- **Vector Math**: How to perform mathematical operations on vectors
+- **Vector Math**: Mathematical operations on vectors
+
+## Vector Types
+
+COIL provides three primary vector types:
+
+| Type | Size (Bytes) | Description | Example Elements |
+|------|--------------|-------------|------------------|
+| TYPE_V128 | 16 | 128-bit vector | 4 x 32-bit floats |
+| TYPE_V256 | 32 | 256-bit vector | 8 x 32-bit floats |
+| TYPE_V512 | 64 | 512-bit vector | 16 x 32-bit floats |
+
+Vector types are parameterized by their element type:
+```
+TYPE_V128=TYPE_INT32    ; Vector of 4 x 32-bit integers
+TYPE_V256=TYPE_FP32     ; Vector of 8 x 32-bit floats
+TYPE_V512=TYPE_INT16    ; Vector of 32 x 16-bit integers
+```
 
 ## Instruction List
 
@@ -27,21 +44,6 @@ This document defines the vector and array operations in COIL, which enable effi
 | 0x9C   | VDOT     | `VDOT dest, left, right[, TYPE_PARAM5]` | Dot product |
 | 0x9D   | VCROSS   | `VCROSS dest, left, right[, TYPE_PARAM5]` | Cross product |
 | 0x9E   | VHSUM    | `VHSUM dest, src[, TYPE_PARAM5]` | Horizontal sum |
-
-## Vector Types
-
-COIL provides three primary vector types:
-
-| Type | Size (Bytes) | Description |
-|------|--------------|-------------|
-| TYPE_V128 | 16 | 128-bit vector |
-| TYPE_V256 | 32 | 256-bit vector |
-| TYPE_V512 | 64 | 512-bit vector |
-
-Vector types are parameterized by their element type:
-- `TYPE_V128=TYPE_INT32`: Vector of 4x 32-bit integers
-- `TYPE_V256=TYPE_FP32`: Vector of 8x 32-bit floats
-- `TYPE_V512=TYPE_INT16`: Vector of 32x 16-bit integers
 
 ## Detailed Descriptions
 
@@ -63,10 +65,10 @@ VLOAD dest, src[, TYPE_PARAM0=vector_control][, TYPE_PARAM5=condition]
 ##### Example
 ```
 ; Load vector from aligned memory
-VLOAD TYPE_V128=TYPE_FP32, vector, [array_ptr]
+VLOAD vector, [array_ptr]
 
 ; Broadcast scalar to all vector elements
-VLOAD TYPE_V256=TYPE_INT32, vector, [scalar_ptr], TYPE_PARAM0=VECTOR_CTRL_BROADCAST
+VLOAD vector, [scalar_ptr], TYPE_PARAM0=VECTOR_CTRL_BROADCAST
 ```
 
 #### VSTORE (0x91)
@@ -113,43 +115,7 @@ VINSERT dest, src, value, index[, TYPE_PARAM5=condition]
 VINSERT modified_vector, original_vector, new_value, 2
 ```
 
-### Vector Operation Instructions
-
-#### VCMP (0x99)
-Compare vectors element-wise and produce a mask.
-
-##### Syntax
-```
-VCMP dest, left, right, cmp_type[, TYPE_PARAM5=condition]
-```
-
-##### Comparison Types
-- `0`: Equal
-- `1`: Not Equal
-- `2`: Less Than
-- `3`: Less Than or Equal
-- `4`: Greater Than
-- `5`: Greater Than or Equal
-
-##### Example
-```
-; Compare for greater than
-VCMP mask, vector1, vector2, 4  ; Elements where vector1 > vector2
-```
-
-#### VBLEND (0x9A)
-Combine elements from two vectors based on a mask.
-
-##### Syntax
-```
-VBLEND dest, first, second, mask[, TYPE_PARAM5=condition]
-```
-
-##### Example
-```
-; Select elements from first or second based on mask
-VBLEND result, vector1, vector2, selection_mask
-```
+### Vector Math Operations
 
 #### VDOT (0x9C)
 Compute the dot product of two vectors.
@@ -181,7 +147,7 @@ VHSUM total, vector
 
 ## Standard Arithmetic with Vectors
 
-Vector operations work with standard arithmetic instructions, which automatically apply element-wise when used with vector types:
+Basic arithmetic instructions automatically work with vectors in an element-wise manner:
 
 ```
 ; Element-wise addition
@@ -193,6 +159,22 @@ MUL vector_product, vector1, vector2
 ; Scalar-vector multiplication
 MUL scaled_vector, vector, scalar_value
 ```
+
+## Implementation Approach
+
+Vector operations are **universal** across all processor types (unlike opcodes in the 0xC0-0xFE range which are processor-specific). Their implementation varies based on available hardware:
+
+1. **On SIMD-capable CPUs**:
+   - Instructions map to native SIMD/vector instructions (SSE, AVX, NEON, etc.)
+   - TYPE_V128 maps to 128-bit registers (XMM on x86)
+   - TYPE_V256 maps to 256-bit registers (YMM on x86)
+   - TYPE_V512 maps to 512-bit registers (ZMM on x86)
+
+2. **On processors without native SIMD**:
+   - Operations are automatically decomposed into scalar operations
+   - Each element is processed individually by the COIL processor
+
+This abstraction allows COIL code to benefit from SIMD acceleration when available without requiring architecture-specific code.
 
 ## Common Vector Operation Patterns
 
@@ -249,25 +231,9 @@ VCMP mask, vector, threshold, 4  ; vector > threshold
 VBLEND result, vector, zeros, mask
 ```
 
-## Hardware Implementation
-
-While vector operations are universal across processor types, their implementation varies based on available hardware:
-
-1. **On SIMD-capable CPUs**:
-   - Instructions map to native SIMD/vector instructions (SSE, AVX, NEON, etc.)
-   - TYPE_V128 maps to 128-bit registers (XMM on x86)
-   - TYPE_V256 maps to 256-bit registers (YMM on x86)
-   - TYPE_V512 maps to 512-bit registers (ZMM on x86)
-
-2. **On processors without native SIMD**:
-   - Operations are automatically decomposed into scalar operations
-   - Each element is processed individually by the COIL processor
-
-This abstraction allows COIL code to benefit from SIMD acceleration when available without requiring architecture-specific code.
-
 ## Related Documentation
 
-- [Type System](../spec/systems/type-system.md) - Type system including vector types
+- [Type System](../systems/type-system.md) - Type system including vector types
 - [Arithmetic Instructions](arithmetic.md) - Standard arithmetic operations that work with vectors
-- [Type Reference](../reference/type-ref.md) - Complete reference of all types including vectors
+- [Type Reference](../../reference/type-ref.md) - Complete reference of all types including vectors
 - [Memory Operations](memory.md) - Memory operations including vector loading/storing
