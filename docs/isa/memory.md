@@ -47,87 +47,14 @@ MOV destination, source[, TYPE_PARAM5=condition]
 
 #### Example
 ```
-; Assembly (register to variable)
-MOV counter, TYPE_RGP=RAX
+; Copy value from variable to register
+MOV TYPE_RGP=RAX, counter
 
-; Binary
-0x10      ; MOV
-0x02      ; Two operands
-0x9000    ; TYPE_VAR
-[id]      ; Variable ID for "counter"
-0x9200    ; TYPE_RGP
-0x00      ; Register ID for RAX
+; Copy immediate value to variable
+MOV counter, 42
 
-; Assembly (memory access)
-MOV [address], 42
-
-; Binary
-0x10      ; MOV
-0x02      ; Two operands
-0xA620    ; TYPE_PTR+IMM
-[addr]    ; Memory address
-0x1320    ; TYPE_UNT32+IMM
-0x2A000000 ; Value 42
-```
-
-### PUSH (0x11)
-Push a value onto the stack or demote a variable to memory.
-
-#### Assembly Syntax
-```
-PUSH source[, TYPE_PARAM5=condition]
-```
-
-#### Binary Encoding
-```
-0x11                  ; Opcode for PUSH
-0x01/0x02             ; One or two operands
-[src_type]            ; Type of source
-[src_value]           ; Source value
-[TYPE_PARAM5]         ; Optional condition
-[condition_value]     ; Condition value
-```
-
-#### Example
-```
-; Assembly
-PUSH counter
-
-; Binary
-0x11      ; PUSH
-0x01      ; One operand
-0x9000    ; TYPE_VAR
-[id]      ; Variable ID for "counter"
-```
-
-### POP (0x12)
-Pop a value from the stack or promote a variable to register.
-
-#### Assembly Syntax
-```
-POP destination[, TYPE_PARAM5=condition]
-```
-
-#### Binary Encoding
-```
-0x12                  ; Opcode for POP
-0x01/0x02             ; One or two operands
-[dest_type]           ; Type of destination
-[dest_value]          ; Destination value
-[TYPE_PARAM5]         ; Optional condition
-[condition_value]     ; Condition value
-```
-
-#### Example
-```
-; Assembly
-POP result
-
-; Binary
-0x12      ; POP
-0x01      ; One operand
-0x9000    ; TYPE_VAR
-[id]      ; Variable ID for "result"
+; Copy memory value to variable
+MOV value, [address]
 ```
 
 ### VAR (0x16)
@@ -151,27 +78,14 @@ VAR type, name[, initial_value]
 
 #### Example
 ```
-; Assembly (with initialization)
+; Define an integer variable with initialization
 VAR TYPE_INT32, counter, 0
 
-; Binary
-0x16      ; VAR
-0x03      ; Three operands
-0x0300    ; TYPE_INT32
-0x9100    ; TYPE_SYM
-[id]      ; Symbol ID for "counter"
-0x1320    ; TYPE_UNT32+IMM
-0x00000000 ; Initial value 0
-
-; Assembly (without initialization)
+; Define a pointer variable without initialization
 VAR TYPE_PTR, data_pointer
 
-; Binary
-0x16      ; VAR
-0x02      ; Two operands
-0xA600    ; TYPE_PTR
-0x9100    ; TYPE_SYM
-[id]      ; Symbol ID for "data_pointer"
+; Define a floating-point variable
+VAR TYPE_FP32, pi, 3.14159
 ```
 
 ### SCOPEE (0x14) and SCOPEL (0x15)
@@ -199,26 +113,60 @@ SCOPEL:
 
 #### Example
 ```
-; Assembly
 SCOPEE
+  ; Variables exist from here...
   VAR TYPE_INT32, temp, 0
   ADD temp, temp, 5
-SCOPEL
+  
+  ; Nested scope
+  SCOPEE
+    VAR TYPE_INT32, nested_var, 10
+    ; Both temp and nested_var are accessible here
+  SCOPEL  ; nested_var is destroyed here
+  
+  ; Only temp exists here
+SCOPEL  ; temp is destroyed here
+```
 
-; Binary
-0x14      ; SCOPEE
-0x00      ; No operands
-0x16      ; VAR
-0x03      ; Three operands
-0x0300    ; TYPE_INT32
-0x9100    ; TYPE_SYM
-[id]      ; Symbol ID for "temp"
-0x1320    ; TYPE_UNT32+IMM
-0x00000000 ; Initial value 0
-0x60      ; ADD (other instructions...)
-...
-0x15      ; SCOPEL
-0x00      ; No operands
+### PUSH (0x11) and POP (0x12)
+Push/pop values to/from the stack or demote/promote variables.
+
+#### Assembly Syntax
+```
+PUSH source[, TYPE_PARAM5=condition]
+POP destination[, TYPE_PARAM5=condition]
+```
+
+#### Binary Encoding
+PUSH:
+```
+0x11                  ; Opcode for PUSH
+0x01/0x02             ; One or two operands
+[src_type]            ; Type of source
+[src_value]           ; Source value
+[TYPE_PARAM5]         ; Optional condition
+[condition_value]     ; Condition value
+```
+
+POP:
+```
+0x12                  ; Opcode for POP
+0x01/0x02             ; One or two operands
+[dest_type]           ; Type of destination
+[dest_value]          ; Destination value
+[TYPE_PARAM5]         ; Optional condition
+[condition_value]     ; Condition value
+```
+
+#### Example
+```
+; Stack operations
+PUSH value            ; Push value to stack
+POP result            ; Pop from stack to result
+
+; Variable optimization hints
+PUSH counter          ; Suggest storing counter in memory
+POP counter           ; Suggest loading counter into register
 ```
 
 ### LEA (0x13)
@@ -243,16 +191,11 @@ LEA destination, source[, TYPE_PARAM5=condition]
 
 #### Example
 ```
-; Assembly
+; Load address of array element
 LEA ptr, [array + index*4]
 
-; Binary
-0x13      ; LEA
-0x02      ; Two operands
-0x9000    ; TYPE_VAR
-[id]      ; Variable ID for "ptr"
-0xA600    ; TYPE_PTR
-[complex] ; Complex address calculation
+; Calculate address without accessing memory
+LEA result, [base + offset]
 ```
 
 ### MEMCPY (0x17)
@@ -279,56 +222,8 @@ MEMCPY destination, source, size[, TYPE_PARAM5=condition]
 
 #### Example
 ```
-; Assembly
+; Copy 100 bytes from source_buffer to dest_buffer
 MEMCPY dest_buffer, source_buffer, 100
-
-; Binary
-0x17      ; MEMCPY
-0x03      ; Three operands
-0x9000    ; TYPE_VAR (for destination)
-[id]      ; Variable ID for "dest_buffer"
-0x9000    ; TYPE_VAR (for source)
-[id]      ; Variable ID for "source_buffer"
-0x1320    ; TYPE_UNT32+IMM
-0x64000000 ; Size 100
-```
-
-### MEMSET (0x18)
-Fill a block of memory with a value.
-
-#### Assembly Syntax
-```
-MEMSET destination, value, size[, TYPE_PARAM5=condition]
-```
-
-#### Binary Encoding
-```
-0x18                  ; Opcode for MEMSET
-0x03/0x04             ; Three or four operands
-[dest_type]           ; Type of destination
-[dest_value]          ; Destination value
-[fill_type]           ; Type of fill value
-[fill_value]          ; Fill value
-[size_type]           ; Type of size
-[size_value]          ; Size value
-[TYPE_PARAM5]         ; Optional condition
-[condition_value]     ; Condition value
-```
-
-#### Example
-```
-; Assembly
-MEMSET buffer, 0, 1024
-
-; Binary
-0x18      ; MEMSET
-0x03      ; Three operands
-0x9000    ; TYPE_VAR
-[id]      ; Variable ID for "buffer"
-0x1020    ; TYPE_UNT8+IMM
-0x00      ; Fill value 0
-0x1420    ; TYPE_UNT64+IMM
-[size]    ; Size 1024
 ```
 
 ### CAS (0x1B)
@@ -357,20 +252,10 @@ CAS destination, expected, new[, TYPE_PARAM0=MEMORY_CTRL_ATOMIC][, TYPE_PARAM5=c
 
 #### Example
 ```
-; Assembly
-CAS [lock_ptr], expected_value, new_value, TYPE_PARAM0=MEMORY_CTRL_ATOMIC
-
-; Binary
-0x1B      ; CAS
-0x04      ; Four operands
-0xA600    ; TYPE_PTR
-[addr]    ; Address from lock_ptr
-0x9000    ; TYPE_VAR
-[id]      ; Variable ID for "expected_value"
-0x9000    ; TYPE_VAR
-[id]      ; Variable ID for "new_value"
-0xFE00    ; TYPE_PARAM0
-0x01      ; MEMORY_CTRL_ATOMIC
+; Atomic compare and swap for lock acquisition
+MOV TYPE_RGP=RAX, 0          ; Expected: unlocked (0)
+MOV TYPE_RGP=RDX, 1          ; New: locked (1)
+CAS [lock_address], TYPE_RGP=RAX, TYPE_RGP=RDX, TYPE_PARAM0=MEMORY_CTRL_ATOMIC
 ```
 
 ## Memory Access Patterns
@@ -380,93 +265,58 @@ CAS [lock_ptr], expected_value, new_value, TYPE_PARAM0=MEMORY_CTRL_ATOMIC
 ; Access memory at fixed address
 MOV [0x1000], 42
 
-; Binary
-0x10      ; MOV
-0x02      ; Two operands
-0xA620    ; TYPE_PTR+IMM
-0x00100000 ; Address 0x1000
-0x1320    ; TYPE_UNT32+IMM
-0x2A000000 ; Value 42
-```
-
-### Register-Based Access
-```
 ; Access memory at address in register
 MOV [TYPE_RGP=RAX], 42
 
-; Binary
-0x10      ; MOV
-0x02      ; Two operands
-0xA600    ; TYPE_PTR
-0x9200    ; TYPE_RGP
-0x00      ; Register ID for RAX
-0x1320    ; TYPE_UNT32+IMM
-0x2A000000 ; Value 42
+; Access memory with offset
+MOV [base_ptr + 8], value
 ```
 
 ### Indexed Access
 ```
-; Access array element: base + index*scale
-MOV [array + index*4], 42
+; Array element access: base + index*scale
+MOV element, [array + index*4]
 
-; Binary
-0x10      ; MOV
-0x02      ; Two operands
-0xA600    ; TYPE_PTR
-[complex] ; Complex address calculation
-0x1320    ; TYPE_UNT32+IMM
-0x2A000000 ; Value 42
+; Structure field access
+MOV field, [struct_ptr + offset]
 ```
 
-## Variable System Example
-
+### Memory Block Operations
 ```
-; Complete variable system example
-SCOPEE
-  VAR TYPE_INT32, counter, 0
-  VAR TYPE_INT32, max_count, 10
-  
-  loop_start:
-    CMP counter, max_count
-    BR_GE loop_end
-    
-    ; Body of loop
-    INC counter
-    BR loop_start
-    
-  loop_end:
-SCOPEL  ; All variables destroyed here
+; Fill a block with a value
+MEMSET buffer, 0, 1024       ; Zero out 1KiB of memory
+
+; Copy a block
+MEMCPY dest, src, size
+
+; Compare memory blocks
+MEMCMP result, block1, block2, size
 ```
 
-## Best Practices
+## Variable System Integration
 
-1. **Use variables instead of direct register access**:
-   ```
-   ; Preferred: Use variables
-   VAR TYPE_INT32, counter, 0
-   ADD counter, counter, 1
-   
-   ; Avoid: Direct register access
-   MOV TYPE_RGP=RAX, 0
-   ADD TYPE_RGP=RAX, TYPE_RGP=RAX, 1
-   ```
+The memory operations work closely with COIL's variable system:
 
-2. **Use appropriate scoping**:
-   ```
-   SCOPEE
-     VAR TYPE_INT32, temp, 0
-     ; Use temp...
-   SCOPEL  ; temp is automatically deallocated
-   ```
+1. **Variable Declaration**:
+   - `VAR` creates variables with proper types
+   - Variables can be initialized during declaration
 
-3. **Use memory block operations for efficiency**:
-   ```
-   ; Efficient: Use block operations
-   MEMCPY dest, src, 100
-   ```
+2. **Scope Management**:
+   - `SCOPEE`/`SCOPEL` manage variable lifetimes
+   - When a scope ends, all its variables are released
 
-4. **Use the ABI system for function parameters**:
-   ```
-   ; Preferred: Let the processor handle parameters
-   CALL function, TYPE_ABICTL=ABICTL_PARAM=platform_default, x, y
-   ```
+3. **Variable Access**:
+   - Variables are used directly in instructions
+   - The COIL processor translates variable references to the appropriate register or memory access
+
+4. **Variable Optimization**:
+   - `PUSH`/`POP` provide hints for variable storage optimization
+   - Frequently used variables can be promoted to registers
+   - Infrequently used variables can be demoted to memory
+
+## Related Documentation
+
+For more information on memory concepts and related features, see:
+- [Memory Model](../concepts/memory-model.md) - Memory organization and rules
+- [Variable System](../concepts/variable-system.md) - Details on variable management
+- [Type Operations](type.md) - Instructions for working with typed memory

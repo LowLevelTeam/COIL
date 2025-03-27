@@ -10,17 +10,6 @@ Types are encoded in a 16-bit format:
 - First 8 bits: Main Type (0x00-0xFF)
 - Second 8 bits: Type Extensions (flags)
 
-Some types require additional data beyond the 16-bit type descriptor:
-- Register types include a register identifier
-- Composite types include additional type information
-- Parameter types include parameter-specific data
-
-## Type Data Syntax
-
-In COIL-ASM, type data can be specified in two ways:
-- Single Equals: `TYPE=data` (e.g., `TYPE_RGP=RAX`)
-- Double Equals: `TYPE=typedata=followingdata` (e.g., `TYPE_ABICTL=ABICTL_STANDARD=linux_x86_64`)
-
 ## Integer Types
 
 | Type ID | Name | Size (Bytes) | Description |
@@ -205,6 +194,22 @@ Type extensions provide additional qualifiers for type values:
 | 0x03  | MEMORY_CTRL_ALIGNED   | Enforce alignment |
 | 0x04  | MEMORY_CTRL_UNALIGNED | Allow unaligned access |
 
+## Type Data Syntax
+
+In COIL-ASM, type data can be specified in two ways:
+
+1. **Single Equals Syntax**: `TYPE=data` where `data` is the type data
+   ```
+   TYPE_RGP=RAX        ; Register type with RAX as type data
+   TYPE_ARRAY=TYPE_UNT8  ; Array type with UNT8 as element type
+   ```
+
+2. **Double Equals Syntax**: `TYPE=typedata=followingdata` for complex type specifications
+   ```
+   TYPE_ABICTL=ABICTL_STANDARD=linux_x86_64  ; ABI control with standard type and specific ABI
+   TYPE_PTR=TYPE_INT32=0x1000             ; Pointer type with INT32 as pointed type and address
+   ```
+
 ## Type Compatibility Rules
 
 Types are compatible under the following conditions:
@@ -214,63 +219,6 @@ Types are compatible under the following conditions:
 3. Both types are integer types with the same signedness and the destination type has equal or greater width.
 4. Both types are floating-point types and the destination type has equal or greater precision.
 5. Both types are vector types with compatible element types and the destination has sufficient size.
-
-## Type Conversion Rules
-
-Type conversions follow these rules:
-
-1. **Integer to Integer**:
-   - Same size, different signedness: Bit pattern preserved
-   - Wider type: Sign-extended or zero-extended based on signedness
-   - Narrower type: Truncated (most significant bits discarded)
-
-2. **Integer to Floating-Point**:
-   - Exact conversion when possible
-   - Rounded according to IEEE 754 rules when exact representation not possible
-
-3. **Floating-Point to Integer**:
-   - Rounded toward zero (truncated)
-   - Saturated to type limits for out-of-range values
-
-4. **Floating-Point to Floating-Point**:
-   - Wider type: Exact conversion
-   - Narrower type: Rounded according to IEEE 754 rules
-
-5. **Vector Type Conversions**:
-   - Element-wise conversion following scalar rules
-   - Vector width changes require explicit reshaping operations
-
-## Type-Specific Behavior Guidelines
-
-### Integer Types
-- Arithmetic follows two's complement rules
-- Division by zero is an error
-- Overflow behavior is architecture-dependent
-
-### Floating-Point Types
-- Operations follow IEEE 754 rules
-- Special values (NaN, Infinity) follow IEEE 754 handling
-- Default rounding mode is "round to nearest, ties to even"
-
-### Vector Types
-- Operations apply to all elements in parallel
-- Type must include element type: `TYPE_V128=TYPE_FP32`
-- Alignment requirements match vector size (16-byte, 32-byte, 64-byte)
-
-### Register Types
-- Direct access to hardware registers
-- Should only be used when absolutely necessary
-- Register naming follows architecture conventions
-
-### Platform-Dependent Types
-- Automatically adjust to target platform
-- `TYPE_PTR` is 32-bit on 32-bit platforms, 64-bit on 64-bit platforms
-- `TYPE_INT` is typically 32-bit, but may be 64-bit on some platforms
-
-### Composite Types
-- `TYPE_STRUCT` includes field type information
-- `TYPE_ARRAY` includes element type and count
-- Alignment follows natural alignment of members unless specified otherwise
 
 ## Binary Encoding Examples
 
@@ -288,4 +236,7 @@ Binary: 0x92 0x00 0x00
 
 ; TYPE_ARRAY=TYPE_UNT8
 Binary: 0xD3 0x00 0x10 0x00
+
+; TYPE_V128=TYPE_FP32 
+Binary: 0x30 0x00 0x25 0x00
 ```

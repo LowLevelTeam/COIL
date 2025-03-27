@@ -18,7 +18,8 @@ The total instruction size varies based on the number and type of operands.
 
 The opcode field is a single byte that identifies the operation to perform:
 - Values 0x00-0xBF: Universal instructions
-- Values 0xC0-0xFF: Processor-specific instructions
+- Values 0xC0-0xFE: Processor-specific instructions
+- Value 0xFF: COIL processor-specific extensions
 
 ### Operand Count Field
 
@@ -101,15 +102,6 @@ The value field contains the actual data, with size and encoding determined by t
 - Multi-byte values in operands follow little-endian encoding by default
 - No padding is inserted between instruction fields or between instructions
 
-## Instruction Size
-
-Instruction size varies based on:
-1. Number of operands
-2. Types of operands
-3. Size of operand values
-
-The minimum instruction size is 2 bytes (opcode + operand count with no operands).
-
 ## Encoding Examples
 
 ### Simple Instruction: NOP
@@ -174,20 +166,39 @@ Total size: 11+ bytes (depending on symbol ID size)
 0xF000    ; TYPE_PARAM5
 0x00      ; BRANCH_COND_EQ
 ```
-Total size: Variable based on ID sizes
 
-## Binary Format Benefits
+## Special Encoding Cases
 
-The COIL binary format is designed for:
+### ABI Directive
 
-1. **Efficiency**: Compact representation of instructions
-2. **Flexibility**: Can represent all required operations and types
-3. **Extensibility**: Structured to allow future additions
-4. **Universality**: Works across all supported processor types
-5. **Determinism**: Bijective mapping between assembly and binary
+When the `ABI` directive is encountered, the instruction set temporarily changes to a special set of ABI definition opcodes until the `EXIT` opcode is encountered:
 
-## Format Versioning
+```
+0xBA            ; Opcode for ABI
+0x01            ; One operand
+0x9100          ; TYPE_SYM for ABI name
+[sym_id]        ; Symbol ID for ABI name
 
-The binary format version is encoded in COIL object files. COIL processors should check version compatibility and support:
+; ABI-specific instructions follow until EXIT
+0x01            ; PARAMS
+...
+0x00            ; EXIT
+```
+
+### Conditional Assembly Directives
+
+Conditional assembly directives (`IF`, `ELIF`, `ELSE`, `ENDIF`) are processed during assembly and do not appear in the final binary format.
+
+## Version Compatibility
+
+The binary format version is encoded in COIL object files. COIL processors should check version compatibility:
+
 - Same major version: Full support required
 - Higher minor version: Support core features, newer features optional
+
+## Related Documentation
+
+For more detailed information on specific encoding aspects, see:
+- [Type System](../concepts/type-system.md) - Type encoding details
+- [Object Format](../implementation/object-format.md) - File format encoding
+- [Instruction Reference](../reference/instruction-ref.md) - Complete instruction listing

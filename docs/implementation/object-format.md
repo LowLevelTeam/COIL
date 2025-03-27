@@ -4,7 +4,7 @@
 
 This document defines the binary object format used for COIL programs. The COIL object format provides a standardized container for COIL instructions, symbols, and data, enabling linking, loading, and execution across different implementations and processor types.
 
-## Format Overview
+## Primary Object Formats
 
 COIL uses two primary object formats:
 
@@ -85,7 +85,8 @@ struct SectionEntry {
 }
 ```
 
-Section types:
+#### Section Types
+
 ```
 0x00 - NULL       // Unused section entry
 0x01 - CODE       // Executable code
@@ -100,7 +101,8 @@ Section types:
 0x0A - CUSTOM     // Custom section
 ```
 
-Section flags:
+#### Section Flags
+
 ```
 0x01 - EXECUTABLE // Section contains executable code
 0x02 - WRITABLE   // Section is writable
@@ -126,7 +128,8 @@ struct SymbolEntry {
 }
 ```
 
-Symbol types:
+#### Symbol Types
+
 ```
 0x00 - NOTYPE    // Unspecified type
 0x01 - FUNCTION  // Function or procedure
@@ -136,7 +139,8 @@ Symbol types:
 0x05 - ABI       // ABI definition
 ```
 
-Symbol bindings:
+#### Symbol Bindings
+
 ```
 0x00 - LOCAL     // Local symbol (not visible outside file)
 0x01 - GLOBAL    // Global symbol (visible to other files)
@@ -146,19 +150,7 @@ Symbol bindings:
 
 ### String Table
 
-The string table contains null-terminated strings referenced by other tables:
-
-```
-+------------------+
-| Null string (\0) |
-+------------------+
-| String 1...      |
-+------------------+
-| String 2...      |
-+------------------+
-| ...              |
-+------------------+
-```
+The string table contains null-terminated strings referenced by other tables.
 
 Offsets into the string table are relative to the beginning of the table.
 
@@ -178,10 +170,7 @@ struct TypeEntry {
 }
 ```
 
-Type-specific data varies depending on the type:
-- For structures: field types, offsets, and names
-- For arrays: element type and count
-- For typedefs: underlying type
+Type-specific data varies depending on the type (structure fields, array elements, etc.).
 
 ### Code Sections
 
@@ -217,7 +206,8 @@ struct RelocationEntry {
 }
 ```
 
-Relocation types:
+#### Relocation Types
+
 ```
 0x01 - ABS32     // 32-bit absolute address
 0x02 - REL32     // 32-bit relative address
@@ -331,27 +321,16 @@ if (header.major_version > SUPPORTED_MAJOR) {
 }
 ```
 
-## Linking Multiple Objects
-
-COIL objects can be linked together to form larger programs:
-
-1. Resolve external symbols
-2. Combine sections of the same type
-3. Adjust relocations
-4. Create a new object with the combined content
-
-## Multi-Processor Extensions (v3)
-
-In COIL v3, the object format will be extended to support multi-processor programs:
-
-1. Multiple processor-specific code sections
-2. Cross-device memory mapping information
-3. Device selection metadata
-4. JIT compilation hints
-
-## File Extensions
+## File Extension Summary
 
 - `.coil` - COIL object file
 - `.coilo` - COIL output object file
 - `.coilh` - COIL header file (for includes)
 - `.coila` - COIL archive (library)
+
+## Related Documentation
+
+For more information about related formats and tools, see:
+- [Debug Format](debug-format.md) - Debug information specification
+- [Toolchain](toolchain.md) - Tools for working with COIL objects
+- [Binary Encoding](../isa/binary-encoding.md) - Instruction encoding details

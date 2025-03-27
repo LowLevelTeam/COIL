@@ -2,157 +2,86 @@
 
 ## Purpose
 
-This document explains the foundational design principles that guide COIL, providing context for the technical decisions in the specification and establishing a coherent vision for its evolution.
+This document explains the foundational design principles that guide COIL (Computer Oriented Intermediate Language), providing context for the technical decisions in the specification.
+
+## What is COIL?
+
+COIL is a universal binary instruction format designed for maximum portability across diverse processing architectures while enabling native performance. It serves as an intermediate representation between high-level programming languages and hardware-specific machine code.
 
 ## Core Design Principles
 
-### 1. Type-Determined Instruction Philosophy
+### Type-Determined Instruction Philosophy
 
-COIL's most distinctive characteristic is its type-determined instruction approach. Rather than having separate opcodes for each variant of an operation (like most traditional assembly languages), COIL instructions derive their behavior from the types of their operands.
+COIL's most distinctive characteristic is its type-determined instruction approach. Rather than having separate opcodes for each variant of an operation, COIL instructions derive their behavior from the types of their operands.
 
-**Benefits:**
-- **Compact instruction set**: Fewer opcodes needed to cover the same functionality
-- **Consistent behavior**: Same operations work across many different data types
-- **Extensibility**: Adding new types doesn't require new opcodes
-- **Simplified implementation**: Instruction decoding follows a consistent pattern
+**Key benefits:**
+- Compact instruction set with fewer opcodes
+- Consistent behavior across different data types
+- Extensibility without opcode explosion
+- Simplified instruction decoding
 
-**Example:**
-In traditional assembly, different opcodes are needed for different operand sizes:
-```
-; Traditional approach (separate opcodes)
-add32 eax, ebx      ; 32-bit addition
-addf xmm0, xmm1     ; Floating-point addition
-addv ymm0, ymm1     ; Vector addition
-```
+For example, a single `ADD` instruction works across integers, floating-point values, and vectors, with behavior determined by operand types.
 
-In COIL, a single instruction works across all types:
-```
-; COIL approach (single opcode with typed operands)
-ADD TYPE_INT32, a, b      ; 32-bit integer addition
-ADD TYPE_FP32, c, d       ; 32-bit floating-point addition
-ADD TYPE_V256, vec1, vec2 ; 256-bit vector addition
-```
+### Binary Format Primacy
 
-### 2. Multi-Processor Design
+COIL is fundamentally a binary instruction format. The text representation (COIL-ASM) is a human-readable interface to this binary format, but the binary encoding is the authoritative definition.
 
-COIL is designed from the ground up to support multiple processing unit types, not just traditional CPUs.
+This approach ensures:
+- Clear specification boundaries
+- Simplified tool implementation
+- Direct mapping between text and binary forms
 
-**Benefits:**
-- **Future-proof**: Ready for heterogeneous computing environments
-- **Consistent programming model**: Same principles apply across different processors
-- **Straightforward extensibility**: Processor-specific features have designated spaces
+### Architecture Independence
 
-**Implementation:**
-- Universal operations work identically across all processor types
-- Processor-specific operations are cleanly separated
-- Reserved opcode space for future multi-device operations (v3)
-- Architecture abstraction prevents lock-in to specific hardware
+COIL maintains a clean separation between universal operations and architecture-specific features:
 
-### 3. Architecture Independence
+- Universal operations work identically across architectures
+- Architecture-specific operations are cleanly isolated
+- The variable system abstracts over registers
+- The ABI system abstracts over calling conventions
 
-COIL provides a clean separation between universal operations and architecture-specific details.
+This separation enables maximum portability while still allowing direct access to hardware-specific features when needed.
 
-**Benefits:**
-- **Portable code**: Programs can run on multiple architectures
-- **Reduced learning curve**: Core concepts transfer across architectures
-- **Future-proof**: New architectures can be supported without breaking existing code
-- **Hardware access**: Still allows direct access to architecture-specific features when needed
+### Performance-First Approach
 
-**Implementation:**
-- Variable system abstracts over registers
-- ABI system abstracts over calling conventions
-- Platform-dependent types automatically adjust to the target
-- Architecture-specific operations are isolated in dedicated opcode space
+While providing abstractions, COIL never sacrifices performance:
 
-### 4. Performance-First Approach
-
-While providing abstractions, COIL never sacrifices performance.
-
-**Benefits:**
-- **Native speed**: COIL programs can achieve the same performance as traditional assembly
-- **Optimization-friendly**: Abstractions are designed to support, not hinder, optimizations
-- **Predictable performance**: Operations map cleanly to hardware capabilities
-- **Fine-grained control**: Access to low-level features when needed
-
-**Implementation:**
 - Direct mapping to hardware capabilities where possible
+- No abstraction penalties for universal operations
 - Variable promotion/demotion for register optimization
-- Type extensions to provide optimization hints
-- Processor-specific operations for maximum performance
+- Explicit control over performance-critical aspects
 
-### 5. Binary Format Primacy
+### Abstraction Without Penalty
 
-COIL is fundamentally a binary instruction format, with COIL Assembly (COIL-ASM) serving as a human-readable representation.
+COIL provides powerful abstractions that don't compromise performance:
 
-**Benefits:**
-- **Clear specification**: The binary format is the definitive specification
-- **Implementation clarity**: Eliminates ambiguities in text parsing
-- **Direct mapping**: Each text instruction maps to exactly one binary instruction
-- **Tool-friendly**: Simplifies implementation of assemblers and disassemblers
-
-**Implementation:**
-- Binary format specified first, text format derived from it
-- Consistent encoding patterns for all instructions
-- Clear mapping between text and binary representations
-- Type information preserved in binary format
-
-### 6. Abstraction Without Penalty
-
-COIL provides powerful abstractions that don't compromise performance.
-
-**Benefits:**
-- **Easier programming**: High-level concepts in a low-level language
-- **Reduced errors**: Abstractions prevent common mistakes
-- **Better readability**: Code expresses intent more clearly
-- **Native performance**: Abstractions compile to efficient native code
-
-**Implementation:**
 - Variable system instead of direct register manipulation
-- ABI system for parameter passing
+- ABI system for function calls and parameter passing
 - Scope-based memory management
-- Processor-independent types
+- Type-safe memory operations
 
-## Evolution Guidance
+## Version Evolution Strategy
 
-These principles also guide COIL's evolution:
+COIL evolves through distinct versions with clear boundaries:
 
-### Version 1: Foundation
-- Establishing the core instruction set
-- Focusing on CPU processing units
-- Implementing variable and ABI systems
-- Creating the complete type system
+- **Version 1** (Current): Core CPU-focused instruction set, variable system, and ABI mechanism
+- **Version 2** (Planned): Standard library and enhanced features
+- **Version 3** (Future): Multi-device operations across heterogeneous processing units
 
-### Version 2: Standard Library
-- Building on the foundation with higher-level operations
-- Maintaining backward compatibility
-- Preserving performance characteristics
-- Extending to more use cases
-
-### Version 3: Multi-Device Computing
-- Expanding to multiple heterogeneous processing units
-- Providing unified programming model across devices
-- Preserving architecture independence principles
-- Enabling efficient cross-device computation
-
-## Design Tradeoffs
-
-COIL makes deliberate choices in its design:
-
-1. **Explicit over implicit**: Types and operations are explicitly specified
-2. **Consistency over brevity**: Systematic design may be more verbose but is more predictable
-3. **Abstraction with escape hatches**: High-level abstractions with low-level access when needed
-4. **Binary correctness over text convenience**: Binary format is authoritative
-5. **Performance over simplicity**: More complex implementation to preserve performance
-
-## Design Inspirations
+## Design Inspiration
 
 COIL draws inspiration from:
-- LLVM IR's type system and SSA form
+- LLVM IR's type system
 - Traditional assembly languages' direct hardware access
 - High-level languages' variable and scope concepts
 - Virtual machines' portability
-- GPU programming models' data parallelism concepts
+- GPU programming models' data parallelism
 
-## Conclusion
+## Related Documentation
 
-COIL's design philosophy creates a unique middle ground between traditional assembly languages and higher-level representations, providing powerful abstractions without sacrificing performance or control. This enables portable, maintainable, and efficient low-level programming across diverse processing architectures.
+For more detailed information on specific aspects of COIL, see:
+- [Type System](type-system.md) - Complete type system details
+- [Variable System](variable-system.md) - How variables abstract over registers
+- [ABI System](abi-system.md) - Function calling and parameter passing
+- [Binary Format](binary-format.md) - Binary encoding details
+- [ISA Overview](../isa/overview.md) - Instruction set architecture overview

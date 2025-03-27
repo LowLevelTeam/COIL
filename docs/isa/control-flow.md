@@ -46,16 +46,8 @@ Symbol parameters control visibility:
 
 #### Example
 ```
-; Assembly
+; Define a global symbol 'main'
 SYM main, TYPE_PARAM0=GLOB
-
-; Binary
-0x01      ; SYM
-0x02      ; Two operands
-0x9100    ; TYPE_SYM
-[id]      ; Symbol ID for "main"
-0xFE00    ; TYPE_PARAM0
-0x02      ; GLOB
 ```
 
 ### BR (0x02)
@@ -83,43 +75,25 @@ BR_condition target
 [condition_value]     ; Condition value
 ```
 
-#### Parameters
-- Branch control options:
-  - `TYPE_PARAM0=BRANCH_CTRL_FAR (0x00)`: Far branch
-  - `TYPE_PARAM0=BRANCH_CTRL_INL (0x01)`: Inline
-  - `TYPE_PARAM0=BRANCH_CTRL_ABI (0x02)`: Use ABI
-
-- Condition codes:
-  - `TYPE_PARAM5=BRANCH_COND_EQ (0x00)`: Equal
-  - `TYPE_PARAM5=BRANCH_COND_NE (0x01)`: Not equal
-  - `TYPE_PARAM5=BRANCH_COND_GE (0x02)`: Greater or equal
-  - `TYPE_PARAM5=BRANCH_COND_LT (0x03)`: Less than
-  - `TYPE_PARAM5=BRANCH_COND_GT (0x04)`: Greater than
-  - `TYPE_PARAM5=BRANCH_COND_LE (0x05)`: Less than or equal
-  - `TYPE_PARAM5=BRANCH_COND_Z  (0x06)`: Zero
-  - `TYPE_PARAM5=BRANCH_COND_NZ (0x07)`: Not zero
+#### Conditions
+The condition codes determine when the branch is taken:
+- `BR_EQ`: Equal
+- `BR_NE`: Not equal
+- `BR_GE`: Greater than or equal
+- `BR_LT`: Less than
+- `BR_GT`: Greater than
+- `BR_LE`: Less than or equal
+- `BR_Z`: Zero flag set
+- `BR_NZ`: Zero flag not set
+- And others (see [instruction reference](../reference/instruction-ref.md))
 
 #### Example
 ```
-; Assembly (unconditional)
+; Unconditional branch to loop_start
 BR loop_start
 
-; Binary
-0x02      ; BR
-0x01      ; One operand
-0x9100    ; TYPE_SYM
-[id]      ; Symbol ID for "loop_start"
-
-; Assembly (conditional)
+; Branch to equal_branch if equal flag is set
 BR_EQ equal_branch
-
-; Binary
-0x02      ; BR
-0x02      ; Two operands
-0x9100    ; TYPE_SYM
-[id]      ; Symbol ID for "equal_branch"
-0xF000    ; TYPE_PARAM5
-0x00      ; BRANCH_COND_EQ
 ```
 
 ### CALL (0x03)
@@ -143,27 +117,10 @@ CALL target[, TYPE_ABICTL=ABICTL_PARAM=abi_name, param1, param2, ...]
 [param_values...]     ; Parameter values
 ```
 
-#### Parameters
-- ABI control options:
-  - `TYPE_ABICTL=ABICTL_PARAM=abi_name`: Use specified ABI for parameters
-
 #### Example
 ```
-; Assembly
+; Call a function with parameters using the platform default ABI
 CALL calculate_sum, TYPE_ABICTL=ABICTL_PARAM=platform_default, x, y
-
-; Binary
-0x03      ; CALL
-0x04      ; Four operands (target + ABI + 2 params)
-0x9100    ; TYPE_SYM
-[id]      ; Symbol ID for "calculate_sum"
-0xF800    ; TYPE_ABICTL
-0x01      ; ABICTL_PARAM
-[abi_id]  ; ABI ID
-0x9000    ; TYPE_VAR
-[id]      ; Variable ID for "x"
-0x9000    ; TYPE_VAR
-[id]      ; Variable ID for "y"
 ```
 
 ### RET (0x04)
@@ -185,30 +142,13 @@ RET [TYPE_ABICTL=ABICTL_RET=abi_name, return_value1, return_value2, ...]
 [return_values...]    ; Return values
 ```
 
-#### Parameters
-- ABI control options:
-  - `TYPE_ABICTL=ABICTL_RET=abi_name`: Use specified ABI for return values
-
 #### Example
 ```
-; Assembly (simple return)
+; Simple return with no values
 RET
 
-; Binary
-0x04      ; RET
-0x00      ; No operands
-
-; Assembly (return with value)
+; Return with a value using the platform default ABI
 RET TYPE_ABICTL=ABICTL_RET=platform_default, result
-
-; Binary
-0x04      ; RET
-0x03      ; Three operands
-0xF800    ; TYPE_ABICTL
-0x02      ; ABICTL_RET
-[abi_id]  ; ABI ID
-0x9000    ; TYPE_VAR
-[id]      ; Variable ID for "result"
 ```
 
 ### CMP (0x05)
@@ -231,48 +171,8 @@ CMP left, right
 
 #### Example
 ```
-; Assembly
+; Compare counter with limit
 CMP counter, limit
-
-; Binary
-0x05      ; CMP
-0x02      ; Two operands
-0x9000    ; TYPE_VAR
-[id]      ; Variable ID for "counter"
-0x9000    ; TYPE_VAR
-[id]      ; Variable ID for "limit"
-```
-
-### TEST (0x06)
-Perform bitwise AND and set flags without storing the result.
-
-#### Assembly Syntax
-```
-TEST left, right
-```
-
-#### Binary Encoding
-```
-0x06                  ; Opcode for TEST
-0x02                  ; Two operands
-[left_type]           ; Type of left operand
-[left_value]          ; Left operand value
-[right_type]          ; Type of right operand
-[right_value]         ; Right operand value
-```
-
-#### Example
-```
-; Assembly
-TEST flags, 0x01
-
-; Binary
-0x06      ; TEST
-0x02      ; Two operands
-0x9000    ; TYPE_VAR
-[id]      ; Variable ID for "flags"
-0x1320    ; TYPE_UNT32+IMM
-0x01000000 ; Value 0x01
 ```
 
 ### SWITCH (0x09)
@@ -306,29 +206,12 @@ SWITCH value, case_count
 
 #### Example
 ```
-; Assembly
-SWITCH value, 2
+; Switch on the value variable with 3 cases
+SWITCH value, 3
   10, case_ten
   20, case_twenty
+  30, case_thirty
   default_case
-
-; Binary
-0x09      ; SWITCH
-0x07      ; 7 operands (value + count + 2*2 case pairs + default)
-0x9000    ; TYPE_VAR
-[id]      ; Variable ID for "value"
-0x1320    ; TYPE_UNT32+IMM
-0x02000000 ; 2 cases
-0x1320    ; TYPE_UNT32+IMM
-0x0A000000 ; Case value 10
-0x9100    ; TYPE_SYM
-[id]      ; Symbol ID for "case_ten"
-0x1320    ; TYPE_UNT32+IMM
-0x14000000 ; Case value 20
-0x9100    ; TYPE_SYM
-[id]      ; Symbol ID for "case_twenty"
-0x9100    ; TYPE_SYM
-[id]      ; Symbol ID for "default_case"
 ```
 
 ## Common Control Flow Patterns
@@ -383,3 +266,10 @@ CALL calculate, TYPE_ABICTL=ABICTL_PARAM=platform_default, x, y
 ; Get return value
 MOV result, TYPE_ABICTL=ABICTL_RET=platform_default
 ```
+
+## Related Documentation
+
+For more information on control flow concepts and related features, see:
+- [ABI System](../concepts/abi-system.md) - ABI system for parameter passing
+- [Function Examples](../examples/functions.md) - More examples of function usage
+- [Binary Encoding](binary-encoding.md) - Details on binary encoding of instructions

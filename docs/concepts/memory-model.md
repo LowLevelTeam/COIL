@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This document defines the memory model for COIL, establishing the rules for memory organization, access, ordering, and management. A well-defined memory model is essential for consistent behavior across different implementations and processor types.
+This document defines the memory model for COIL, establishing the rules for memory organization, access patterns, memory ordering, and memory management. A well-defined memory model is essential for consistent behavior across different implementations and processor types.
 
 ## Memory Organization
 
@@ -83,10 +83,6 @@ Memory operations work with specific sizes:
    - `MEMCPY`, `MEMSET`, `MEMCMP` for block operations
    - Size specified explicitly
 
-3. **Partial Register Access**:
-   - Access to parts of registers follows processor conventions
-   - May have specific alignment and size requirements
-
 ## Memory Ordering Model
 
 ### Sequential Consistency
@@ -125,86 +121,7 @@ COIL provides atomic operations for thread synchronization:
    - No partial updates visible
    - Ordering based on specified memory ordering
 
-## Variable and Register Management
-
-### Variable System
-
-COIL's variable system provides an abstraction over registers and memory:
-
-1. **Variable Declaration**:
-   - Using the `VAR` instruction
-   - Specified type, name, and optional initial value
-   - Scope determined by surrounding `SCOPEE`/`SCOPEL`
-
-2. **Variable Storage**:
-   - COIL processor decides optimal storage location
-   - May use registers for frequently accessed variables
-   - May spill to stack when register pressure is high
-
-3. **Variable Promotion/Demotion**:
-   - `PUSH`/`POP` instructions can suggest storage preferences
-   - Implementation-defined optimization strategies
-
-### Register Allocation
-
-COIL processors perform register allocation:
-
-1. **Allocation Strategy**:
-   - Based on variable usage patterns
-   - Respecting processor-specific constraints
-   - Honoring ABI register requirements
-
-2. **Register Spilling**:
-   - Automatic when register pressure is high
-   - Explicit with the `PUSH` instruction
-   - May save/restore around function calls
-
-3. **Register Preservation**:
-   - Based on ABI caller-saved/callee-saved conventions
-   - May be optimized away when safe
-
-## Memory Safety
-
-### Bounds Checking
-
-COIL defines rules for bounds checking:
-
-1. **Static Bounds Checking**:
-   - Performed at compile-time where possible
-   - Enforced for constant indices
-
-2. **Dynamic Bounds Checking**:
-   - Optional runtime checking
-   - Configuration-controlled
-   - Implementation-defined handling of violations
-
-### Type Safety
-
-Memory access respects type safety rules:
-
-1. **Type Compatibility**:
-   - Access must use compatible types
-   - Type punning requires explicit `CAST` instructions
-
-2. **Pointer Arithmetic**:
-   - Properly scaled by pointed-to type size
-   - Bounds-checked when enabled
-
-### Memory Isolation
-
-COIL supports memory isolation mechanisms:
-
-1. **Section Protection**:
-   - Based on section attributes
-   - May map to hardware protection mechanisms
-
-2. **Stack Protection**:
-   - Stack guards may be implemented
-   - Stack probing for large allocations
-
-## Memory Management
-
-### Scope-Based Memory
+## Scope-Based Memory Management
 
 COIL provides scope-based memory management:
 
@@ -249,70 +166,32 @@ COIL v1 optionally supports dynamic memory:
    - Explicit release required
    - No automatic garbage collection
 
-## Processor-Specific Memory Features
+## Memory Safety
 
-COIL allows for processor-specific memory features through dedicated opcode ranges:
+### Bounds Checking
 
-1. **Memory-Mapped I/O**:
-   - Through normal memory operations
-   - With appropriate `MEMORY_CTRL_VOLATILE` flag
-   - Using processor-specific addressing
+COIL defines rules for bounds checking:
 
-2. **Shared Memory**:
-   - Atomic operations ensure proper synchronization
-   - Memory ordering controls visibility
-   - Processor-specific optimizations may apply
+1. **Static Bounds Checking**:
+   - Performed at compile-time where possible
+   - Enforced for constant indices
 
-3. **Specialized Memory Types**:
-   - Cache control operations in processor-specific ranges
-   - Device-specific memory in v3
+2. **Dynamic Bounds Checking**:
+   - Optional runtime checking
+   - Configuration-controlled
+   - Implementation-defined handling of violations
 
-## Memory Model Examples
+### Type Safety
 
-### Basic Variable Usage
+Memory access respects type safety rules:
 
-```
-; Scope-based variable example
-SCOPEE
-    ; Declare variables
-    VAR TYPE_INT32, counter, 0
-    VAR TYPE_INT32, max, 10
-    
-    ; Loop using variables
-    SYM loop_start
-    CMP counter, max
-    BR_GE loop_end
-    
-    ; Use variable
-    INC counter
-    
-    BR loop_start
-    SYM loop_end
-SCOPEL  ; Variables released here
-```
+1. **Type Compatibility**:
+   - Access must use compatible types
+   - Type punning requires explicit `CAST` instructions
 
-### Memory Ordering Example
-
-```
-; Sequential consistency for shared data
-MOV [shared_data], TYPE_RGP=RAX, TYPE_PARAM0=MEMORY_CTRL_SEQ_CST
-
-; Relaxed ordering for thread-local data
-MOV [local_data], TYPE_RGP=RBX, TYPE_PARAM0=MEMORY_CTRL_RELAXED
-```
-
-### Atomic Operation Example
-
-```
-; Atomic compare-and-swap for lock acquisition
-MOV TYPE_RGP=RAX, 0          ; Expected: unlocked (0)
-MOV TYPE_RGP=RDX, 1          ; New: locked (1)
-CAS [lock_address], TYPE_RGP=RAX, TYPE_RGP=RDX
-
-; Check if lock was acquired
-CMP TYPE_RGP=RAX, 0
-BR_NE lock_failed
-```
+2. **Pointer Arithmetic**:
+   - Properly scaled by pointed-to type size
+   - Bounds-checked when enabled
 
 ## Memory Model Versioning
 
@@ -331,3 +210,10 @@ BR_NE lock_failed
 - Cross-device memory transfers
 - Device-specific memory optimizations
 - Unified memory abstractions
+
+## Related Documentation
+
+For more details on memory operations and manipulation, see:
+- [Memory Operations](../isa/memory.md) - Instructions for memory access
+- [Object Format](../implementation/object-format.md) - Memory section definitions
+- [Error Handling](../implementation/error-handling.md) - Memory error handling

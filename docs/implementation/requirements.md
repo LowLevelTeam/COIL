@@ -56,15 +56,6 @@ A compliant COIL processor must implement the memory model:
 4. **Memory Ordering**: Support the defined memory ordering model
 5. **Memory Safety**: Implement appropriate memory safety checks
 
-## Optional Features
-
-While the following features are recommended, they are optional for a minimally compliant implementation:
-
-1. **Debug Information**: Support for debug information generation and processing
-2. **Optimization**: Advanced optimization capabilities
-3. **JIT Compilation**: Just-in-time compilation for improved performance
-4. **Extended Error Handling**: Beyond minimal required error reporting
-
 ## Platform-Specific Requirements
 
 ### CPU Implementation Requirements
@@ -150,3 +141,11 @@ For efficiency and correctness, COIL processors should:
 3. **Optimize Common Paths**: Focus optimization on common code paths
 4. **Incremental Processing**: Process COIL files incrementally where possible
 5. **Layered Implementation**: Use a layered implementation approach for maintainability
+
+## Related Documentation
+
+For more information on implementation aspects, see:
+- [Object Format](object-format.md) - Details on COIL object files
+- [Debug Format](debug-format.md) - Debug information format
+- [Toolchain](toolchain.md) - Tools for working with COIL
+- [Error Handling](../reference/error-codes.md) - Error handling standards

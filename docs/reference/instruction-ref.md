@@ -17,24 +17,6 @@ Each operand consists of:
 [Type (16 bits)] [Type-Specific Data (variable)] [Value (variable)]
 ```
 
-## Opcode Organization
-
-COIL uses a single byte (8 bits) for opcodes, organized into functional categories:
-
-```
-0x00      - No Operation (NOP)
-0x01-0x0F - Control Flow Instructions
-0x10-0x2F - Memory Operations
-0x30-0x4F - Reserved for Multi-Device Operations (v3)
-0x50-0x5F - Bit Manipulation Instructions
-0x60-0x8F - Arithmetic Instructions
-0x90-0x9F - Vector/Array Operations
-0xA0-0xAF - Type Instructions
-0xB0-0xBF - Directive Instructions
-0xC0-0xFE - Processor-Specific Instructions
-0xFF      - COIL Processor-Specific Extensions
-```
-
 ## Control Flow Instructions (0x01-0x0F)
 
 | Opcode | Mnemonic | Operands | Description |
@@ -161,7 +143,9 @@ COIL uses a single byte (8 bits) for opcodes, organized into functional categori
 | 0xBD   | INCLUDE  | Filename | Include file |
 | 0xBE   | VERSION  | Major, Minor, Patch | Specify COIL version |
 
-## ABI-specific Instructions (Used within ABI blocks)
+## ABI-specific Instructions
+
+These instructions are used within ABI blocks:
 
 | Opcode | Mnemonic | Operands | Description |
 |--------|----------|----------|-------------|
@@ -198,35 +182,14 @@ Most instructions support conditional execution using the TYPE_PARAM5 parameter 
 | 0x0C      | _S             | Sign flag set |
 | 0x0D      | _NS            | Sign flag not set |
 
-## Branch Control Parameters
+## Related Documentation
 
-The TYPE_PARAM0 parameter can specify how branches are handled:
-
-| Value | Name | Description |
-|-------|------|-------------|
-| 0x00  | BRANCH_CTRL_FAR | Far jump/call (different code segment) |
-| 0x01  | BRANCH_CTRL_INL | Inline the called function |
-| 0x02  | BRANCH_CTRL_ABI | Use ABI conventions |
-| 0x03  | BRANCH_CTRL_ABI_PARAM | Following operands are parameters |
-| 0x04  | BRANCH_CTRL_ABI_RET | Following operands are return destinations |
-
-## Symbol Parameters
-
-When defining symbols with SYM, the TYPE_PARAM0 parameter can specify symbol attributes:
-
-| Value | Name | Description |
-|-------|------|-------------|
-| 0x00  | TMP  | Symbol is used only in current context |
-| 0x01  | FILE | Symbol is used within the current file |
-| 0x02  | GLOB | Symbol is globally visible |
-
-## Vector Control Parameters
-
-The TYPE_PARAM0 parameter for vector operations:
-
-| Value | Name | Description |
-|-------|------|-------------|
-| 0x01  | VECTOR_CTRL_ALIGNED | Aligned memory access |
-| 0x02  | VECTOR_CTRL_UNALIGNED | Unaligned memory access |
-| 0x03  | VECTOR_CTRL_BROADCAST | Broadcast scalar to all elements |
-| 0x04  | VECTOR_CTRL_GATHER | Gather from indexed memory locations |
+For more detailed information on instruction operation, see the category-specific documentation:
+- [Control Flow Instructions](../isa/control-flow.md)
+- [Memory Operations](../isa/memory.md)
+- [Bit Manipulation Instructions](../isa/bit-manipulation.md)
+- [Arithmetic Instructions](../isa/arithmetic.md)
+- [Vector/Array Operations](../isa/vector.md)
+- [Type Operations](../isa/type.md)
+- [Directive Instructions](../isa/directive.md)
+- [Processor-Specific Instructions](../isa/processor-specific.md)

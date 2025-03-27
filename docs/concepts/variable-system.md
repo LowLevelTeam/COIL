@@ -4,9 +4,7 @@
 
 This document defines the COIL variable system, a key feature that abstracts over processor registers and memory, providing architecture-independent variables with automatic management of storage allocation, lifetime, and optimization.
 
-## Key Concepts
-
-### Variables vs. Registers
+## Variables vs. Registers
 
 Traditional assembly languages require programmers to manage registers manually:
 - Decide which registers to use for each value
@@ -21,25 +19,9 @@ COIL's variable system abstracts away these details:
 - The processor handles register saving and restoration
 - Register spilling happens automatically when needed
 
-### Scope-Based Lifetime
+## Variable Declaration and Lifetime
 
-Variables in COIL have explicit lifetimes based on lexical scopes:
-- Variables exist from declaration until the end of their scope
-- Nested scopes allow for organized variable management
-- When a scope ends, all variables in that scope are automatically deallocated
-- Resources (registers or memory) are automatically freed when variables go out of scope
-
-### Optimization
-
-The COIL processor can optimize variable storage based on usage patterns:
-- Frequently used variables can be kept in registers
-- Infrequently used variables can be stored in memory
-- Register allocation can be prioritized for performance-critical code
-- Variable promotion and demotion allows fine-grained optimization when needed
-
-## Variable Declaration
-
-Variables are declared using the `VAR` instruction:
+Variables in COIL are declared using the `VAR` instruction:
 
 ```
 VAR type, name [, initial_value]
@@ -50,16 +32,15 @@ Where:
 - `name` is a symbolic identifier for the variable
 - `initial_value` is an optional initialization value
 
-Examples:
-```
-VAR TYPE_INT32, counter, 0      ; 32-bit integer initialized to 0
-VAR TYPE_FP64, pi, 3.14159      ; 64-bit float initialized to pi
-VAR TYPE_PTR, data_pointer      ; Pointer variable, uninitialized
-```
+Variables are scoped with explicit lifetimes based on lexical scopes:
+- Variables exist from declaration until the end of their scope
+- Nested scopes allow for organized variable management
+- When a scope ends, all variables in that scope are automatically deallocated
+- Resources (registers or memory) are automatically freed when variables go out of scope
 
-## Variable Scoping
+## Scope Management
 
-Variables exist within lexical scopes defined by the `SCOPEE` and `SCOPEL` instructions:
+Scopes are defined by the `SCOPEE` and `SCOPEL` instructions:
 
 ```
 SCOPEE
@@ -78,12 +59,6 @@ SCOPEE
     ; Only local_var is accessible here
 SCOPEL  ; local_var is destroyed here
 ```
-
-Scoping rules:
-1. Variables exist from their declaration until the end of their enclosing scope
-2. Inner scopes can access variables from outer scopes
-3. Variables with the same name in inner scopes shadow outer variables
-4. When a scope ends, all variables declared in that scope are deallocated
 
 ## Variable Usage
 
@@ -105,23 +80,6 @@ The COIL processor automatically:
 2. Generates the correct code to access the variables
 3. Handles any necessary register spilling or reloading
 4. Optimizes access patterns based on usage
-
-## Variable Reference
-
-To reference a variable in COIL, simply use its name:
-
-```
-; Direct variable reference
-ADD counter, counter, 1      ; Use variable directly
-
-; Getting the address of a variable
-LEA addr_var, counter        ; Load effective address of counter
-
-; Using the address
-MOV [addr_var], 42           ; Store value at the address
-```
-
-Variables are represented internally using the `TYPE_VAR` type with a unique identifier for each variable.
 
 ## Variable Optimization
 
@@ -156,7 +114,7 @@ POP counter
 
 While these hints are available, they should be used sparingly as they reduce portability.
 
-## Variable System Implementation
+## Implementation Strategy
 
 The COIL processor implements the variable system through:
 
@@ -195,93 +153,20 @@ SYM main
     SCOPEL
 ```
 
-## Complete Example
+## Benefits Over Traditional Assembly
 
-```
-; Function using the variable system
-SYM calculate_sum, TYPE_ABICTL=ABICTL_STANDARD=platform_default
-    SCOPEE
-    ; Get parameters via ABI
-    VAR TYPE_INT, a
-    VAR TYPE_INT, b
-    MOV a, TYPE_ABICTL=ABICTL_PARAM=platform_default, 0
-    MOV b, TYPE_ABICTL=ABICTL_PARAM=platform_default, 1
-    
-    ; Initialize sum variable
-    VAR TYPE_INT, sum, 0
-    
-    ; Add values to sum
-    ADD sum, sum, a
-    ADD sum, sum, b
-    
-    ; Calculate average
-    VAR TYPE_INT, count, 2
-    VAR TYPE_INT, average
-    DIV average, sum, count
-    
-    ; Return result through ABI
-    RET TYPE_ABICTL=ABICTL_RET=platform_default, average
-    SCOPEL  ; All variables automatically destroyed here
-```
+The COIL variable system provides several advantages:
 
-## Advantages Over Traditional Assembly
-
-### Traditional x86-64 Assembly:
-```
-; Function using direct register management
-calculate_sum:
-    ; Save callee-saved registers
-    push rbx
-    
-    ; Get parameters from registers
-    ; rdi = a, rsi = b (System V ABI)
-    
-    ; Calculate sum
-    xor rax, rax     ; Clear sum register
-    add rax, rdi     ; Add a
-    add rax, rsi     ; Add b
-    
-    ; Calculate average
-    mov rbx, 2       ; Count
-    xor rdx, rdx     ; Clear upper bits
-    div rbx          ; rax = rax / rbx
-    
-    ; Restore saved register
-    pop rbx
-    
-    ; Result in rax
-    ret
-```
-
-### COIL Equivalent:
-```
-SYM calculate_sum, TYPE_ABICTL=ABICTL_STANDARD=linux_x86_64
-    SCOPEE
-    ; Get parameters
-    VAR TYPE_INT64, a
-    VAR TYPE_INT64, b
-    MOV a, TYPE_ABICTL=ABICTL_PARAM=linux_x86_64, 0
-    MOV b, TYPE_ABICTL=ABICTL_PARAM=linux_x86_64, 1
-    
-    ; Calculate sum
-    VAR TYPE_INT64, sum, 0
-    ADD sum, sum, a
-    ADD sum, sum, b
-    
-    ; Calculate average
-    VAR TYPE_INT64, count, 2
-    VAR TYPE_INT64, average
-    DIV average, sum, count
-    
-    ; Return result
-    RET TYPE_ABICTL=ABICTL_RET=linux_x86_64, average
-    SCOPEL
-```
-
-### Advantages:
-1. **Processor Independence**: COIL code works on any processor
+1. **Processor Independence**: Code works on any processor
 2. **Simplified Programming**: No manual register management
 3. **Automatic Optimization**: Optimal register allocation
 4. **Reduced Errors**: No register usage conflicts
 5. **Better Readability**: Clear variable names and scope
 6. **Automatic Resource Management**: Variables cleaned up automatically
+
+## Related Documentation
+
+For more information about interacting with variables, see:
+- [Memory Operations](../isa/memory.md) - Instructions for variable operations
+- [Scope Instructions](../isa/memory.md#scope-management) - Details on scope management
+- [Function Examples](../examples/functions.md) - Examples of variable usage in functions
