@@ -2,14 +2,31 @@
 
 ## Purpose
 
-This document defines the binary object format used for COIL programs. The COIL object format provides a standardized container for COIL instructions, symbols, and data, enabling linking, loading, and execution across different implementations and processor types.
+This document defines the binary object file format used to contain COIL programs, symbols, and metadata. The COIL object format provides a standardized container that enables linking, loading, and execution across different implementations.
+
+## Key Concepts
+
+- **Object Format vs. Instruction Encoding**: The distinction between instruction encoding and the container format
+- **File Structure**: Organization of sections, tables, and data within the object file
+- **Primary Object Formats**: Different object formats used in the COIL ecosystem
+- **Version Information**: How version compatibility is managed
+- **Relocation**: How references between code sections are handled
+
+## Object Format vs. Instruction Encoding
+
+It's essential to distinguish between two related but distinct concepts:
+
+1. **Instruction Binary Encoding**: The byte-level encoding of individual COIL instructions
+2. **COIL Object Format**: The container format that organizes encoded instructions along with metadata
+
+The object format is the "file format" for COIL programs, while instruction encoding defines how individual instructions are represented within that file.
 
 ## Primary Object Formats
 
 COIL uses two primary object formats:
 
-1. **COIL Object (.coil)** - The standard format containing COIL instructions, symbols, and metadata
-2. **COIL Output Object (.coilo)** - An optional format containing processor-specific binary code generated from COIL
+1. **COIL Object (.coil)** - Standard format containing COIL instructions, symbols, and metadata
+2. **COIL Output Object (.coilo)** - Format containing processor-specific binary code generated from COIL
 
 ## COIL Object (.coil)
 
@@ -67,6 +84,13 @@ struct CoilHeader {
     uint32_t  reserved[2];   // Reserved for future use
 }
 ```
+
+#### Header Flags
+
+- `0x01` - EXECUTABLE: File is an executable
+- `0x02` - RELOCATABLE: File contains relocations
+- `0x04` - SHARED: File is a shared object
+- `0x08` - DEBUG: File contains debug information
 
 ### Section Table
 
@@ -215,17 +239,6 @@ struct RelocationEntry {
 0x04 - REL64     // 64-bit relative address
 ```
 
-### Debug Information
-
-Debug information is optional and follows the format specified in the Debug Format document.
-
-### Metadata
-
-Metadata sections can contain additional information about the object:
-- Compiler information
-- Build settings
-- Custom attributes
-
 ## COIL Output Object (.coilo)
 
 The COIL Output Object is an optional format containing processor-specific binary code generated from COIL. This format is used by implementations that translate COIL to native code.
@@ -303,7 +316,24 @@ COILO files may optionally include the original COIL code that was used to gener
 - Verification
 - JIT compilation for sections that require it
 
-## Version Information
+## Other COIL-Related File Formats
+
+### COIL Header (.coilh)
+
+COIL header files contain declarations that can be included in other COIL files. They typically contain:
+- Symbol declarations
+- ABI definitions
+- Type definitions
+- Constant definitions
+
+### COIL Archive (.coila)
+
+COIL archive files are collections of multiple COIL objects, similar to static libraries in other systems. They contain:
+- Archive header
+- Archive symbol table
+- Multiple COIL object files
+
+## Version Compatibility
 
 Object files include version information in their headers:
 - Major version: Incompatible changes (e.g., 1 for COIL v1)
@@ -321,16 +351,9 @@ if (header.major_version > SUPPORTED_MAJOR) {
 }
 ```
 
-## File Extension Summary
-
-- `.coil` - COIL object file
-- `.coilo` - COIL output object file
-- `.coilh` - COIL header file (for includes)
-- `.coila` - COIL archive (library)
-
 ## Related Documentation
 
-For more information about related formats and tools, see:
+- [Binary Format](../binary-format.md) - Detailed instruction encoding rules
 - [Debug Format](debug-format.md) - Debug information specification
-- [Toolchain](toolchain.md) - Tools for working with COIL objects
-- [Binary Encoding](../isa/binary-encoding.md) - Instruction encoding details
+- [CASM Syntax](../assembly/syntax.md) - Text representation of COIL
+- [Implementation Requirements](requirements.md) - Requirements for COIL processors

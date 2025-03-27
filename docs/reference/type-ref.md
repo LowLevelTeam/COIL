@@ -2,13 +2,23 @@
 
 ## Purpose
 
-This document provides a comprehensive reference of the type system in COIL, including all type identifiers, type extensions, and type-specific behaviors.
+This document provides a comprehensive reference of the type system in COIL, including all type identifiers, type extensions, and type-specific behaviors. It serves as the authoritative listing of all types in the COIL ecosystem.
+
+## Key Concepts
+
+- **Type Encoding**: How types are represented in binary
+- **Type Categories**: Major classifications of types
+- **Type Extensions**: Modifiers that affect type behavior
+- **Type Compatibility**: Rules governing type conversions and operations
+- **Type-Specific Data**: Additional data associated with certain types
 
 ## Type Encoding
 
-Types are encoded in a 16-bit format:
+Types in COIL are encoded in a 16-bit format:
 - First 8 bits: Main Type (0x00-0xFF)
 - Second 8 bits: Type Extensions (flags)
+
+Some types require additional data beyond the 16-bit descriptor.
 
 ## Integer Types
 
@@ -20,7 +30,7 @@ Types are encoded in a 16-bit format:
 | 0x04    | TYPE_INT64  | 8 | 64-bit signed integer |
 | 0x05    | TYPE_INT128 | 16 | 128-bit signed integer |
 | 0x10    | TYPE_UNT8   | 1 | 8-bit unsigned integer |
-| 0x12    | TYPE_UNT16  | 2 | 16-bit unsigned integer |
+| 0x11    | TYPE_UNT16  | 2 | 16-bit unsigned integer |
 | 0x13    | TYPE_UNT32  | 4 | 32-bit unsigned integer |
 | 0x14    | TYPE_UNT64  | 8 | 64-bit unsigned integer |
 | 0x15    | TYPE_UNT128 | 16 | 128-bit unsigned integer |
@@ -47,11 +57,17 @@ Types are encoded in a 16-bit format:
 | 0x31    | TYPE_V256 | 32 | 256-bit vector |
 | 0x32    | TYPE_V512 | 64 | 512-bit vector |
 
+Vector types require element type specification:
+```
+TYPE_V128=TYPE_FP32  ; 128-bit vector of 32-bit floats (4 elements)
+TYPE_V256=TYPE_INT16  ; 256-bit vector of 16-bit integers (16 elements)
+```
+
 ## Boolean Type
 
 | Type ID | Name | Size (Bytes) | Description |
 |---------|------|--------------|-------------|
-| 0x40    | TYPE_BIT | 1/8 | 1-bit boolean, special type for bitmaps |
+| 0x40    | TYPE_BIT | 1/8 | 1-bit boolean, used in bit arrays |
 
 ## Special Types
 
@@ -105,12 +121,18 @@ Types are encoded in a 16-bit format:
 | 0xD2    | TYPE_UNION  | Varies | Union type |
 | 0xD3    | TYPE_ARRAY  | Varies | Array type |
 
+Composite types require additional type information:
+```
+TYPE_STRUCT=point  ; Structure type with name "point"
+TYPE_ARRAY=TYPE_UNT8  ; Array of unsigned 8-bit integers
+```
+
 ## Parameter Types
 
 | Type ID | Name | Size (Varies) | Description |
 |---------|------|---------------|-------------|
 | 0xF0    | TYPE_PARAM5 | Varies | Parameter type 5 |
-| 0xFA    | TYPE_PARAM4 | Varies | Parameter type 4 |
+| 0xF1    | TYPE_PARAM4 | Varies | Parameter type 4 |
 | 0xFB    | TYPE_PARAM3 | Varies | Parameter type 3 |
 | 0xFC    | TYPE_PARAM2 | Varies | Parameter type 2 |
 | 0xFD    | TYPE_PARAM1 | Varies | Parameter type 1 |
@@ -135,6 +157,13 @@ Type extensions provide additional qualifiers for type values:
 | Bit 5 | 0x20 | TYPEEXT_IMM      | Immediate value |
 | Bit 6 | 0x40 | TYPEEXT_VAR      | Variable ID |
 | Bit 7 | 0x80 | TYPEEXT_SYM      | Symbol ID |
+
+Examples:
+```
+0x0301 - TYPE_INT32+CONST  ; Constant 32-bit integer
+0x1420 - TYPE_UNT64+IMM    ; Immediate unsigned 64-bit value
+0x0302 - TYPE_INT32+VOLATILE ; Volatile 32-bit integer
+```
 
 ## Parameter Type Values
 
@@ -165,16 +194,6 @@ Type extensions provide additional qualifiers for type values:
 | 0x0C  | BRANCH_COND_S  | Sign flag set |
 | 0x0D  | BRANCH_COND_NS | Sign flag not set |
 
-### TYPE_PARAM0 - Branch Control
-
-| Value | Name | Description |
-|-------|------|-------------|
-| 0x00  | BRANCH_CTRL_FAR       | Far jump/call |
-| 0x01  | BRANCH_CTRL_INL       | Inline |
-| 0x02  | BRANCH_CTRL_ABI       | Use ABI conventions |
-| 0x03  | BRANCH_CTRL_ABI_PARAM | Following operands are parameters |
-| 0x04  | BRANCH_CTRL_ABI_RET   | Following operands are return destinations |
-
 ### TYPE_ABICTL - ABI Control
 
 | Value | Name | Description |
@@ -185,18 +204,19 @@ Type extensions provide additional qualifiers for type values:
 | 0x03  | ABICTL_VARIADIC | Variadic function support |
 | 0x04  | ABICTL_CUSTOM   | Custom ABI handling |
 
-### TYPE_PARAM0 - Memory Control
+## Type Compatibility Rules
 
-| Value | Name | Description |
-|-------|------|-------------|
-| 0x01  | MEMORY_CTRL_ATOMIC    | Atomic operation |
-| 0x02  | MEMORY_CTRL_VOLATILE  | Volatile access |
-| 0x03  | MEMORY_CTRL_ALIGNED   | Enforce alignment |
-| 0x04  | MEMORY_CTRL_UNALIGNED | Allow unaligned access |
+Types are compatible under the following conditions:
+
+1. The main types match exactly.
+2. One type is a platform-dependent type and the other is its currently selected fixed-width equivalent.
+3. Both types are integer types with the same signedness and the destination type has equal or greater width.
+4. Both types are floating-point types and the destination type has equal or greater precision.
+5. Both types are vector types with compatible element types and the destination has sufficient size.
 
 ## Type Data Syntax
 
-In COIL-ASM, type data can be specified in two ways:
+In CASM, type data can be specified in two ways:
 
 1. **Single Equals Syntax**: `TYPE=data` where `data` is the type data
    ```
@@ -209,16 +229,6 @@ In COIL-ASM, type data can be specified in two ways:
    TYPE_ABICTL=ABICTL_STANDARD=linux_x86_64  ; ABI control with standard type and specific ABI
    TYPE_PTR=TYPE_INT32=0x1000             ; Pointer type with INT32 as pointed type and address
    ```
-
-## Type Compatibility Rules
-
-Types are compatible under the following conditions:
-
-1. The main types match exactly.
-2. One type is a platform-dependent type and the other is its currently selected fixed-width equivalent.
-3. Both types are integer types with the same signedness and the destination type has equal or greater width.
-4. Both types are floating-point types and the destination type has equal or greater precision.
-5. Both types are vector types with compatible element types and the destination has sufficient size.
 
 ## Binary Encoding Examples
 
@@ -240,3 +250,33 @@ Binary: 0xD3 0x00 0x10 0x00
 ; TYPE_V128=TYPE_FP32 
 Binary: 0x30 0x00 0x25 0x00
 ```
+
+## Type System Versioning
+
+The type system is versioned along with COIL itself:
+
+- **Version 1**: All types listed in this document
+- **Version 2**: Adds library-support types
+- **Version 3**: Adds multi-device types
+
+## Error Codes for Type System
+
+Common type system error codes:
+
+```
+3001 - Invalid type encoding
+3002 - Incompatible types
+3003 - Invalid type conversion
+3004 - Type size mismatch
+3005 - Invalid type extension
+3006 - Type not supported on target
+3007 - Invalid structure definition
+3008 - Invalid array definition
+```
+
+## Related Documentation
+
+- [Type System](../spec/systems/type-system.md) - Conceptual overview of the type system
+- [Type Operations](../spec/instruction-set/type.md) - Instructions for working with types
+- [Binary Format](../spec/binary-format.md) - How types are encoded in binary format
+- [CASM Syntax](../spec/assembly/syntax.md) - How to use types in CASM

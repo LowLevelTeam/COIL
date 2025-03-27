@@ -4,6 +4,13 @@
 
 This document provides a concise reference of all instructions in the COIL instruction set. It serves as a quick lookup guide for instruction opcodes, operands, and behaviors.
 
+## Key Concepts
+
+- **Instruction Format**: Universal binary structure of instructions
+- **Opcode Organization**: How instruction opcodes are arranged by category
+- **Operand Patterns**: Standard patterns for instruction operands
+- **Conditional Execution**: How instructions can be conditionally executed
+
 ## Instruction Format
 
 All COIL instructions follow a consistent binary format:
@@ -16,6 +23,24 @@ Each operand consists of:
 ```
 [Type (16 bits)] [Type-Specific Data (variable)] [Value (variable)]
 ```
+
+## Opcode Space Organization
+
+The COIL opcode space is organized by functional categories:
+
+| Opcode Range | Category | Description |
+|--------------|----------|-------------|
+| 0x00         | NOP      | No Operation |
+| 0x01-0x0F    | Control Flow | Program flow, branches, calls |
+| 0x10-0x2F    | Memory Operations | Data movement, variables, memory access |
+| 0x30-0x4F    | Reserved | Reserved for multi-device operations (v3) |
+| 0x50-0x5F    | Bit Manipulation | Logical operations, shifts, bit-level operations |
+| 0x60-0x8F    | Arithmetic | Mathematical operations |
+| 0x90-0x9F    | Vector/Array | Operations on multiple data elements |
+| 0xA0-0xAF    | Type Operations | Type manipulation, structures, arrays |
+| 0xB0-0xBF    | Directives | Processor selection, assembly control |
+| 0xC0-0xFE    | Processor-Specific | Architecture/processor-specific instructions |
+| 0xFF         | Extensions | Implementation-specific extensions |
 
 ## Control Flow Instructions (0x01-0x0F)
 
@@ -157,10 +182,6 @@ These instructions are used within ABI blocks:
 | 0x05   | SALLIGN  | Alignment | Define stack alignment |
 | 0x06   | RZONE    | Size | Define red zone size |
 
-## Processor-Specific Instructions (0xC0-0xFE)
-
-These instructions are specific to particular processor types and architectures. See the processor-specific documentation for details.
-
 ## Conditional Execution
 
 Most instructions support conditional execution using the TYPE_PARAM5 parameter with a branch_condition_t value:
@@ -185,11 +206,11 @@ Most instructions support conditional execution using the TYPE_PARAM5 parameter 
 ## Related Documentation
 
 For more detailed information on instruction operation, see the category-specific documentation:
-- [Control Flow Instructions](../isa/control-flow.md)
-- [Memory Operations](../isa/memory.md)
-- [Bit Manipulation Instructions](../isa/bit-manipulation.md)
-- [Arithmetic Instructions](../isa/arithmetic.md)
-- [Vector/Array Operations](../isa/vector.md)
-- [Type Operations](../isa/type.md)
-- [Directive Instructions](../isa/directive.md)
-- [Processor-Specific Instructions](../isa/processor-specific.md)
+- [Control Flow Instructions](../spec/instruction-set/control-flow.md)
+- [Memory Operations](../spec/instruction-set/memory.md)
+- [Bit Manipulation Instructions](../spec/instruction-set/bit-manipulation.md)
+- [Arithmetic Instructions](../spec/instruction-set/arithmetic.md)
+- [Vector/Array Operations](../spec/instruction-set/vector.md)
+- [Type Operations](../spec/instruction-set/type.md)
+- [Directive Instructions](../spec/instruction-set/directive.md)
+- [Binary Format](../spec/binary-format.md)

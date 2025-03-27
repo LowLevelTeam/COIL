@@ -2,17 +2,15 @@
 
 ## Purpose
 
-This document defines the error handling mechanisms for COIL, establishing how errors are detected, reported, and managed within COIL processors and tools. Proper error handling is essential for creating robust and secure COIL implementations.
+This document defines the error handling mechanisms and requirements for COIL implementations. It establishes how errors are detected, reported, and managed within COIL processors and tools to ensure robust and secure operation.
 
-## Error Detection Principles
+## Key Concepts
 
-COIL error handling follows these core principles:
-
-1. **Early Detection**: Errors should be detected as early as possible
-2. **Clear Reporting**: Error messages should be clear and actionable
-3. **Graceful Recovery**: Systems should recover gracefully when possible
-4. **Comprehensive Coverage**: All potential error conditions should be handled
-5. **Security Focus**: Error handling should never compromise security
+- **Error Categories**: Major classifications of errors
+- **Error Severity Levels**: How errors are prioritized
+- **Error Reporting Interface**: How errors are communicated
+- **Error Recovery**: How implementations handle errors
+- **Error Codes**: Standardized error identifiers
 
 ## Error Categories
 
@@ -94,87 +92,139 @@ When an execution error occurs:
 2. Continue execution if the error is non-fatal
 3. Terminate gracefully if the error is fatal
 
-## Error Handling Implementation
+## Standard Error Codes
 
-COIL processors and tools should implement:
+### Format Error Codes (1xxx)
+```
+1001 - Invalid magic number
+1002 - Unsupported version
+1003 - Corrupted header
+1004 - Invalid section table
+1005 - Invalid symbol table
+1006 - Invalid relocation table
+1007 - Section overlap
+1008 - Invalid alignment
+1009 - Missing required section
+```
 
-1. **Error Detection**: Comprehensive checks for all error conditions
-2. **Error Context Capture**: Gathering of relevant context information
-3. **Error Reporting**: Clear and consistent error reporting
-4. **Error Recovery**: Appropriate recovery mechanisms for different error types
-5. **Error Logging**: Persistent logging of errors for later analysis
+### Instruction Error Codes (2xxx)
+```
+2001 - Invalid opcode
+2002 - Invalid operand count
+2003 - Invalid operand type
+2004 - Type mismatch
+2005 - Missing operand
+2006 - Extra operand
+2007 - Invalid instruction format
+2008 - Reserved instruction used
+2009 - Unsupported instruction
+```
 
-## Standard Error Codes and Messages
+### Type System Error Codes (3xxx)
+```
+3001 - Invalid type encoding
+3002 - Incompatible types
+3003 - Invalid type conversion
+3004 - Type size mismatch
+3005 - Invalid type extension
+3006 - Type not supported on target
+3007 - Invalid structure definition
+3008 - Invalid array definition
+```
 
-The standard error codes are defined in a central error code registry, with each code having:
+### Memory Error Codes (4xxx)
+```
+4001 - Invalid memory address
+4002 - Misaligned memory access
+4003 - Protected memory access
+4004 - Stack overflow
+4005 - Stack underflow
+4006 - Invalid memory operation size
+4007 - Memory allocation failure
+4008 - Invalid scope operation
+```
 
-1. **Error Code**: A unique four-digit identifier
-2. **Severity Level**: Fatal, non-fatal, or warning
-3. **Default Message**: A standard message template
-4. **Required Context**: The context information that must be included
-5. **Suggested Action**: Recommended action to resolve the error
+### Symbol Error Codes (5xxx)
+```
+5001 - Undefined symbol
+5002 - Duplicate symbol definition
+5003 - Symbol scope violation
+5004 - Invalid symbol type
+5005 - Mismatched symbol usage
+5006 - Unresolved external symbol
+5007 - Symbol visibility error
+```
 
-## Error Handling in Different Components
+## Error Message Format
 
-### Assembler Error Handling
+Error messages should follow a consistent format:
 
-The COIL assembler should:
-1. Detect syntax errors in COIL-ASM
-2. Provide line and column numbers for errors
-3. Continue parsing to find multiple errors where possible
-4. Suggest fixes for common syntax errors
+```
+ERROR [E1001]: Invalid magic number
+  in file: example.coil
+  at offset: 0x00000000
+  expected: "COIL"
+  found: "CILO"
+```
 
-### Linker Error Handling
+A well-formed error message includes:
+1. Error code and brief description
+2. Location information (file, offset, line number if available)
+3. Contextual information (expected vs. actual values)
+4. Any relevant hints for resolution
 
-The COIL linker should:
-1. Detect symbol resolution errors
-2. Report multiple unresolved symbols
-3. Validate section merging compatibility
-4. Provide detailed information about conflicting symbols
+## Error Collection
 
-### Processor Error Handling
+COIL processors should:
+1. Collect and report multiple errors where possible
+2. Avoid cascading error reports from a single root cause
+3. Prioritize fundamental errors over derived issues
+4. Group related errors for clarity
 
-The COIL processor should:
-1. Validate the COIL binary before execution
-2. Implement appropriate checks during execution
-3. Provide execution context for runtime errors
-4. Support debugging information when available
+## Error Handling Requirements
 
-## Security Considerations
+### For COIL Processors
 
-Error handling must consider security implications:
+A compliant COIL processor must:
 
-1. **Information Leakage**: Error messages should not reveal sensitive information
-2. **Resource Exhaustion**: Error handling should not consume excessive resources
-3. **Error Injection**: Validate error inputs to prevent error-based attacks
-4. **Privilege Escalation**: Errors should not enable privilege escalation
+1. **Validate Thoroughly**:
+   - Validate COIL binary format before execution
+   - Check all instruction operands for type compatibility
+   - Verify memory access constraints
 
-## Error Handling Best Practices
+2. **Report Clearly**:
+   - Provide detailed, actionable error messages
+   - Include location information where possible
+   - Distinguish between errors and warnings
 
-### For COIL Developers
+3. **Handle Gracefully**:
+   - Terminate gracefully on fatal errors
+   - Continue processing after non-fatal errors where possible
+   - Avoid resource leaks during error handling
 
-Developers working with COIL should:
-1. Check error codes from all COIL operations
-2. Implement appropriate error handling for each severity level
-3. Log errors for later analysis
-4. Provide meaningful context in error reports
+4. **Preserve Security**:
+   - Prevent security vulnerabilities during error handling
+   - Avoid revealing sensitive implementation details
+   - Maintain memory safety despite errors
 
-### For COIL Implementers
+### For COIL Tools
 
-Implementers of COIL processors and tools should:
-1. Implement comprehensive error detection and reporting
-2. Follow the standard error code registry
-3. Provide clear, actionable error messages
-4. Support error recovery where appropriate
+COIL development tools should:
 
-## Debugging Support
+1. **Provide Diagnostics**:
+   - Offer detailed error diagnostics
+   - Highlight errors in source code
+   - Suggest potential fixes where possible
 
-Error handling should integrate with debugging tools:
+2. **Support Verification**:
+   - Include static validation tools
+   - Support verification before execution
+   - Offer verbose mode for detailed checking
 
-1. **Error Breakpoints**: Support breaking on specific errors
-2. **Error Inspection**: Allow examination of error context
-3. **Error Simulation**: Support testing of error handling code
-4. **Error Trace**: Provide error history for debugging
+3. **Enable Debugging**:
+   - Preserve debug information in error messages
+   - Support step-by-step debugging
+   - Allow inspection of state at error points
 
 ## Error Handling APIs
 
@@ -187,7 +237,7 @@ COIL implementations should provide error handling APIs that allow:
 
 ## Example Error Handling Code
 
-### Example: Error Detection and Reporting
+### Error Detection and Reporting
 
 ```c
 // Example error handling in a COIL processor implementation
@@ -221,7 +271,7 @@ coil_status_t execute_instruction(coil_processor_t* proc, coil_instruction_t* in
 }
 ```
 
-### Example: Error Recovery
+### Error Recovery
 
 ```c
 // Example error recovery in a COIL assembler
@@ -260,6 +310,32 @@ coil_status_t assemble_file(const char* filename) {
 }
 ```
 
+## Security Considerations
+
+### Preventing Information Leakage
+
+Error messages should:
+- Not reveal memory contents except as directly relevant to the error
+- Not expose internal implementation details unnecessarily
+- Avoid stack traces in production environments
+- Limit information in security-sensitive contexts
+
+### Avoiding Exploitable Errors
+
+COIL processors should:
+- Validate all input before processing
+- Implement bounds checking for all memory operations
+- Apply the principle of least privilege for all operations
+- Handle resource exhaustion gracefully
+
+### Secure Default Actions
+
+When encountering security-relevant errors, COIL processors should:
+- Fail securely (deny by default)
+- Terminate processing rather than continue in an insecure state
+- Log security-relevant errors appropriately
+- Not expose sensitive information in error messages
+
 ## Error Testing
 
 COIL implementations should include tests for error conditions:
@@ -269,6 +345,9 @@ COIL implementations should include tests for error conditions:
 3. **Stress Testing**: Test under high load to find error handling weaknesses
 4. **Security Testing**: Test for security implications of error conditions
 
-## Conclusion
+## Related Documentation
 
-Robust error handling is essential for reliable COIL implementations. By following the guidelines in this document, implementers can create systems that detect errors early, report them clearly, and recover gracefully when possible, while maintaining security and usability.
+- [Requirements](requirements.md) - Implementation requirements including error handling
+- [Debug Format](debug-format.md) - Debug information for error analysis
+- [Error Codes](../reference/error-codes.md) - Complete error code reference
+- [Object Format](object-format.md) - Format considerations for error handling

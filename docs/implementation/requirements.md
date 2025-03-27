@@ -2,7 +2,15 @@
 
 ## Purpose
 
-This document defines the requirements for implementing a compliant COIL processor. A COIL processor is any software or hardware implementation capable of processing COIL binary instructions.
+This document defines the requirements for implementing a compliant COIL processor. A COIL processor is any software or hardware implementation capable of processing COIL binary instructions according to the specification.
+
+## Key Concepts
+
+- **Compliance Levels**: Different levels of specification support
+- **Core Requirements**: Mandatory capabilities all implementations must have
+- **Platform-Specific Requirements**: Requirements for specific processor types
+- **Performance Expectations**: Performance and resource usage guidelines
+- **Security Requirements**: Security considerations for implementations
 
 ## Core Requirements
 
@@ -12,7 +20,7 @@ A compliant COIL processor must:
 
 1. **Parse Binary Format**: Correctly parse the COIL binary format as defined in the specification
 2. **Validate Instructions**: Verify that instructions are well-formed and valid
-3. **Support All Opcodes**: Implement all universal instructions (0x00-0x2F, 0x50-0xBF)
+3. **Support All Opcodes**: Implement all universal instructions (0x00-0xBF)
 4. **Handle Types**: Support all defined types and correctly implement type-based instruction behavior
 5. **Object Format**: Process COIL object files according to the format specification
 
@@ -76,6 +84,7 @@ A compliant COIL processor should achieve:
 2. **Reasonable Memory Usage**: Efficient memory usage without excessive overhead
 3. **Deterministic Execution**: Consistent execution behavior for identical inputs
 4. **Scalability**: Ability to handle both small and large COIL programs
+5. **Optimization Support**: Support for standard optimization techniques
 
 ## Error Handling Requirements
 
@@ -123,6 +132,7 @@ A compliant COIL processor must provide documentation that:
 2. **Documents Limitations**: Clearly states any limitations or deviations from the specification
 3. **Provides API**: Describes any provided APIs
 4. **Includes Examples**: Provides usage examples
+5. **Error Documentation**: Documents all error conditions and handling
 
 ## Conformance Levels
 
@@ -131,6 +141,7 @@ COIL processors may conform at different levels:
 1. **Minimal Conformance**: Implements all required features for a single architecture
 2. **Standard Conformance**: Implements all required features plus optimization and debug support
 3. **Full Conformance**: Implements all features including optional ones
+4. **Extended Conformance**: Implements all features plus implementation-specific extensions
 
 ## Implementation Strategy Recommendations
 
@@ -142,10 +153,20 @@ For efficiency and correctness, COIL processors should:
 4. **Incremental Processing**: Process COIL files incrementally where possible
 5. **Layered Implementation**: Use a layered implementation approach for maintainability
 
+## Implementation Approaches
+
+COIL processors can be implemented in various ways:
+
+1. **Interpreter**: Directly interprets COIL instructions (simplest)
+2. **JIT Compiler**: Compiles COIL to native code at runtime
+3. **AOT Compiler**: Compiles COIL to native code ahead of time
+4. **Hardware Implementation**: Implements COIL directly in hardware
+5. **Hybrid Approach**: Combines multiple approaches for optimal performance
+
 ## Related Documentation
 
-For more information on implementation aspects, see:
 - [Object Format](object-format.md) - Details on COIL object files
 - [Debug Format](debug-format.md) - Debug information format
 - [Toolchain](toolchain.md) - Tools for working with COIL
 - [Error Handling](../reference/error-codes.md) - Error handling standards
+- [Binary Format](../spec/binary-format.md) - Binary encoding details

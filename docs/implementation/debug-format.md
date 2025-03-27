@@ -4,6 +4,14 @@
 
 This document defines the debug information format for COIL programs, enabling tools to map between COIL binary instructions and the original source code, provide variable debugging, and support runtime debugging.
 
+## Key Concepts
+
+- **Debug Information Container**: How debug data is stored in COIL objects
+- **Line Number Mapping**: How binary instructions map to source code lines
+- **Variable Information**: How variables can be inspected during debugging
+- **Type Information**: How types are represented for debugging
+- **Scope Information**: How variable scopes are tracked during debugging
+
 ## Debug Information Container
 
 Debug information is stored in a dedicated section within the COIL object file:
@@ -205,7 +213,36 @@ To reduce debug information size:
 3. **Compression**: Optional compression of debug sections
 4. **Separation**: Store debug information in separate files
 
-## Debugger Integration
+## Integration with COIL Toolchain
+
+### Debug Information Generation
+
+COIL assemblers and compilers can generate debug information:
+
+```
+coilasm -g source.casm -o output.coil
+```
+
+### Debug Information Extraction
+
+Debug information can be extracted for analysis:
+
+```
+coilobj extract -s .debug input.coil -o debug_info
+```
+
+### Debugging Commands
+
+The COIL debugger uses debug information for commands:
+
+```
+(coildbg) break source.casm:15    # Set breakpoint at line 15
+(coildbg) print variable          # Print variable value
+(coildbg) step                    # Single-step by source line
+(coildbg) where                   # Show call stack
+```
+
+## Implementation Recommendations
 
 COIL processors with debugging support should:
 
@@ -215,17 +252,49 @@ COIL processors with debugging support should:
 4. **Command Interface**: Support standard debugger commands
 5. **State Inspection**: Allow inspection of processor state
 
+### Variable Location Resolution
+
+To locate a variable during debugging:
+
+1. Determine the current instruction address
+2. Find the active scope for that address
+3. Look up the variable in the scope's variable table
+4. Determine the variable's location (register, memory, etc.)
+5. Access the value at that location
+
+## Debug Format Examples
+
+### Simple Line Table Example
+
+```
+Address  File  Line  Column  Flags
+0x1000    1     10     0       1    ; Start of function
+0x1008    1     11     0       0
+0x1010    1     12     0       0
+0x1018    1     13     0       0
+0x1020    1     14     0       0    ; End of function
+```
+
+### Variable Location Example
+
+```
+Name   Type  Scope  Location      Flags
+"i"     3     2     REGISTER(0)    0    ; 'i' in register 0
+"j"     3     2     MEMORY(16)     0    ; 'j' at stack offset 16
+"k"     3     2     COMPUTED(...)  0    ; 'k' has computed location
+```
+
 ## Security Considerations
 
 Debug information may contain sensitive data and should be:
 
-1. **Stripped from Production**: Removed from production builds when unnecessary
-2. **Protected**: Given appropriate access controls
-3. **Validated**: Checked for malicious content in untrusted files
+1. **Stripped for Production**: Remove from production builds when not needed
+2. **Protected**: Give appropriate access controls
+3. **Validated**: Check for malicious content in untrusted files
 
 ## Related Documentation
 
-For more information on debugging and related topics, see:
-- [Error Handling](../reference/error-codes.md) - Error handling details
-- [Object Format](object-format.md) - Object file format details
+- [Object Format](object-format.md) - The container format for debug information
+- [Error Handling](error-handling.md) - How errors relate to debugging
 - [Toolchain](toolchain.md) - Debugger tool information
+- [Variable System](../spec/systems/variable-system.md) - How variables are represented
