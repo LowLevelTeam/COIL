@@ -5,9 +5,26 @@
 COIL uses two primary object formats:
 
 1. **COIL Object Format (.coil)**: Intermediate format for linkage
-2. **COIL Output Object Format (.coilo)**: Executable format after linking
+2. **COIL Output Object Format (.coilo)**: Executable or library format after linking
 
-Both formats share a common structure but differ in their purpose and content. This document describes the binary layout and organization of these formats.
+Both formats are inspired by ELF (Executable and Linkable Format) for efficiency and CUDA's PTX intermediate representation for flexibility. This design enables both high performance and portable execution across diverse architectures.
+
+## Format Capabilities
+
+### COIL Object Format (.coil)
+- Intermediate representation for compilation stages
+- Contains relocations and potentially unresolved symbols
+- Designed for linking processes
+- Can target any processor type (CPU, GPU, QPU, FPGA, etc.)
+
+### COIL Output Object Format (.coilo)
+- Can function as:
+  - Executable program
+  - Static library (concatenation of multiple COIL objects)
+  - Dynamic/shared library
+  - Device-specific binary (like a kernel for specialized hardware)
+- Has resolved relocations and symbols
+- May contain optimization metadata
 
 ## Common Header Structure
 
@@ -22,7 +39,7 @@ struct CoilHeader {
     uint8_t  flags;        // Format flags
     uint32_t symbol_offset; // Offset to symbol table
     uint32_t section_offset; // Offset to section table
-    uint32_t reloc_offset;  // Offset to relocation table (0 for .coilo)
+    uint32_t reloc_offset;  // Offset to relocation table (0 for executable .coilo)
     uint32_t file_size;    // Total file size
 }
 ```
@@ -31,8 +48,9 @@ Flag values:
 - `0x01`: Object file (.coil)
 - `0x02`: Output file (.coilo)
 - `0x04`: Contains debug information
-- `0x08`: Core processor (CPU) targeted
-- `0x10`: Extended processors targeted (v3)
+- `0x08`: Library file (static or dynamic)
+- `0x10`: Contains multiple processor targets
+- `0x20`: Contains initialization code
 
 ## Symbol Table
 
@@ -50,6 +68,7 @@ struct Symbol {
     uint32_t attributes;    // Symbol attributes
     uint32_t value;         // Symbol value (address or data)
     uint16_t section_index; // Index of containing section
+    uint8_t  processor_type; // Target processor type
 }
 ```
 
@@ -60,6 +79,8 @@ Symbol attributes (bitfield):
 - `0x08`: Function symbol
 - `0x10`: Data symbol
 - `0x20`: External reference
+- `0x40`: Exported symbol (for libraries)
+- `0x80`: Initialization function
 
 ### Symbol Referencing
 
@@ -91,6 +112,7 @@ struct Section {
     uint32_t size;          // Size in bytes
     uint32_t address;       // Virtual address (0 if not set)
     uint32_t alignment;     // Required alignment
+    uint8_t  processor_type; // Target processor type
 }
 ```
 
@@ -100,6 +122,34 @@ Section attributes (bitfield):
 - `0x04`: Readable
 - `0x08`: Initialized data
 - `0x10`: Uninitialized data (BSS)
+- `0x20`: Device-specific section
+- `0x40`: Shared section (accessible by multiple processors)
+
+## Library Format Support
+
+COIL object formats support creating libraries:
+
+### Static Libraries
+- Multiple .coilo objects concatenated with a library header
+- Symbol export table for quick reference
+- Platform-independent representation
+- Can contain code for multiple processor types
+
+### Dynamic Libraries
+- Similar to executable .coilo but with export table
+- Contains initialization code in a special section
+- Supports lazy symbol resolution
+- Can be loaded at runtime by COIL-aware loaders
+
+### Library Header
+```
+struct LibraryHeader {
+    uint32_t object_count;        // Number of contained objects
+    uint32_t export_table_offset; // Offset to export table
+    uint32_t dependency_offset;   // Offset to dependency information
+    uint32_t object_offsets[];    // Array of offsets to each object
+}
+```
 
 ## Relocation Table (COIL Object Format Only)
 
@@ -149,23 +199,26 @@ Debug entry types:
 - `0x03`: Type information
 - `0x04`: Source file information
 
-## COIL Object Format vs. COIL Output Object Format
+## Multi-Processor Support
 
-Key differences between .coil and .coilo:
+COIL objects can contain code for multiple processor types:
 
-### COIL Object Format (.coil)
-- Contains relocations
-- May have unresolved external symbols
-- Designed for linking
-- Preserves section independence
-- May require symbol resolution
+- Each section specifies its target processor
+- Multiple sections may target different processors
+- Unified symbol table with processor-specific attributes
+- Cross-processor references use standard relocation mechanisms
 
-### COIL Output Object Format (.coilo)
-- No relocations (all addresses resolved)
-- All symbols are resolved
-- Ready for execution
-- Contains platform-specific optimizations
-- May include entry point information
+Example of multi-processor code layout:
+```
+[Header]
+[Symbol Table]
+[Section Table]
+[CPU Code Section]
+[GPU Code Section]
+[FPGA Code Section]
+[Shared Data Section]
+[Relocation Table (for .coil only)]
+```
 
 ## Binary Encoding Example
 
@@ -187,10 +240,12 @@ A minimal COIL object file:
 0x01                   ; Global attribute
 0x00000000             ; Value
 0x0001                 ; Section index
+0x01                   ; Processor type (CPU)
 0x05 "hello"           ; Symbol 2: "hello"
 0x10                   ; Data attribute
 0x00000000             ; Value
 0x0002                 ; Section index
+0x01                   ; Processor type (CPU)
 
 ; Section table (at offset 0x4C)
 0x00000002             ; 2 sections
@@ -200,12 +255,14 @@ A minimal COIL object file:
 0x0000000C             ; Size
 0x00000000             ; Address
 0x00000001             ; Alignment
+0x01                   ; Processor type (CPU)
 0xFFFF                 ; No name
 0x02 | 0x04 | 0x08     ; Writable, readable, initialized
 0x0000007C             ; Offset
 0x00000000             ; Size
 0x00000000             ; Address
 0x00000001             ; Alignment
+0x01                   ; Processor type (CPU)
 
 ; Relocation table (at offset 0x64)
 0x00000001             ; 1 relocation
@@ -220,19 +277,11 @@ A minimal COIL object file:
 0x02 0x01 ...          ; BR instruction
 ```
 
-## Best Practices
+## Relationship to Future Formats
 
-1. **Symbol Table Management**:
-   - Use symbol table indices to reference symbols
-   - Deduplicate strings by using symbol table
-   - Keep symbol names meaningful for debugging
+While the current COIL object format serves general-purpose needs, future specialized formats may include:
 
-2. **Section Organization**:
-   - Group related functionality in the same section
-   - Use section attributes appropriately
-   - Align sections according to their requirements
+- **CBC (COIL Byte Code)**: An optimized bytecode format for interpreters and JITs with faster parsing and smaller size
+- **Device-Specific Formats**: Specialized variations optimized for particular device classes
 
-3. **File Size Optimization**:
-   - Use the symbol table to reduce string duplication
-   - Place related functionality in sequential order
-   - Use compact representations where possible
+These formats would be derived from the core COIL format while providing additional optimizations for specific use cases.

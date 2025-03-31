@@ -28,6 +28,17 @@ COIL clearly separates:
 - **Platform-specific operations** (opcodes 0xC0-0xFE): For specific architectures
 - **Extensions** (opcode 0xFF): For implementation-specific features
 
+## Processor Agnostic Design
+
+COIL is designed to be fundamentally processor-agnostic:
+
+- Does not assume a CPU as the core/host device
+- Can target any processor type (CPU, GPU, QPU, FPGA, etc.) as the primary device
+- Each COIL object specifies its target processor via the PROC directive
+- Multiple processor types can be supported within a single program through appropriate sections
+
+Any processor type can be the "core" device in a COIL-based system, not just CPUs. For example, a quantum processing unit (QPU) or FPGA could be the primary device with CPUs serving auxiliary functions.
+
 ## COIL Processing Model
 
 A COIL processor:
@@ -42,9 +53,16 @@ A COIL processor:
 
 The COIL design evolves through distinct versions:
 
-- **Version 1** (Current): Focus on CPU instruction set, types, variables, and ABI
+- **Version 1** (Current): Focus on instruction set, types, variables, and ABI
 - **Version 2** (Planned): Standard library, system interfaces, optimization
 - **Version 3** (Future): Multi-device operations, cross-device memory management
+
+## Future Format Directions
+
+While the current COIL format is designed for general-purpose portability, future specialized formats may include:
+
+- **CBC (COIL Byte Code)**: A more compact, streamlined format optimized for interpreters and JIT compilers with faster parsing and smaller size at the expense of some flexibility
+- **Device-Specific Optimized Forms**: Pre-optimized formats for specific device classes
 
 ## Relationship to CASM
 
