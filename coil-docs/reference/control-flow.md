@@ -83,8 +83,8 @@ CALL target[, TYPE_ABICTL=ABICTL_PARAM=abi_name, param1, param2, ...]
 ### Examples
 ```
 CALL function                ; Call with no parameters
-CALL add, TYPE_ABICTL=ABICTL_PARAM=platform_default, x, y
-                            ; Call with parameters using platform ABI
+CALL add, TYPE_ABICTL=ABICTL_PARAM=platform_default, #1, #2
+                            ; Call with variables #1 and #2 as parameters using platform ABI
 ```
 
 ## Function Return (RET)
@@ -99,8 +99,8 @@ RET [TYPE_ABICTL=ABICTL_RET=abi_name, return_value1, return_value2, ...]
 ### Examples
 ```
 RET                         ; Return with no value
-RET TYPE_ABICTL=ABICTL_RET=platform_default, result
-                           ; Return with a value using platform ABI
+RET TYPE_ABICTL=ABICTL_RET=platform_default, #1
+                           ; Return with variable #1 as return value using platform ABI
 ```
 
 ## Compare (CMP)
@@ -121,8 +121,8 @@ Sets various processor flags based on the comparison:
 
 ### Example
 ```
-CMP counter, limit        ; Compare counter with limit
-BR_LT loop_continue       ; Branch if counter < limit
+CMP #1, #2                  ; Compare variable #1 with variable #2
+BR_LT loop_continue         ; Branch if #1 < #2
 ```
 
 ## Bitwise Test (TEST)
@@ -141,8 +141,8 @@ Sets flags based on the result of (left & right):
 
 ### Example
 ```
-TEST flags, 0x01         ; Test if lowest bit is set
-BR_NZ bit_is_set         ; Branch if the bit is set
+TEST #1, 0x01               ; Test if lowest bit of variable #1 is set
+BR_NZ bit_is_set            ; Branch if the bit is set
 ```
 
 ## Multi-way Branch (SWITCH)
@@ -160,7 +160,7 @@ SWITCH value, case_count
 
 ### Example
 ```
-SWITCH option, 3
+SWITCH #1, 3
   1, case_one
   2, case_two
   3, case_three
@@ -171,8 +171,8 @@ SWITCH option, 3
 
 ### If-Then-Else
 ```
-; if (a == b) then X else Y
-CMP a, b
+; if (#1 == #2) then X else Y
+CMP #1, #2
 BR_NE else_branch
   ; X code here
 BR end_if
@@ -183,22 +183,22 @@ end_if:
 
 ### For Loop
 ```
-; for (i = 0; i < limit; i++)
-MOV i, 0
+; for (#1 = 0; #1 < #2; #1++)
+MOV #1, 0
 loop_start:
-CMP i, limit
+CMP #1, #2
 BR_GE loop_end
   ; Loop body here
-INC i
+INC #1
 BR loop_start
 loop_end:
 ```
 
 ### While Loop
 ```
-; while (condition)
+; while (#1 != 0)
 while_start:
-CMP condition, 0
+CMP #1, 0
 BR_EQ while_end
   ; Loop body here
 BR while_start
@@ -207,17 +207,17 @@ while_end:
 
 ### Do-While Loop
 ```
-; do { ... } while (condition)
+; do { ... } while (#1 != 0)
 do_start:
   ; Loop body here
-CMP condition, 0
+CMP #1, 0
 BR_NE do_start
 ```
 
 ### Switch Statement
 ```
-; switch (value) { case 1: ... break; case 2: ... break; default: ... }
-SWITCH value, 2
+; switch (#1) { case 1: ... break; case 2: ... break; default: ... }
+SWITCH #1, 2
   1, case_one
   2, case_two
   default_case
@@ -250,7 +250,7 @@ Binary:
 0x02         ; Opcode for BR
 0x01         ; One operand
 0x9100       ; TYPE_SYM
-[sym_id]     ; Symbol ID for "target"
+[sym_id]     ; Symbol index for "target"
 ```
 
 ### Conditional BR
@@ -265,7 +265,7 @@ Binary:
 0x02         ; Opcode for BR
 0x02         ; Two operands
 0x9100       ; TYPE_SYM
-[sym_id]     ; Symbol ID for "target"
+[sym_id]     ; Symbol index for "target"
 0xF000       ; TYPE_PARAM5
 0x00         ; BRANCH_COND_EQ
 ```
@@ -274,7 +274,7 @@ Binary:
 
 CASM:
 ```
-CALL function, TYPE_ABICTL=ABICTL_PARAM=platform_default, a, b
+CALL function, TYPE_ABICTL=ABICTL_PARAM=platform_default, #1, #2
 ```
 
 Binary:
@@ -282,12 +282,12 @@ Binary:
 0x03         ; Opcode for CALL
 0x04         ; Four operands
 0x9100       ; TYPE_SYM for target
-[sym_id]     ; Symbol ID for "function"
+[sym_id]     ; Symbol index for "function"
 0xF800       ; TYPE_ABICTL
 0x01         ; ABICTL_PARAM
 [abi_id]     ; ABI ID for "platform_default"
 0x9000       ; TYPE_VAR
-[var_id]     ; Variable ID for "a"
+0x01         ; Variable ID 1
 0x9000       ; TYPE_VAR
-[var_id]     ; Variable ID for "b"
+0x02         ; Variable ID 2
 ```

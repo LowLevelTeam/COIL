@@ -28,11 +28,11 @@ MOV destination, source[, TYPE_PARAM5=condition]
 
 ### Examples
 ```
-MOV counter, 42               ; Store immediate value to variable
-MOV result, counter           ; Copy variable to variable
-MOV [address], value          ; Store to memory
-MOV value, [address]          ; Load from memory
-MOV TYPE_RGP=RAX, value       ; Store to register
+MOV #1, 42               ; Store immediate value to variable #1
+MOV #2, #1               ; Copy variable #1 to variable #2
+MOV [#3], #4             ; Store variable #4 to memory pointed by #3
+MOV #5, [#3]             ; Load from memory to variable #5
+MOV TYPE_RGP=RAX, #1     ; Store variable #1 to register
 ```
 
 ## Stack Operations (PUSH/POP)
@@ -47,10 +47,10 @@ POP destination[, TYPE_PARAM5=condition]
 
 ### Examples
 ```
-PUSH value                    ; Push value to stack
-POP result                    ; Pop from stack to result
-PUSH counter                  ; Suggest storing counter in memory
-POP counter                   ; Suggest loading counter into register
+PUSH #1                    ; Push variable #1 to stack
+POP #2                     ; Pop from stack to variable #2
+PUSH #3                    ; Suggest storing variable #3 in memory
+POP #3                     ; Suggest loading variable #3 into register
 ```
 
 ## Load Effective Address (LEA)
@@ -64,7 +64,7 @@ LEA destination, source[, TYPE_PARAM5=condition]
 
 ### Example
 ```
-LEA ptr, [array + index*4]    ; Calculate address without accessing memory
+LEA #1, [#2 + #3*4]        ; Calculate address without accessing memory
 ```
 
 ## Scope Management (SCOPEE/SCOPEL)
@@ -81,9 +81,9 @@ SCOPEL                        ; Leave the scope (and destroy all variables)
 ### Example
 ```
 SCOPEE
-  VAR TYPE_INT32, temp, 0     ; temp is created here
-  ; Use temp...
-SCOPEL                        ; temp is destroyed here
+  VAR #1, TYPE_INT32, 0       ; variable #1 is created here
+  ; Use variable #1...
+SCOPEL                        ; variable #1 is destroyed here
 ```
 
 ## Variable Declaration (VAR)
@@ -92,14 +92,14 @@ Declares a variable with an optional initial value.
 
 ### Syntax
 ```
-VAR type, name[, initial_value]
+VAR #id, type[, initial_value]
 ```
 
 ### Examples
 ```
-VAR TYPE_INT32, counter, 0    ; Integer with initialization
-VAR TYPE_PTR, data_pointer    ; Pointer without initialization
-VAR TYPE_FP32, pi, 3.14159    ; Floating-point with initialization
+VAR #1, TYPE_INT32, 0         ; Integer with initialization
+VAR #2, TYPE_PTR              ; Pointer without initialization
+VAR #3, TYPE_FP32, 3.14159    ; Floating-point with initialization
 ```
 
 ## Memory Block Operations
@@ -115,7 +115,7 @@ MEMCPY destination, source, size[, TYPE_PARAM5=condition]
 
 #### Example
 ```
-MEMCPY dest_buffer, src_buffer, 100    ; Copy 100 bytes
+MEMCPY #1, #2, #3             ; Copy memory block of size #3 from #2 to #1
 ```
 
 ### MEMSET
@@ -129,7 +129,7 @@ MEMSET destination, value, size[, TYPE_PARAM5=condition]
 
 #### Example
 ```
-MEMSET buffer, 0, 1024                 ; Zero out 1KB
+MEMSET #1, 0, #2              ; Zero out memory block
 ```
 
 ### MEMCMP
@@ -143,7 +143,7 @@ MEMCMP result, first, second, size
 
 #### Example
 ```
-MEMCMP comparison_result, block1, block2, 100
+MEMCMP #1, #2, #3, #4         ; Compare blocks, store result in #1
 ```
 
 ## Atomic Operations
@@ -159,7 +159,7 @@ XCHG first, second[, TYPE_PARAM5=condition]
 
 #### Example
 ```
-XCHG old_value, [lock_var]    ; Atomically exchange values
+XCHG #1, [#2]                 ; Atomically exchange values
 ```
 
 ### CAS
@@ -173,7 +173,7 @@ CAS destination, expected, new[, TYPE_PARAM0=memory_control][, TYPE_PARAM5=condi
 
 #### Example
 ```
-CAS [lock_address], 0, 1, TYPE_PARAM0=MEMORY_CTRL_ATOMIC
+CAS [#1], #2, #3, TYPE_PARAM0=MEMORY_CTRL_ATOMIC
 ```
 
 ## Memory Addressing Modes
@@ -182,27 +182,27 @@ COIL supports several memory addressing modes:
 
 ### Direct Addressing
 ```
-MOV value, [address]          ; Access memory at fixed address
+MOV #1, [#2]                  ; Access memory at address in variable #2
 ```
 
 ### Register Indirect
 ```
-MOV value, [TYPE_RGP=RAX]     ; Access memory at address in RAX
+MOV #1, [TYPE_RGP=RAX]        ; Access memory at address in RAX
 ```
 
 ### Base + Offset
 ```
-MOV value, [base_ptr + 8]     ; Access memory at base + offset
+MOV #1, [#2 + 8]              ; Access memory at base + offset
 ```
 
 ### Base + Scaled Index
 ```
-MOV value, [array + index*4]  ; Access memory at base + index*scale
+MOV #1, [#2 + #3*4]           ; Access memory at base + index*scale
 ```
 
 ### Full Addressing Mode
 ```
-MOV value, [base + index*scale + offset]  ; Combined addressing
+MOV #1, [#2 + #3*4 + 8]       ; Combined addressing
 ```
 
 ## Memory Model Integration
@@ -219,7 +219,7 @@ The memory operations interact with COIL's memory model:
 
 CASM:
 ```
-MOV counter, TYPE_RGP=RAX
+MOV #1, TYPE_RGP=RAX
 ```
 
 Binary:
@@ -227,7 +227,7 @@ Binary:
 0x10         ; Opcode for MOV
 0x02         ; Two operands
 0x9000       ; TYPE_VAR
-[var_id]     ; Variable ID for "counter"
+0x01         ; Variable ID 1
 0x9200       ; TYPE_RGP
 0x00         ; Register ID for RAX
 ```
@@ -236,7 +236,7 @@ Binary:
 
 CASM:
 ```
-VAR TYPE_INT32, counter, 0
+VAR #1, TYPE_INT32, 0
 ```
 
 Binary:
@@ -244,8 +244,7 @@ Binary:
 0x16         ; Opcode for VAR
 0x03         ; Three operands
 0x0300       ; TYPE_INT32
-0x9100       ; TYPE_SYM for variable name
-[sym_id]     ; Symbol ID for "counter"
+0x01         ; Variable ID 1
 0x0320       ; TYPE_INT32+IMM
 0x00000000   ; Value 0
 ```
@@ -254,7 +253,7 @@ Binary:
 
 CASM:
 ```
-MOV value, [address + 4]
+MOV #1, [#2 + 4]
 ```
 
 Binary:
@@ -262,7 +261,7 @@ Binary:
 0x10         ; Opcode for MOV
 0x02         ; Two operands
 0x9000       ; TYPE_VAR
-[var_id]     ; Variable ID for "value"
+0x01         ; Variable ID 1
 0xM?P?       ; Memory access type (implementation-defined)
 [...]        ; Address calculation data
 ```

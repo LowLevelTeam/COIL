@@ -21,24 +21,24 @@ SECTION .text, 0x01 | 0x04    ; Executable and readable
 SYM _start, TYPE_PARAM0=GLOB  ; Global entry point symbol
     SCOPEE
     ; Declare variables for syscall
-    VAR TYPE_UNT64, syscall_write, 1  ; Linux syscall number for write
-    VAR TYPE_UNT64, stdout_fd, 1      ; File descriptor for stdout
-    VAR TYPE_PTR, message, hello_msg  ; Pointer to our message
-    VAR TYPE_UNT64, message_len, 14   ; Length of our message (including newline)
+    VAR #1, TYPE_UNT64, 1      ; Linux syscall number for write
+    VAR #2, TYPE_UNT64, 1      ; File descriptor for stdout
+    VAR #3, TYPE_PTR, hello_msg  ; Pointer to our message
+    VAR #4, TYPE_UNT64, 14     ; Length of our message (including newline)
     
     ; Write to stdout using syscall
-    MOV TYPE_RGP=RAX, syscall_write   ; Syscall number in RAX
-    MOV TYPE_RGP=RDI, stdout_fd       ; First argument: file descriptor
-    MOV TYPE_RGP=RSI, message         ; Second argument: message pointer
-    MOV TYPE_RGP=RDX, message_len     ; Third argument: message length
-    SYSCALL                           ; Invoke syscall
+    MOV TYPE_RGP=RAX, #1       ; Syscall number in RAX
+    MOV TYPE_RGP=RDI, #2       ; First argument: file descriptor
+    MOV TYPE_RGP=RSI, #3       ; Second argument: message pointer
+    MOV TYPE_RGP=RDX, #4       ; Third argument: message length
+    SYSCALL                    ; Invoke syscall
     
     ; Exit program with code 0
-    VAR TYPE_UNT64, syscall_exit, 60  ; Linux syscall number for exit
-    VAR TYPE_UNT64, exit_code, 0      ; Exit code 0 (success)
-    MOV TYPE_RGP=RAX, syscall_exit    ; Syscall number in RAX
-    MOV TYPE_RGP=RDI, exit_code       ; First argument: exit code
-    SYSCALL                           ; Invoke syscall
+    VAR #5, TYPE_UNT64, 60     ; Linux syscall number for exit
+    VAR #6, TYPE_UNT64, 0      ; Exit code 0 (success)
+    MOV TYPE_RGP=RAX, #5       ; Syscall number in RAX
+    MOV TYPE_RGP=RDI, #6       ; First argument: exit code
+    SYSCALL                    ; Invoke syscall
     SCOPEL
 ```
 
@@ -81,26 +81,26 @@ This creates a code section and defines our entry point:
 
 ```
 SCOPEE
-VAR TYPE_UNT64, syscall_write, 1  ; Linux syscall number for write
-VAR TYPE_UNT64, stdout_fd, 1      ; File descriptor for stdout
-VAR TYPE_PTR, message, hello_msg  ; Pointer to our message
-VAR TYPE_UNT64, message_len, 14   ; Length of our message
+VAR #1, TYPE_UNT64, 1      ; Linux syscall number for write
+VAR #2, TYPE_UNT64, 1      ; File descriptor for stdout
+VAR #3, TYPE_PTR, hello_msg  ; Pointer to our message
+VAR #4, TYPE_UNT64, 14     ; Length of our message
 ```
 
-We enter a scope and declare variables for our syscall:
-- `syscall_write` holds the Linux syscall number for the write operation
-- `stdout_fd` is the file descriptor for standard output
-- `message` is a pointer to our string
-- `message_len` is the length of our string
+We enter a scope and declare variables for our syscall using numeric IDs:
+- `#1` holds the Linux syscall number for the write operation
+- `#2` is the file descriptor for standard output
+- `#3` is a pointer to our string
+- `#4` is the length of our string
 
 ### Writing to Standard Output
 
 ```
-MOV TYPE_RGP=RAX, syscall_write   ; Syscall number in RAX
-MOV TYPE_RGP=RDI, stdout_fd       ; First argument: file descriptor
-MOV TYPE_RGP=RSI, message         ; Second argument: message pointer
-MOV TYPE_RGP=RDX, message_len     ; Third argument: message length
-SYSCALL                           ; Invoke syscall
+MOV TYPE_RGP=RAX, #1       ; Syscall number in RAX
+MOV TYPE_RGP=RDI, #2       ; First argument: file descriptor
+MOV TYPE_RGP=RSI, #3       ; Second argument: message pointer
+MOV TYPE_RGP=RDX, #4       ; Third argument: message length
+SYSCALL                    ; Invoke syscall
 ```
 
 This code prepares for and executes the write syscall:
@@ -111,11 +111,11 @@ This code prepares for and executes the write syscall:
 ### Program Exit
 
 ```
-VAR TYPE_UNT64, syscall_exit, 60  ; Linux syscall number for exit
-VAR TYPE_UNT64, exit_code, 0      ; Exit code 0 (success)
-MOV TYPE_RGP=RAX, syscall_exit    ; Syscall number in RAX
-MOV TYPE_RGP=RDI, exit_code       ; First argument: exit code
-SYSCALL                           ; Invoke syscall
+VAR #5, TYPE_UNT64, 60     ; Linux syscall number for exit
+VAR #6, TYPE_UNT64, 0      ; Exit code 0 (success)
+MOV TYPE_RGP=RAX, #5       ; Syscall number in RAX
+MOV TYPE_RGP=RDI, #6       ; First argument: exit code
+SYSCALL                    ; Invoke syscall
 SCOPEL
 ```
 
@@ -123,7 +123,7 @@ Finally, we exit the program:
 - We declare variables for the exit syscall number and exit code
 - We prepare the syscall similarly to the write syscall
 - We invoke the syscall to terminate the program
-- We close our scope with SCOPEL (though in this case it's not strictly necessary since the program exits)
+- We close our scope with SCOPEL
 
 ## Platform-Independent Version
 
@@ -141,15 +141,15 @@ DATA TYPE_ARRAY=TYPE_UNT8, "Hello, World!", 10, 0
 SECTION .text, 0x01 | 0x04
 SYM main, TYPE_PARAM0=GLOB
     SCOPEE
-    VAR TYPE_PTR, message, hello_msg
+    VAR #1, TYPE_PTR, hello_msg
 
     ; Call platform's print function (using platform_default ABI)
     EXTERN print_string, TYPE_ABICTL=ABICTL_STANDARD=platform_default
-    CALL print_string, TYPE_ABICTL=ABICTL_PARAM=platform_default, message
+    CALL print_string, TYPE_ABICTL=ABICTL_PARAM=platform_default, #1
     
     ; Return 0
-    VAR TYPE_INT32, result, 0
-    RET TYPE_ABICTL=ABICTL_RET=platform_default, result
+    VAR #2, TYPE_INT32, 0
+    RET TYPE_ABICTL=ABICTL_RET=platform_default, #2
     SCOPEL
 ```
 

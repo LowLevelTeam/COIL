@@ -86,31 +86,31 @@ SYM calculate_sum, TYPE_ABICTL=ABICTL_STANDARD=platform_default
 SYM add_numbers, TYPE_ABICTL=ABICTL_STANDARD=platform_default
     SCOPEE
     ; Get parameters
-    VAR TYPE_INT32, a
-    VAR TYPE_INT32, b
-    MOV a, TYPE_ABICTL=ABICTL_PARAM=platform_default, 0  ; First parameter
-    MOV b, TYPE_ABICTL=ABICTL_PARAM=platform_default, 1  ; Second parameter
+    VAR #1, TYPE_INT32
+    VAR #2, TYPE_INT32
+    MOV #1, TYPE_ABICTL=ABICTL_PARAM=platform_default, 0  ; First parameter
+    MOV #2, TYPE_ABICTL=ABICTL_PARAM=platform_default, 1  ; Second parameter
     
     ; Calculate result
-    VAR TYPE_INT32, result
-    ADD result, a, b
+    VAR #3, TYPE_INT32
+    ADD #3, #1, #2
     
     ; Return result
-    RET TYPE_ABICTL=ABICTL_RET=platform_default, result
+    RET TYPE_ABICTL=ABICTL_RET=platform_default, #3
     SCOPEL
 
 ; Call the function and use its result
 SYM main
     SCOPEE
-    VAR TYPE_INT32, x, 10
-    VAR TYPE_INT32, y, 20
-    VAR TYPE_INT32, sum
+    VAR #1, TYPE_INT32, 10
+    VAR #2, TYPE_INT32, 20
+    VAR #3, TYPE_INT32
     
     ; Call function with parameters
-    CALL add_numbers, TYPE_ABICTL=ABICTL_PARAM=platform_default, x, y
+    CALL add_numbers, TYPE_ABICTL=ABICTL_PARAM=platform_default, #1, #2
     
     ; Get return value
-    MOV sum, TYPE_ABICTL=ABICTL_RET=platform_default
+    MOV #3, TYPE_ABICTL=ABICTL_RET=platform_default
     SCOPEL
 ```
 
@@ -127,7 +127,7 @@ CALL function_name, TYPE_ABICTL=ABICTL_PARAM=abi_name, param1, param2, ...
 Example:
 ```
 ; Call calculate_sum with two parameters
-CALL calculate_sum, TYPE_ABICTL=ABICTL_PARAM=platform_default, x, y
+CALL calculate_sum, TYPE_ABICTL=ABICTL_PARAM=platform_default, #1, #2
 ```
 
 ### Receiving Parameters
@@ -136,10 +136,10 @@ Within a function, parameters are accessed:
 
 ```
 ; Get the first parameter
-MOV param1, TYPE_ABICTL=ABICTL_PARAM=abi_name, 0
+MOV #1, TYPE_ABICTL=ABICTL_PARAM=abi_name, 0
 
 ; Get the second parameter
-MOV param2, TYPE_ABICTL=ABICTL_PARAM=abi_name, 1
+MOV #2, TYPE_ABICTL=ABICTL_PARAM=abi_name, 1
 ```
 
 ## Return Value Handling
@@ -155,10 +155,10 @@ RET TYPE_ABICTL=ABICTL_RET=abi_name, result1, result2, ...
 Example:
 ```
 ; Return a single value
-RET TYPE_ABICTL=ABICTL_RET=platform_default, result
+RET TYPE_ABICTL=ABICTL_RET=platform_default, #1
 
 ; Return multiple values
-RET TYPE_ABICTL=ABICTL_RET=platform_default, quotient, remainder
+RET TYPE_ABICTL=ABICTL_RET=platform_default, #1, #2
 ```
 
 ### Receiving Return Values
@@ -167,11 +167,11 @@ After calling a function, return values are accessed:
 
 ```
 ; Get the single return value
-MOV result, TYPE_ABICTL=ABICTL_RET=abi_name
+MOV #1, TYPE_ABICTL=ABICTL_RET=abi_name
 
 ; Get multiple return values
-MOV result1, TYPE_ABICTL=ABICTL_RET=abi_name, 0
-MOV result2, TYPE_ABICTL=ABICTL_RET=abi_name, 1
+MOV #1, TYPE_ABICTL=ABICTL_RET=abi_name, 0
+MOV #2, TYPE_ABICTL=ABICTL_RET=abi_name, 1
 ```
 
 ## Implementation Details

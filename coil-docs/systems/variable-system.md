@@ -13,7 +13,7 @@ Traditional assembly requires manual register management:
 - Manage register spilling when needed
 
 COIL's variable system eliminates these complexities:
-- Variables are declared with types
+- Variables are declared with types and numeric IDs
 - The COIL processor decides optimal storage
 - Variables are automatically allocated to registers or memory
 - Register preservation is handled automatically
@@ -21,34 +21,34 @@ COIL's variable system eliminates these complexities:
 
 ## Variable Declaration
 
-Variables are declared using the `VAR` instruction:
+Variables are declared using the `VAR` instruction with numeric IDs:
 
 ```
-VAR type, name [, initial_value]
+VAR #id, type [, initial_value]
 ```
 
 Examples:
 ```
-VAR TYPE_INT32, counter, 0       ; Integer with initialization
-VAR TYPE_PTR, data_pointer       ; Pointer without initialization
-VAR TYPE_FP32, pi, 3.14159       ; Floating-point with initialization
+VAR #1, TYPE_INT32, 0       ; Integer with initialization
+VAR #2, TYPE_PTR             ; Pointer without initialization
+VAR #3, TYPE_FP32, 3.14159   ; Floating-point with initialization
 ```
 
 ## Variable Usage
 
-Once declared, variables can be used directly in instructions:
+Once declared, variables can be used directly in instructions by their numeric ID:
 
 ```
 ; Arithmetic with variables
-ADD counter, counter, 1
-MUL result, a, b
+ADD #1, #1, 1
+MUL #4, #2, #3
 
 ; Comparisons with variables
-CMP counter, limit
+CMP #1, #5
 BR_LT loop_start
 
 ; Memory access with variables
-MOV [data_pointer], value
+MOV [#2], #6
 ```
 
 The COIL processor automatically:
@@ -64,19 +64,19 @@ Scopes define variable lifetimes using `SCOPEE` and `SCOPEL` instructions:
 ```
 SCOPEE
     ; Variables declared here exist within this scope
-    VAR TYPE_INT32, local_var, 0
+    VAR #1, TYPE_INT32, 0
     
     ; Variables can be used here
-    ADD local_var, local_var, 1
+    ADD #1, #1, 1
     
     ; Nested scopes are supported
     SCOPEE
-        VAR TYPE_INT32, inner_var, 42
-        ; Both local_var and inner_var are accessible here
-    SCOPEL  ; inner_var is destroyed here
+        VAR #1, TYPE_INT32, 42  ; Inner scope #1 is distinct from outer scope #1
+        ; Both outer and inner variables are accessible by their scope-relative IDs
+    SCOPEL  ; inner scope variables are destroyed here
     
-    ; Only local_var is accessible here
-SCOPEL  ; local_var is destroyed here
+    ; Only outer scope variables are accessible here
+SCOPEL  ; outer scope variables are destroyed here
 ```
 
 ### Benefits of Scope Management
@@ -91,6 +91,25 @@ SCOPEL  ; local_var is destroyed here
    - Helps prevent resource leaks
    - Makes code more maintainable
 
+## Variable ID System
+
+Variable IDs are numeric and scope-relative:
+
+1. **Scope-Local Identifiers**:
+   - Each scope maintains its own ID namespace
+   - IDs are reused between different scopes
+   - Numeric format eliminates string lookup overhead
+
+2. **ID Assignment**:
+   - IDs are assigned sequentially within a scope
+   - First variable in a scope gets ID #1
+   - IDs are purely numeric with no string association
+
+3. **Access Rules**:
+   - Inner scopes can access outer scope variables
+   - Outer scopes cannot access inner scope variables
+   - Variables with the same ID in different scopes are distinct
+
 ## Storage Optimization
 
 ### Promotion and Demotion
@@ -99,10 +118,10 @@ COIL provides hints for variable optimization:
 
 ```
 ; Demote a variable to memory
-PUSH counter           ; Suggest storing counter in memory
+PUSH #1           ; Suggest storing variable #1 in memory
 
 ; Promote a variable to register
-POP counter            ; Suggest loading counter into a register
+POP #1            ; Suggest loading variable #1 into a register
 ```
 
 ### Register Hints
@@ -111,7 +130,7 @@ For performance-critical code:
 
 ```
 ; Suggest specific register for a variable
-VAR TYPE_INT32, counter, 0, TYPE_RGP=RAX
+VAR #1, TYPE_INT32, 0, TYPE_RGP=RAX
 ```
 
 These hints should be used sparingly as they reduce portability.
@@ -135,3 +154,13 @@ The variable system is implemented by:
    - Identifies optimization opportunities
    - Performs copy propagation and elimination
    - Reduces memory-to-register transfers
+
+## Binary Encoding
+
+In the binary format, variables are represented by their numeric IDs:
+
+```
+0x9000 [var_id]  ; TYPE_VAR + variable identifier as a numeric index
+```
+
+The var_id is scope-relative, making it efficient to encode and process.

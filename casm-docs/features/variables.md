@@ -8,40 +8,40 @@ Variables in CASM provide an abstraction over registers and memory, allowing you
 
 ### Declaration
 
-Variables are declared using the `VAR` instruction:
+Variables are declared using the `VAR` instruction with a numeric ID:
 
 ```
-VAR type, name [, initial_value]
+VAR #id, type [, initial_value]
 ```
 
 Where:
+- `#id` is the numeric identifier for the variable
 - `type` is any valid COIL type (like TYPE_INT32, TYPE_FP64)
-- `name` is the variable's identifier
 - `initial_value` is an optional initialization value
 
 Examples:
 ```
-VAR TYPE_INT32, counter, 0       ; Integer with initialization
-VAR TYPE_PTR, data_pointer       ; Pointer without initialization
-VAR TYPE_FP32, pi, 3.14159       ; Floating-point with initialization
+VAR #1, TYPE_INT32, 0       ; Integer with initialization
+VAR #2, TYPE_PTR            ; Pointer without initialization
+VAR #3, TYPE_FP32, 3.14159  ; Floating-point with initialization
 ```
 
 ### Usage
 
-Once declared, variables can be used directly in instructions:
+Once declared, variables can be used directly in instructions by their numeric ID:
 
 ```
 ; Arithmetic with variables
-ADD counter, counter, 1
-MUL result, a, b
+ADD #1, #1, 1
+MUL #4, #2, #3
 
 ; Comparisons with variables
-CMP counter, limit
+CMP #1, #5
 BR_LT loop_start
 
 ; Memory access with variables
-MOV [data_pointer], value
-MOV value, [data_pointer]
+MOV [#2], #6
+MOV #7, [#2]
 ```
 
 ### Lifecycle
@@ -50,14 +50,14 @@ Variables exist from their declaration point until the end of their enclosing sc
 
 ```
 SCOPEE
-    VAR TYPE_INT32, counter, 0   ; counter is created here
+    VAR #1, TYPE_INT32, 0   ; variable #1 is created here
     
-    ; counter is valid here
-    ADD counter, counter, 1
+    ; variable #1 is valid here
+    ADD #1, #1, 1
     
-SCOPEL    ; counter is destroyed here
+SCOPEL    ; variable #1 is destroyed here
 
-; counter is no longer valid here
+; variable #1 is no longer valid here
 ```
 
 ## Variable Types
@@ -67,29 +67,67 @@ Variables can have any valid COIL type:
 ### Basic Types
 
 ```
-VAR TYPE_INT32, signed_int, -42      ; Signed 32-bit integer
-VAR TYPE_UNT8, byte_value, 0xFF      ; Unsigned 8-bit integer
-VAR TYPE_FP64, double_value, 3.14159 ; 64-bit floating point
+VAR #1, TYPE_INT32, -42      ; Signed 32-bit integer
+VAR #2, TYPE_UNT8, 0xFF      ; Unsigned 8-bit integer
+VAR #3, TYPE_FP64, 3.14159   ; 64-bit floating point
 ```
 
 ### Pointer Types
 
 ```
-VAR TYPE_PTR, generic_pointer        ; Generic pointer
-VAR TYPE_PTR=TYPE_INT32, int_ptr     ; Pointer to 32-bit integer
+VAR #4, TYPE_PTR             ; Generic pointer
+VAR #5, TYPE_PTR=TYPE_INT32  ; Pointer to 32-bit integer
 ```
 
 ### Composite Types
 
 ```
-VAR TYPE_ARRAY=TYPE_INT32, int_array, (1, 2, 3, 4, 5)  ; Array of integers
-VAR TYPE_STRUCT=point, position, (10, 20)              ; Structure with x,y fields
+VAR #6, TYPE_ARRAY=TYPE_INT32, (1, 2, 3, 4, 5)  ; Array of integers
+VAR #7, TYPE_STRUCT=point, (10, 20)             ; Structure with x,y fields
 ```
 
 ### Vector Types
 
 ```
-VAR TYPE_V128=TYPE_FP32, vector, (1.0, 2.0, 3.0, 4.0)  ; Vector of 4 floats
+VAR #8, TYPE_V128=TYPE_FP32, (1.0, 2.0, 3.0, 4.0)  ; Vector of 4 floats
+```
+
+## Scope-Based Variable System
+
+### Variable ID Assignment
+
+Variable IDs are scope-relative:
+- Each scope has its own variable ID namespace
+- IDs are assigned sequentially starting from 1
+- The same ID can be reused in different scopes
+
+```
+SCOPEE           ; Outer scope
+    VAR #1, TYPE_INT32, 10   ; Outer scope variable #1
+    
+    SCOPEE       ; Inner scope
+        VAR #1, TYPE_INT32, 20   ; Inner scope variable #1 (different from outer)
+        ; Here #1 refers to the inner variable (value 20)
+    SCOPEL
+    
+    ; Here #1 refers to the outer variable (value 10)
+SCOPEL
+```
+
+### Nested Scope Access
+
+Inner scopes can access variables from outer scopes by their ID:
+
+```
+SCOPEE           ; Outer scope
+    VAR #1, TYPE_INT32, 10
+    
+    SCOPEE       ; Inner scope
+        ADD #1, #1, 5        ; Modifies outer scope variable #1
+    SCOPEL
+    
+    ; Here #1 now has value 15
+SCOPEL
 ```
 
 ## Implementation Details
@@ -110,7 +148,7 @@ The COIL processor handles all these details, allowing you to focus on program l
 For performance-critical code, you can provide register hints:
 
 ```
-VAR TYPE_INT32, counter, 0, TYPE_RGP=RAX  ; Suggest using RAX for counter
+VAR #1, TYPE_INT32, 0, TYPE_RGP=RAX  ; Suggest using RAX for variable #1
 ```
 
 This is a hint only and the processor may choose a different register if necessary.
@@ -120,68 +158,51 @@ This is a hint only and the processor may choose a different register if necessa
 You can suggest register allocation changes:
 
 ```
-PUSH counter   ; Suggest storing counter in memory (demote)
-POP counter    ; Suggest loading counter into register (promote)
+PUSH #1   ; Suggest storing variable #1 in memory (demote)
+POP #1    ; Suggest loading variable #1 into register (promote)
 ```
-
-### Global Variables
-
-Variables can be declared at global scope (outside any function):
-
-```
-; Global variable
-VAR TYPE_INT32, global_counter, 0
-
-SYM main
-    SCOPEE
-    ADD global_counter, global_counter, 1
-    SCOPEL
-```
-
-Global variables have program lifetime and are typically stored in memory.
 
 ## Variable Access Patterns
 
 ### Direct Variable Access
 
 ```
-MOV counter, 42           ; Store 42 in counter
-ADD counter, counter, 1   ; Increment counter
-MOV result, counter       ; Copy counter to result
+MOV #1, 42           ; Store 42 in variable #1
+ADD #1, #1, 1        ; Increment variable #1
+MOV #2, #1           ; Copy variable #1 to variable #2
 ```
 
 ### Indirect Variable Access (via Pointers)
 
 ```
-VAR TYPE_PTR=TYPE_INT32, ptr
-MOV ptr, &counter         ; Point to counter
-MOV [ptr], 42             ; Store 42 in what ptr points to
-ADD [ptr], [ptr], 1       ; Increment what ptr points to
+VAR #3, TYPE_PTR=TYPE_INT32
+LEA #3, #1           ; Point to variable #1
+MOV [#3], 42         ; Store 42 in what #3 points to
+ADD [#3], [#3], 1    ; Increment what #3 points to
 ```
 
 ### Array Element Access
 
 ```
-VAR TYPE_ARRAY=TYPE_INT32, array, (10, 20, 30, 40, 50)
-VAR TYPE_INT32, elem
-INDEX elem, array, 2      ; Get element at index 2 (value 30)
-UPDT array, 1, 25         ; Update element at index 1 to 25
+VAR #4, TYPE_ARRAY=TYPE_INT32, (10, 20, 30, 40, 50)
+VAR #5, TYPE_INT32
+INDEX #5, #4, 2      ; Get element at index 2 (value 30)
+UPDT #4, 1, 25       ; Update element at index 1 to 25
 ```
 
 ### Structure Field Access
 
 ```
-VAR TYPE_STRUCT=point, pos, (10, 20)
-VAR TYPE_INT32, x_coord
-GET x_coord, pos, x       ; Get x field from pos
-SET pos, y, 25            ; Set y field in pos to 25
+VAR #6, TYPE_STRUCT=point, (10, 20)
+VAR #7, TYPE_INT32
+GET #7, #6, x        ; Get x field from variable #6
+SET #6, y, 25        ; Set y field in variable #6 to 25
 ```
 
 ## Best Practices
 
 1. **Declare variables close to first use**
-2. **Use meaningful variable names**
+2. **Keep variable scope as narrow as possible**
 3. **Initialize variables when declared**
 4. **Use the smallest appropriate type**
-5. **Keep variable scope as narrow as possible**
-6. **Avoid using register hints unless necessary**
+5. **Avoid using register hints unless necessary**

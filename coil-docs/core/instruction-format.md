@@ -85,9 +85,51 @@ The value field contains the actual data, with encoding determined by the type:
 
 3. **References** include an identifier:
    ```
-   0x9100 [symbol_id]     ; TYPE_SYM with symbol ID
-   0x9000 [variable_id]   ; TYPE_VAR with variable ID
+   0x9000 [var_id]   ; TYPE_VAR with numeric variable ID
+   0x9100 [sym_id]   ; TYPE_SYM with symbol table index
    ```
+
+## Symbol Table Format
+
+All COIL formats include a symbol table to reduce string duplication:
+
+1. **Symbol Table Structure**:
+   ```
+   [Symbol Count (4 bytes)] [Symbol Entries...]
+   ```
+
+2. **Symbol Entry Format**:
+   ```
+   [String Length (2 bytes)] [String Data] [Attributes (4 bytes)]
+   ```
+
+3. **Symbol References**:
+   - Symbols are referenced by their index in the symbol table
+   - This replaces string duplication with numeric indices
+   - In the binary format, `TYPE_SYM` always refers to a symbol table index
+
+4. **Symbol Resolution**:
+   - During linking, symbol references are resolved to final addresses
+   - External symbols are looked up by name from the symbol table
+
+## Variable ID System
+
+Variables use numeric IDs that are scope-relative:
+
+1. **ID Assignment**:
+   - IDs are assigned sequentially within each scope
+   - First variable in a scope gets ID #1
+   - IDs are purely numeric with no string association
+
+2. **Binary Encoding**:
+   ```
+   0x9000 [var_id]  ; TYPE_VAR + numeric variable ID
+   ```
+
+3. **Scope Relationship**:
+   - Variable IDs are relative to their containing scope
+   - The same ID in different scopes refers to different variables
+   - No global variable table is needed, only scope-relative IDs
 
 ## Complete Examples
 
@@ -95,7 +137,7 @@ The value field contains the actual data, with encoding determined by the type:
 
 CASM:
 ```
-MOV counter, 42
+MOV #1, 42
 ```
 
 Binary:
@@ -103,7 +145,7 @@ Binary:
 0x10         ; Opcode for MOV
 0x02         ; Two operands
 0x9000       ; TYPE_VAR
-[var_id]     ; Variable ID for "counter"
+0x01         ; Variable ID 1
 0x1320       ; TYPE_UNT32+IMM
 0x2A000000   ; Value 42 (little-endian)
 ```
@@ -112,7 +154,7 @@ Binary:
 
 CASM:
 ```
-ADD result, a, b
+ADD #1, #2, #3
 ```
 
 Binary:
@@ -120,11 +162,26 @@ Binary:
 0x60         ; Opcode for ADD
 0x03         ; Three operands
 0x9000       ; TYPE_VAR
-[var_id]     ; Variable ID for "result"
+0x01         ; Variable ID 1
 0x9000       ; TYPE_VAR
-[var_id]     ; Variable ID for "a"
+0x02         ; Variable ID 2
 0x9000       ; TYPE_VAR
-[var_id]     ; Variable ID for "b"
+0x03         ; Variable ID 3
+```
+
+### Branch to Symbol
+
+CASM:
+```
+BR loop_start
+```
+
+Binary:
+```
+0x02         ; Opcode for BR
+0x01         ; One operand
+0x9100       ; TYPE_SYM
+[sym_id]     ; Symbol table index for "loop_start"
 ```
 
 ## Instruction Encoding Rules
