@@ -102,20 +102,6 @@ struct Function {
 }
 ```
 
-## Metadata Section
-
-Optional metadata provides additional information:
-
-```
-struct Metadata {
-    uint32_t source_offset;   // Source file information
-    uint32_t debug_offset;    // Debug information
-    uint32_t attr_offset;     // Custom attributes
-}
-```
-
-This section supports debugging, profiling, and additional tools.
-
 ## Binary Encoding Examples
 
 ### Variable Declaration and Initialization
@@ -142,3 +128,9 @@ This section supports debugging, profiling, and additional tools.
 ; call function at index 5 with parameters #1, #2
 0F 05 01 02        ; call function_index, param_count, params...
 ```
+
+## Related Components
+
+- [CBC Instruction Set](/cbc-docs/cbc-instruction-set.md) - Complete instruction reference
+- [CBC Execution](/cbc-docs/cbc-execution.md) - Execution environment details
+- [CBC Overview](/cbc-docs/cbc-overview.md) - General CBC introduction

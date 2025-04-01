@@ -116,40 +116,6 @@ The COIL processor handles:
 3. **Lifetime Management**: Tracking when variables can be freed
 4. **Register Pressure Management**: Optimizing register usage under constraints
 
-### Memory Operations
-
-```
-; Block operations
-MEMCPY dest_ptr, src_ptr, size     ; Copy memory block
-MEMSET buffer, 0, size             ; Zero out memory block  
-MEMCMP result, buf1, buf2, size    ; Compare memory blocks
-
-; Atomic operations  
-XCHG old_value, [lock_var]         ; Atomic exchange
-CAS [lock_var], expected, new_val  ; Compare and swap
-```
-
-### Optimization Hints
-COIL provides optional hints for variable storage:
-
-```
-; Suggest register/memory preferences
-PUSH #1                            ; Demote #1 to memory
-POP #1                             ; Promote #1 to register
-VAR #1, TYPE_INT32, 0, TYPE_RGP=RAX ; Suggest using RAX for #1
-```
-
-These are hints only - the processor may choose differently based on optimizations.
-
-## Alignment Requirements
-
-COIL enforces these alignment requirements:
-- 1-byte types: 1-byte alignment
-- 2-byte types: 2-byte alignment
-- 4-byte types: 4-byte alignment
-- 8-byte types: 8-byte alignment
-- 16-byte types: 16-byte alignment
-
 ## Array and Structure Access
 
 ```
@@ -161,3 +127,9 @@ UPDT array, #7, #8              ; Set array[#7] = #8
 GET #1, struct_ptr, field_name  ; Get field value
 SET struct_ptr, field_name, #2  ; Set field value
 ```
+
+## Related Components
+
+- [Type System](/coil-docs/types/type-system.md) - Type descriptions and encodings
+- [Scopes](/casm-docs/features/scopes.md) - Detailed scope system documentation
+- [Memory Models](/coil-docs/systems/memory-models.md) - Device-specific memory models

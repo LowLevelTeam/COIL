@@ -1,6 +1,6 @@
 # CASM Directives
 
-## Purpose
+## Overview
 
 Directives are special instructions that control the assembly process rather than generating runtime code. They provide information to the assembler about the target architecture, memory organization, symbol handling, and other aspects of the compilation environment.
 
@@ -17,8 +17,8 @@ PROC processor_code
 
 Common processor codes:
 - `0x01`: CPU
-- `0x02`: GPU (reserved for v3)
-- `0x03`: TPU (reserved for v3)
+- `0x02`: GPU
+- `0x03`: TPU
 
 Example:
 ```
@@ -150,14 +150,6 @@ ABI abi_name
 EXIT
 ```
 
-ABI-specific directives:
-- `PARAMS`: Register list for parameter passing
-- `RETS`: Register list for return values
-- `CALLER`: Caller-saved registers
-- `CALLEE`: Callee-saved registers
-- `SALLIGN`: Stack alignment requirement
-- `RZONE`: Red zone size
-
 Example:
 ```
 ABI linux_x86_64
@@ -224,25 +216,6 @@ Example:
 VERSION 1, 0, 0  ; Requires COIL v1.0.0
 ```
 
-## Directive Processing Order
-
-Directives are processed by the COIL assembler in specific phases:
-
-1. **Preprocessing Phase**:
-   - `INCLUDE` directive
-   - `VERSION` directive
-   - Conditional assembly directives (`IF`, `ELIF`, `ELSE`, `ENDIF`)
-
-2. **Assembly Phase**:
-   - `PROC`, `ARCH` directives
-   - `SECTION`, `ALIGN` directives
-   - `ABI` definition
-   - `DATA` directive
-
-3. **Linking Phase**:
-   - `EXTERN` directive
-   - `GLOBAL` directive
-
 ## Common Directive Patterns
 
 ### Standard Project Setup
@@ -287,10 +260,8 @@ SYM message
 DATA TYPE_ARRAY=TYPE_UNT8, "Hello, World!", 0
 ```
 
-## Best Practices
+## Related Components
 
-1. **Specify target at the start** of the file (PROC, ARCH)
-2. **Organize code into appropriate sections**
-3. **Use conditional assembly** for platform-specific code
-4. **Properly align data** for performance
-5. **Document directives** with comments
+- [CASM Basics](/casm-docs/basics/casm-basics.md) - Basic CASM syntax elements
+- [Binary Format](/coil-docs/core/binary-format.md) - Binary encoding of directives
+- [Device Architecture](/coil-docs/systems/device-architecture.md) - Target architecture details

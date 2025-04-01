@@ -15,12 +15,8 @@ COIL supports the following primary device types:
 | 0x03 | TPU | Tensor Processing Unit |
 | 0x04 | DSP | Digital Signal Processor |
 | 0x05 | FPGA | Field-Programmable Gate Array |
-| 0x06 | NPU | Neural Processing Unit |
-| 0x07 | VPU | Vision Processing Unit |
-| 0x08-0xFE | Reserved | For future device types |
+| 0x06-0xFE | Reserved | For future device types |
 | 0xFF | Custom | Vendor-specific device |
-
-Device types define the primary processing paradigm and general capabilities.
 
 ## Architecture Types
 
@@ -35,8 +31,7 @@ Each device type supports multiple architectures. Architecture codes use the dev
 | 0x0103 | RISC-V | RISC-V architecture |
 | 0x0104 | MIPS | MIPS architecture |
 | 0x0105 | PowerPC | PowerPC architecture |
-| 0x0106 | SPARC | SPARC architecture |
-| 0x0107-0x01FE | Reserved | For future CPU architectures |
+| 0x0106-0x01FE | Reserved | For future CPU architectures |
 | 0x01FF | Custom | Vendor-specific CPU architecture |
 
 ### GPU Architectures (0x02xx)
@@ -46,19 +41,8 @@ Each device type supports multiple architectures. Architecture codes use the dev
 | 0x0201 | NVIDIA CUDA | NVIDIA CUDA architecture |
 | 0x0202 | AMD GCN | AMD GCN architecture |
 | 0x0203 | Intel Xe | Intel Xe architecture |
-| 0x0204 | ARM Mali | ARM Mali architecture |
-| 0x0205 | Imagination PowerVR | PowerVR architecture |
-| 0x0206-0x02FE | Reserved | For future GPU architectures |
+| 0x0204-0x02FE | Reserved | For future GPU architectures |
 | 0x02FF | Custom | Vendor-specific GPU architecture |
-
-### TPU Architectures (0x03xx)
-
-| Architecture Code | Name | Description |
-|-------------------|------|-------------|
-| 0x0301 | Google TPU | Google Tensor Processing Unit |
-| 0x0302 | NVIDIA Tensor Cores | NVIDIA Tensor Core architecture |
-| 0x0303-0x03FE | Reserved | For future TPU architectures |
-| 0x03FF | Custom | Vendor-specific TPU architecture |
 
 ## Mode Types
 
@@ -79,17 +63,6 @@ Each architecture may support multiple execution modes. Mode codes use the archi
 | 0x010201 | ARM32 | 32-bit mode |
 | 0x010202 | ARM64 | 64-bit mode |
 | 0x010203 | Thumb | Thumb instruction set |
-| 0x010204 | ThumbEE | Thumb EE instruction set |
-
-### NVIDIA CUDA Modes (0x0201xx)
-
-| Mode Code | Name | Description |
-|-----------|------|-------------|
-| 0x020101 | SM 5.0 | Compute capability 5.0 |
-| 0x020102 | SM 6.0 | Compute capability 6.0 |
-| 0x020103 | SM 7.0 | Compute capability 7.0 |
-| 0x020104 | SM 7.5 | Compute capability 7.5 |
-| 0x020105 | SM 8.0 | Compute capability 8.0 |
 
 ## Target Specification
 
@@ -102,23 +75,6 @@ A complete target specification consists of three components:
 For example, a complete target specification might be:
 - `0x010103`: CPU (0x01), x86 architecture (0x01), 64-bit mode (0x03)
 - `0x020104`: GPU (0x02), NVIDIA CUDA (0x01), SM 7.5 (0x04)
-
-## Device Capabilities
-
-Each device has core capabilities that determine supported operations:
-
-| Capability Flag | Description |
-|-----------------|-------------|
-| 0x01 | Integer arithmetic |
-| 0x02 | Floating-point arithmetic |
-| 0x04 | Vector operations |
-| 0x08 | Tensor operations |
-| 0x10 | Atomic operations |
-| 0x20 | Threading support |
-| 0x40 | Memory hierarchy control |
-| 0x80 | Specialized acceleration |
-
-These capabilities are defined in device configuration files and can be queried at runtime.
 
 ## Device Selection
 
@@ -140,23 +96,67 @@ MODE 0x04               ; SM 7.5
 ...
 ```
 
-## Target Inheritance
-
-The device architecture system uses inheritance to share common capabilities:
+Alternative compact format:
 
 ```
-Base Features
-├── CPU Features
-│   ├── x86 Features
-│   │   ├── x86-32 Features
-│   │   └── x86-64 Features
-│   └── ARM Features
-│       ├── ARM32 Features
-│       └── ARM64 Features
-├── GPU Features
-│   ├── NVIDIA Features
-│   └── AMD Features
-└── ...
+TARGET 0x010103         ; CPU (0x01), x86 (0x01), 64-bit (0x03)
 ```
 
-This hierarchy allows code to target specific capabilities while maintaining compatibility across related devices.
+## Device Capabilities
+
+Each device has core capabilities that determine supported operations:
+
+| Capability Flag | Description |
+|-----------------|-------------|
+| 0x01 | Integer arithmetic |
+| 0x02 | Floating-point arithmetic |
+| 0x04 | Vector operations |
+| 0x08 | Tensor operations |
+| 0x10 | Atomic operations |
+| 0x20 | Threading support |
+| 0x40 | Memory hierarchy control |
+| 0x80 | Specialized acceleration |
+
+## Multi-Target Sections
+
+COIL supports defining different implementations for different targets:
+
+```
+SECTION .text.cpu, 0x01 | 0x04, TARGET=0x010103
+  ; CPU-specific implementation
+ENDSECTION
+
+SECTION .text.gpu, 0x01 | 0x04, TARGET=0x020104
+  ; GPU-specific implementation
+ENDSECTION
+```
+
+## Runtime Target Detection
+
+Programs can detect available targets at runtime:
+
+```
+; Check for device availability
+VAR #10, TYPE_INT32            ; Result flag
+QUERY_DEVICE 0x02, 0x01, 0x04, #10  ; Is CUDA SM 7.5 available?
+
+; Branch based on available device
+CMP #10, 0
+BR_EQ use_cpu                  ; If not available, use CPU
+```
+
+## Implementation Status
+
+COIL Version 1.0 includes:
+- Full CPU targeting (0x01)
+- Basic GPU targeting framework (0x02)
+- Device detection and query capabilities
+- Multi-target section support
+
+Future versions will expand device support with full GPU, TPU, and other device implementations.
+
+## Related Components
+
+- [Device Configuration](/coil-docs/systems/device-configuration.md) - Detailed device capability configuration
+- [Device Targeting](/coil-docs/systems/device-targeting.md) - Code targeting for specific devices 
+- [Memory Models](/coil-docs/systems/memory-models.md) - Device-specific memory models

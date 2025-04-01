@@ -10,8 +10,8 @@ CASM files are plain text files containing COIL assembly language code:
 
 ```
 ; Example CASM file
-PROC 0x01                     ; CPU processor
-ARCH 0x01, 0x03               ; x86-64 architecture
+PROC 0x01                       ; CPU processor
+ARCH 0x01, 0x03                 ; x86-64 architecture
 
 SECTION .text, 0x01 | 0x04
 SYM main, TYPE_PARAM0=GLOB
@@ -54,41 +54,6 @@ Format flags:
 - `0x04`: Contains debug information
 - `0x08`: Big-endian encoding (default is little-endian)
 
-Symbol table format:
-```
-struct SymbolTable {
-    uint32_t count;           // Number of symbols
-    Symbol   entries[];       // Array of symbol entries
-}
-
-struct Symbol {
-    uint16_t name_length;     // Length of symbol name
-    char     name[];          // Symbol name
-    uint32_t attributes;      // Symbol attributes
-    uint32_t value;           // Symbol value
-    uint16_t section_index;   // Section index
-    uint8_t  processor_type;  // Target processor
-}
-```
-
-Section table format:
-```
-struct SectionTable {
-    uint32_t count;           // Number of sections
-    Section  entries[];       // Array of section entries
-}
-
-struct Section {
-    uint16_t name_index;      // Symbol table index for name
-    uint32_t attributes;      // Section attributes
-    uint32_t offset;          // Offset from file start
-    uint32_t size;            // Size in bytes
-    uint32_t address;         // Virtual address
-    uint32_t alignment;       // Required alignment
-    uint8_t  processor_type;  // Target processor
-}
-```
-
 ## COIL Output Object Format (`.coilo`)
 
 COILO files contain processed COIL objects with native opcodes for the target architecture:
@@ -119,7 +84,7 @@ COILO files can contain:
 3. CBC bytecode sections for interpretation
 4. Metadata for linking and execution
 
-COILO files are **not** directly executable. They must be processed by an OS-specific linker to create executables (.exe, .out, etc.) or libraries (.dll, .so, etc.).
+Important: **COILO files are not directly executable**. They must be processed by an OS-specific linker to create executables (.exe, .out, etc.) or libraries (.dll, .so, etc.).
 
 ## CBC Bytecode Format (`.cbc`)
 
@@ -193,39 +158,6 @@ Target files define:
 - Memory models
 - Specific limitations
 
-## Binary Encoding Examples
-
-### COIL Instruction Encoding
-
-```
-; MOV instruction (MOV #1, 42)
-0x10                   ; Opcode for MOV
-0x02                   ; Two operands
-0x9000 0x01            ; TYPE_VAR + Variable ID 1
-0x1320 0x2A000000      ; TYPE_UNT32+IMM + Value 42 (little-endian)
-```
-
-### CBC Instruction Encoding
-
-```
-; var.i32 #1, 42
-2E 14 01 0000002A      ; Opcode, type+format, var ID, value
-```
-
-## Format Compatibility
-
-File format compatibility follows these principles:
-
-1. **Version compatibility**: Newer tools can read older formats
-2. **Format evolution**: Formats may evolve with backward compatibility
-3. **Extension mechanism**: Formats include extension mechanisms
-4. **Tool interoperability**: Different tools can exchange formats
-
-When formats change:
-- Minor version updates for backward-compatible changes
-- Major version updates for incompatible changes
-- Flags indicate special format features
-
 ## Format Validation
 
 Validation tools ensure format correctness:
@@ -241,3 +173,17 @@ These tools check:
 - Structure integrity
 - Reference validity
 - Content compliance with specifications
+
+## Correct Toolchain Flow
+
+The standard flow through the toolchain:
+
+```
+CASM Source (.casm) → CASM Assembler → COIL Object (.coil) → COIL Processor → COIL Output Object (.coilo) → OS-specific Linker → Executable
+```
+
+## Related Components
+
+- [Binary Format](/coil-docs/core/binary-format.md) - COIL binary encoding details
+- [Toolchain Components](/coil-docs/implementation/toolchain-components.md) - Components that process these formats
+- [Command Interfaces](/coil-docs/implementation/command-interfaces.md) - Command-line tools for these formats

@@ -130,17 +130,6 @@ TARGET CPU_X86_64
 
 This improves code readability when targeting specific devices.
 
-## Target Compatibility
-
-COIL defines compatibility relationships between targets:
-
-```
-TARGET_COMPAT 0x010103, 0x010102  ; x86-64 code can run on x86-32
-TARGET_COMPAT 0x020104, 0x020103  ; CUDA SM 7.5 code can run on SM 7.0
-```
-
-These relationships help the COIL processor make intelligent decisions about code execution.
-
 ## Example: Matrix Multiplication
 
 ```
@@ -206,18 +195,9 @@ end_compute:
     RET
 ```
 
-This example demonstrates how to provide different implementations for different targets and select between them at runtime.
+## Related Components
 
-## Configuration Files
-
-Target specifications can be stored in external files and referenced:
-
-```
-INCLUDE "targets/x86-64.target"
-INCLUDE "targets/cuda-sm75.target"
-
-TARGET X86_64      ; Use predefined target
-...
-```
-
-This promotes code organization and reusability.
+- [Device Architecture](/coil-docs/systems/device-architecture.md) - Device architecture specification
+- [Memory Models](/coil-docs/systems/memory-models.md) - Device-specific memory models
+- [Device Configuration](/coil-docs/systems/device-configuration.md) - Device configuration details
+- [Directives](/casm-docs/features/directives.md) - Target specification directives

@@ -1,6 +1,6 @@
 # CASM Basics
 
-## What is CASM?
+## Overview
 
 CASM (COIL Assembly) is the human-readable text representation of COIL (Computer Oriented Intermediate Language). It serves as an assembly language for writing programs that will be translated into COIL's binary format.
 
@@ -54,39 +54,6 @@ SCOPEE
     SCOPEL  ; Inner scope ends, its variables are destroyed
     
 SCOPEL  ; Outer scope ends, its variables are destroyed
-```
-
-## Literals and Constants
-
-### Integer Literals
-```
-42              ; Decimal integer
-0xFF            ; Hexadecimal integer (255)
-0b1010          ; Binary integer (10)
-0o777           ; Octal integer (511)
-```
-
-### Floating-Point Literals
-```
-3.14159         ; Standard decimal floating point
-.5              ; Leading decimal point (0.5)
-5.              ; Trailing decimal point (5.0)
-1.5e3           ; Scientific notation (1500.0)
-```
-
-### String Literals
-```
-"Hello, World"  ; Standard string
-"Line 1\nLine 2"  ; String with newline escape
-'A'             ; Character literal
-```
-
-### Type Literals
-```
-TYPE_INT32      ; 32-bit integer type
-TYPE_FP64       ; 64-bit floating point type
-TYPE_PTR=TYPE_INT32  ; Pointer to 32-bit integer
-TYPE_V128=TYPE_FP32  ; 128-bit vector of 32-bit floats
 ```
 
 ## Memory Access
@@ -196,10 +163,11 @@ The typical workflow with CASM:
 
 1. Write program in CASM (`.casm` file)
 2. Use COIL assembler to translate to COIL binary (`.coil` file)
-3. Optionally link with other COIL objects
-4. Run the COIL binary using a COIL processor
+3. Process with COIL processor to generate target-specific code (`.coilo` file)
+4. Link with OS-specific linker to create executable
 
-```
-source.casm → [COIL assembler] → program.coil → [COIL processor] → program.coilo → [COIL linker] → Execution
-                                                                 → Interpreted Execution
-```
+## Related Components
+
+- [CASM Directives](/casm-docs/features/directives.md) - Full directive reference
+- [Scopes](/casm-docs/features/scopes.md) - Detailed scope system documentation
+- [Type System](/coil-docs/types/type-system.md) - Type system reference

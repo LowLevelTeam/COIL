@@ -135,74 +135,6 @@ Example usage:
 coildis -a -s -c main.coil -o main.disasm.casm
 ```
 
-## Environment Variables
-
-The toolchain recognizes these standard environment variables:
-
-| Variable | Purpose |
-|----------|---------|
-| `COIL_INCLUDE_PATH` | CASM include directories (colon-separated) |
-| `COIL_TARGET` | Default target triple |
-| `COIL_DEBUG_LEVEL` | Default debug level |
-| `COIL_OPTIMIZATION` | Default optimization level |
-| `COIL_PROCESSOR_TYPE` | Default processor type |
-| `COIL_FEATURES` | Default enabled features (comma-separated) |
-| `COIL_OPTIONS` | Default additional options |
-
-Example usage:
-```bash
-export COIL_INCLUDE_PATH=/usr/local/coil/include:/home/user/coil/include
-export COIL_TARGET=cpu-x86-64
-export COIL_OPTIMIZATION=2
-casm main.casm -o main.coil  # Uses environment variables for defaults
-```
-
-## Configuration Files
-
-Configuration files can be used to store common options:
-
-```
-# .coilconfig
-include_path = /usr/local/coil/include:/home/user/coil/include
-target = cpu-x86-64
-optimization = 2
-debug_level = full
-features = avx2,fma
-```
-
-Configuration files are loaded from:
-1. Current directory (`.coilconfig`)
-2. User's home directory (`~/.coilconfig`)
-3. System-wide configuration (`/etc/coil/config`)
-
-## Return Codes
-
-All COIL tools use standardized return codes:
-
-| Code | Meaning |
-|------|---------|
-| 0 | Success |
-| 1 | General error |
-| 2 | Command-line error |
-| 3 | Input file error |
-| 4 | Output file error |
-| 5 | Processing error |
-| 6 | Resource error |
-
-## Batch Processing
-
-For batch processing, tools support:
-
-```
-casm -b batch_file
-```
-
-Where batch_file contains lines like:
-```
-input1.casm -o output1.coil -O2
-input2.casm -o output2.coil -g
-```
-
 ## Integration Examples
 
 ### Basic Compilation
@@ -213,6 +145,9 @@ casm source.casm -o source.coil
 
 # Process COIL object to target-specific output
 coilp source.coil -o source.coilo
+
+# Link with OS-specific linker
+ld source.coilo -o executable
 ```
 
 ### Multi-Target Compilation
@@ -240,17 +175,8 @@ coil2cbc source.coil -o source.cbc
 cbcrun source.cbc arg1 arg2
 ```
 
-## Extending Commands
+## Related Components
 
-Tools can be extended with plugins:
-
-```bash
-# Load extension
-casm --load-extension=my_extension.so source.casm -o source.coil
-```
-
-Extensions can add:
-- New command-line options
-- Custom processing steps
-- File format extensions
-- Custom optimizations
+- [Toolchain Components](/coil-docs/implementation/toolchain-components.md) - Description of toolchain components
+- [File Formats](/coil-docs/implementation/file-formats.md) - File format specifications
+- [Compilation Profiles](/coil-docs/implementation/compilation-profiles.md) - Standard compilation settings

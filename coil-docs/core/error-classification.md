@@ -26,7 +26,7 @@ Each error is identified by a 32-bit error code with the following structure:
 └───────────────┴───────────────┴─────────────────────┘
 ```
 
-### Subcategory Codes (Second 8 bits)
+### Subcategory Codes
 
 #### Compilation Subcategories (0x01xx)
 
@@ -39,7 +39,6 @@ Each error is identified by a 32-bit error code with the following structure:
 | 0x04 | Type |
 | 0x05 | Symbol |
 | 0x06 | Section |
-| 0x07 | Directive |
 
 #### Linking Subcategories (0x02xx)
 
@@ -72,11 +71,8 @@ Each error is identified by a 32-bit error code with the following structure:
 | 0x04 | Type |
 | 0x05 | Resource |
 | 0x06 | External |
-| 0x07 | System |
 
-### Specific Error Codes (Last 16 bits)
-
-Examples of specific error codes:
+### Examples of Specific Error Codes
 
 #### Compilation - Syntax Errors (0x0100xx)
 
@@ -116,8 +112,6 @@ struct ErrorInfo {
 }
 ```
 
-This structure provides comprehensive context for debugging and error handling.
-
 ## Error Severity Levels
 
 COIL defines three error severity levels:
@@ -151,17 +145,8 @@ Different device types may define specialized error codes:
 | 0x04F1xxxx | GPU-specific runtime errors |
 | 0x04F2xxxx | TPU-specific runtime errors |
 
-These specialized codes follow the same structure but address device-specific conditions.
+## Related Components
 
-## Error Code Querying
-
-Programs can query error information:
-
-```
-; Get error message for code
-EXTERN get_error_message, TYPE_ABICTL=ABICTL_STANDARD=platform_default
-CALL get_error_message, TYPE_ABICTL=ABICTL_PARAM=platform_default, error_code
-MOV message_ptr, TYPE_ABICTL=ABICTL_RET=platform_default
-```
-
-This allows programs to provide user-friendly error messages.
+- [Error Detection](/coil-docs/core/error-detection.md) - Error detection mechanisms
+- [Handling Mechanisms](/coil-docs/core/handling-mechanisms.md) - Error handling approaches
+- [Device Error Handling](/coil-docs/core/device-error-handling.md) - Device-specific error handling

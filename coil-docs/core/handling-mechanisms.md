@@ -193,70 +193,8 @@ SYM custom_error_handler, TYPE_ABICTL=ABICTL_STANDARD=platform_default
 REGISTER_HANDLER custom_error_handler, 0x04000000, 0xFF000000  ; All runtime errors
 ```
 
-## Error Propagation
+## Related Components
 
-Errors can be propagated across function calls:
-
-```
-; Propagate errors up the call stack
-SYM inner_function
-    SCOPEE
-    ; Operation that might fail
-    DIV #1, #2, #3
-    CMP #3, 0
-    BR_NE success
-    
-    ; Error case
-    MOV #4, 0x04000001  ; Division by zero
-    RET TYPE_ABICTL=ABICTL_RET=platform_default, #4, 0
-    
-    success:
-    RET TYPE_ABICTL=ABICTL_RET=platform_default, 0, #1
-    SCOPEL
-
-SYM outer_function
-    SCOPEE
-    ; Call function and check for errors
-    CALL inner_function, TYPE_ABICTL=ABICTL_PARAM=platform_default, ...
-    MOV #1, TYPE_ABICTL=ABICTL_RET=platform_default, 0  ; Status
-    MOV #2, TYPE_ABICTL=ABICTL_RET=platform_default, 1  ; Result
-    
-    CMP #1, 0
-    BR_EQ success
-    
-    ; Propagate error
-    RET TYPE_ABICTL=ABICTL_RET=platform_default, #1, 0
-    
-    success:
-    ; Continue processing
-    ...
-    SCOPEL
-```
-
-## Error Logging
-
-COIL provides standard error logging functions:
-
-```
-; Log error message
-EXTERN log_error, TYPE_ABICTL=ABICTL_STANDARD=platform_default
-CALL log_error, TYPE_ABICTL=ABICTL_PARAM=platform_default, error_code, message_ptr
-
-; Get error message for code
-EXTERN get_error_message, TYPE_ABICTL=ABICTL_STANDARD=platform_default
-CALL get_error_message, TYPE_ABICTL=ABICTL_PARAM=platform_default, error_code
-MOV message_ptr, TYPE_ABICTL=ABICTL_RET=platform_default
-```
-
-## Error Testing and Simulation
-
-COIL provides mechanisms to simulate errors for testing:
-
-```
-; Simulate division by zero for testing
-SIMULATE_ERROR 0x04000001
-DIV #1, #2, #3  ; This will trigger the simulated error
-END_SIMULATE
-```
-
-This allows testing error handling code without relying on actual error conditions.
+- [Error Classification](/coil-docs/core/error-classification.md) - Error categories and codes
+- [Error Detection](/coil-docs/core/error-detection.md) - Error detection mechanisms
+- [Device Error Handling](/coil-docs/core/device-error-handling.md) - Device-specific error handling

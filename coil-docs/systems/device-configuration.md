@@ -166,13 +166,8 @@ ENDINSTR_MAP
 
 These maps help the COIL processor generate optimal code for each target.
 
-## Registration Process
+## Related Components
 
-Device configurations can be registered with the COIL system:
-
-```
-REGISTER_DEVICE "x86-64.dcf"
-REGISTER_DEVICE "cuda-sm75.dcf"
-```
-
-This allows the COIL toolchain to discover and use available device configurations.
+- [Device Architecture](/coil-docs/systems/device-architecture.md) - Device architecture specifications
+- [Device Targeting](/coil-docs/systems/device-targeting.md) - Code targeting for specific devices
+- [Memory Models](/coil-docs/systems/memory-models.md) - Memory models for different devices

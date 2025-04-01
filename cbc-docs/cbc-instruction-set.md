@@ -1,6 +1,6 @@
 # CBC Instruction Set
 
-## Instruction Categories
+## Overview
 
 CBC instructions are grouped by type to allow for efficient dispatch. Each instruction includes its type code as part of the opcode, allowing for fast execution without complex type determination.
 
@@ -106,26 +106,31 @@ CBC instructions are grouped by type to allow for efficient dispatch. Each instr
 ; Output: result in variable #2
 
 ; Compare n to 1
-03 06 01 01 01 05     ; load.i32 #5, const(1)
-05 05 01 05 12        ; br.lt #1, #5, end_factorial
-04 05 01 05 09        ; br.eq #1, #5, return_one
+03 06 01 01 01 05     ; br.eq #1, #5(const 1), return_one
+05 05 01 05 12        ; br.lt #1, #5(const 1), end_factorial
 
 ; Recursive case: n * factorial(n-1)
-2E 01 01 03           ; var.i32 #3 (n-1)
-42 07 03 01 05 05     ; sub.i32 #3, #1, #5 (const 1)
+2E 01 03              ; var.i32 #3 (n-1)
+42 07 03 01 05        ; sub.i32 #3, #1, #5 (const 1)
 
 ; Call factorial recursively
-0F 03 03 03 00        ; call factorial, #3
+0F 03 03              ; call factorial, #3
 
 ; Multiply n by factorial(n-1)
-2E 01 01 02           ; var.i32 #2 (result)
-44 07 02 01 02 00     ; mul.i32 #2, #1, #result
+2E 01 02              ; var.i32 #2 (result)
+44 07 02 01 02        ; mul.i32 #2, #1, #2
 10 01 02              ; ret #2
 
 ; Base case: return 1
 return_one:
-2E 01 03 02 00000001  ; var.i32 #2, 1
+2E 01 02 00000001     ; var.i32 #2, 1
 10 01 02              ; ret #2
 
 end_factorial:
 ```
+
+## Related Components
+
+- [CBC Format](/cbc-docs/cbc-format.md) - Binary format specification
+- [CBC Execution](/cbc-docs/cbc-execution.md) - Execution environment details
+- [CBC Overview](/cbc-docs/cbc-overview.md) - General CBC introduction

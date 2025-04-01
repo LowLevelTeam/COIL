@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Computer Oriented Intermediate Language (COIL) is a universal binary instruction format designed for maximum portability while retaining native performance across diverse processing architectures. COIL bridges the gap between high-level programming languages and hardware-specific machine code.
+COIL is a universal binary instruction format designed for maximum portability while retaining native performance across diverse processing architectures. It bridges the gap between high-level programming languages and hardware-specific machine code.
 
 ## Key Features
 
@@ -14,24 +14,33 @@ The Computer Oriented Intermediate Language (COIL) is a universal binary instruc
 
 ## Documentation Structure
 
-The documentation is organized into two main sections:
+The documentation is organized into distinct sections:
 
-### COIL Documentation
-Documentation about the binary format and core design:
+### COIL Core Documentation
+- [Introduction](/coil-docs/core/introduction.md) - COIL purpose and design
+- [Binary Format](/coil-docs/core/binary-format.md) - Specification of COIL binary encoding
+- [Instruction Set](/coil-docs/reference/instruction-reference.md) - Complete instruction reference
+- [Type System](/coil-docs/types/type-system.md) - Type definitions and operations
 
-- [Introduction](coil-docs/core/introduction.md) - What is COIL and its purpose
-- [Design Principles](coil-docs/core/design-principles.md) - Core design philosophy
-- [Type System](coil-docs/types/type-system-overview.md) - How types work in COIL
-- [Variable System](coil-docs/systems/variable-system.md) - Variable abstraction
-- [ABI System](coil-docs/systems/abi-system.md) - Function calling conventions
+### Systems Documentation
+- [Memory and Variables](/coil-docs/systems/memory-and-variables.md) - Memory access and variable system
+- [ABI System](/coil-docs/systems/abi-system.md) - Function calling conventions
+- [Device Architecture](/coil-docs/systems/device-architecture.md) - Device targeting framework
 
 ### CASM Documentation
-Documentation about the assembly language used to write COIL code:
+- [CASM Basics](/casm-docs/basics/casm-basics.md) - Assembly language syntax
+- [Directives](/casm-docs/features/directives.md) - Assembly control directives
+- [Scopes](/casm-docs/features/scopes.md) - Variable scoping and lifetime
 
-- [Introduction](casm-docs/basics/introduction.md) - What is CASM
-- [Syntax Fundamentals](casm-docs/basics/syntax-fundamentals.md) - Basic syntax rules
-- [Variables](casm-docs/features/variables.md) - Working with variables
-- [Examples](casm-docs/examples/hello-world.md) - Example programs
+### CBC Documentation
+- [CBC Overview](/cbc-docs/cbc-overview.md) - COIL Byte Code introduction
+- [CBC Format](/cbc-docs/cbc-format.md) - CBC binary encoding format
+- [CBC Instruction Set](/cbc-docs/cbc-instruction-set.md) - CBC instructions reference
+
+### Implementation Documentation
+- [Toolchain Components](/coil-docs/implementation/toolchain-components.md) - Core components
+- [File Formats](/coil-docs/implementation/file-formats.md) - File format specifications
+- [Command Interfaces](/coil-docs/implementation/command-interfaces.md) - Command-line interfaces
 
 ## Version Information
 
@@ -42,11 +51,10 @@ The COIL specification follows semantic versioning:
 - **Minor**: Backwards-compatible additions
 - **Patch**: Clarifications and documentation improvements
 
-## Low Level Team
-The Low Level Team is a group of anonymous developers who contribute to creating a new framework under a single specification. The main contributors and core members of COIL exists entirely of LLT Members.
+## Contributing
 
-We at the Low Level Team pride ourselves on making clean and easy to use software for developers by developers. Focusing on creating a new language framework from replacing assembly and linkers to switching out C and python. We don't like the status quo so we made our own.
+For information on contributing to the COIL specification, please see [CONTRIBUTING.md](/CONTRIBUTING.md).
 
-All LLT projects are built in some way on top of COIL. Utilizing the COIL framework as the backend for the development language of choice. We welcome a future built by our own hands, build around these specifications to put your own hands in play.
+## License
 
-Your work is appreciated by The Low Level Team.
+COIL is released under the Unlicense. See [LICENSE](/LICENSE) for details.

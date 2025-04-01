@@ -2,7 +2,7 @@
 
 ## Overview
 
-The COIL binary format is the native representation of COIL programs. This document covers instruction encoding, operand formats, and file structures.
+The COIL binary format is the native representation of COIL programs. This document defines instruction encoding, operand formats, and file structures.
 
 ## Instruction Encoding
 
@@ -58,13 +58,39 @@ struct CoilHeader {
     uint32_t symbol_offset;   // Offset to symbol table
     uint32_t section_offset;  // Offset to section table
     uint32_t reloc_offset;    // Offset to relocation table
+    uint32_t debug_offset;    // Offset to debug info (0 if none)
     uint32_t file_size;       // Total file size
 }
 ```
 
+Format flags:
+- `0x01`: Object file
+- `0x04`: Contains debug information
+- `0x08`: Big-endian encoding (default is little-endian)
+
 ### COIL Output Object File (.coilo)
 
-Final executable format with resolved relocations.
+Processed format with resolved relocations:
+```
+struct CoilOHeader {
+    char     magic[4];        // "CILO"
+    uint8_t  major;           // Major version
+    uint8_t  minor;           // Minor version
+    uint8_t  patch;           // Patch version
+    uint8_t  flags;           // Format flags
+    uint32_t symbol_offset;   // Offset to symbol table
+    uint32_t section_offset;  // Offset to section table
+    uint32_t meta_offset;     // Offset to metadata section
+    uint32_t file_size;       // Total file size
+}
+```
+
+Important: `.coilo` files are **not** directly executable. They contain:
+1. Native opcodes for the target architecture
+2. COIL code sections for delayed processing
+3. CBC bytecode sections for interpretation
+
+COILO files must be processed by an OS-specific linker to create executables (.exe, .out, etc.) or libraries (.dll, .so, etc.).
 
 ## Symbol and Section Tables
 
@@ -151,9 +177,17 @@ ADD instruction (`ADD #1, #2, #3`):
 0x9000 0x03            ; TYPE_VAR + Variable ID 3
 ```
 
-## Multi-Processor Support
+## Toolchain Flow
 
-COIL objects can contain code for multiple processor types:
-- Each section specifies its target processor
-- Multiple sections may target different processors
-- Unified symbol table with processor-specific attributes
+The correct flow through the toolchain is:
+```
+CASM source (.casm) → CASM Assembler → COIL object (.coil) → COIL Processor → COIL output object (.coilo) → OS-specific Linker → Executable
+```
+
+## Implementation Requirements
+
+A compliant implementation must:
+1. Correctly parse and generate the file header and all tables
+2. Validate that all referenced symbols and sections exist
+3. Handle all specified relocation types
+4. Preserve section attributes during processing

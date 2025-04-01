@@ -28,11 +28,6 @@ The CASM assembler detects errors during translation from CASM to COIL:
    - Invalid operations
    - Scope violations
 
-4. **Code Generation**:
-   - Invalid instructions
-   - Unsupported features
-   - Resource limitations
-
 Example assembler error:
 ```
 error:compilation:matrix.casm:157:23: 0x01030002 - Variable #7 used before declaration
@@ -51,16 +46,6 @@ The COIL linker detects errors during the linking process:
    - Incompatible sections
    - Alignment issues
    - Size limitations
-
-3. **Relocation Processing**:
-   - Invalid relocations
-   - Out-of-range references
-   - Mismatched relocation types
-
-4. **Output Generation**:
-   - Format errors
-   - Size limitations
-   - Compatibility issues
 
 Example linker error:
 ```
@@ -81,16 +66,6 @@ The COIL validator detects errors during pre-execution validation:
    - Permission checks
    - Address range validation
 
-3. **Instruction Set**:
-   - Valid opcodes
-   - Operand counts
-   - Operand types
-
-4. **ABI Compliance**:
-   - Parameter passing conventions
-   - Return value handling
-   - Register usage
-
 Example validation error:
 ```
 error:validation:0x03000003 - Instruction 'VDOT' requires vector type, found 'TYPE_INT32'
@@ -110,34 +85,10 @@ The COIL processor detects errors during program execution:
    - Out-of-bounds access
    - Misaligned access
 
-3. **Control Flow**:
-   - Invalid branch targets
-   - Stack imbalance
-   - Infinite loops (in some cases)
-
-4. **Function Calls**:
-   - Parameter mismatches
-   - Invalid function pointers
-   - Stack overflow
-
 Example runtime error:
 ```
 error:runtime:0x04000001 - Division by zero at address 0x00401230
 ```
-
-## Implementation Requirements
-
-A compliant COIL implementation must:
-
-1. **Detect All Specified Errors**: Identify all error conditions defined in the error classification.
-
-2. **Provide Specific Error Codes**: Use standardized error codes for each detected condition.
-
-3. **Include Context Information**: Provide location and context in error reports.
-
-4. **Follow Severity Guidelines**: Distinguish between errors, warnings, and notes.
-
-5. **Enable Error Recovery**: Where possible, allow recovery from non-fatal errors.
 
 ## Required Detection Checks
 
@@ -159,7 +110,6 @@ These checks should be implemented when possible:
 2. **Uninitialized variables**: Detect use of variables before initialization
 3. **Memory leaks**: Track memory allocations and deallocations
 4. **Infinite loops**: Detect certain cases of non-terminating loops
-5. **Dead code**: Identify unreachable code sections
 
 ## Diagnostic Modes
 
@@ -192,4 +142,8 @@ MOV #3, 0                 ; Set default result
 division_end:
 ```
 
-This pattern explicitly checks for the error condition before performing the operation.
+## Related Components
+
+- [Error Classification](/coil-docs/core/error-classification.md) - Error categories and codes
+- [Handling Mechanisms](/coil-docs/core/handling-mechanisms.md) - Error handling approaches
+- [Device Error Handling](/coil-docs/core/device-error-handling.md) - Device-specific error handling

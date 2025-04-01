@@ -53,3 +53,10 @@ The CBC system consists of:
 4. **CBC JIT**: Compiles hot CBC code paths to native code
 
 Together, these components provide a complete execution environment for COIL-based programs requiring interpretation or dynamic compilation.
+
+## Related Components
+
+- [CBC Format](/cbc-docs/cbc-format.md) - Binary format specification 
+- [CBC Instruction Set](/cbc-docs/cbc-instruction-set.md) - Instruction reference
+- [CBC Execution](/cbc-docs/cbc-execution.md) - Execution environment details
+- [Toolchain Components](/coil-docs/implementation/toolchain-components.md) - COIL toolchain integration

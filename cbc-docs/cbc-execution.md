@@ -1,5 +1,9 @@
 # CBC Execution Environment
 
+## Overview
+
+The CBC execution environment defines how CBC bytecode is executed at runtime. It provides a lightweight, portable execution model that maintains compatibility with COIL's programming abstractions.
+
 ## Memory Model
 
 CBC uses a simplified memory model with five distinct regions:
@@ -61,25 +65,6 @@ A CBC processor must implement these components:
 4. **Memory Manager**: Manage memory access and allocation
 5. **JIT Compiler**: (Optional) Compile hot code paths to native code
 
-## Integration with COIL Ecosystem
-
-CBC fits into the COIL ecosystem in the following ways:
-
-1. **Compilation Path**: 
-   ```
-   CASM → COIL → [COIL Processor] → CBC → CBC Interpreter
-   ```
-
-2. **Section Integration**:
-   CBC code can be stored in dedicated sections within .coilo files, allowing:
-   - Mixed native/interpreted execution
-   - Dynamic loading of interpreted components
-   - Platform-independent portions of otherwise native applications
-
-3. **Language Backends**:
-   - Dynamic languages can target CBC directly
-   - Enables implementation of higher-level language runtimes on the COIL foundation
-
 ## Error Handling
 
 CBC defines standardized error codes categorized by operation type:
@@ -105,13 +90,31 @@ CBC processors typically employ these optimization techniques:
 4. **Register Allocation**: Mapping hot variables to registers
 5. **Escape Analysis**: Determining which allocations can be stack-allocated
 
-## Security Considerations
+## Integration with COIL Ecosystem
 
-CBC execution environments must address:
+CBC fits into the COIL ecosystem in the following ways:
 
-1. **Memory Safety**: Enforcing proper bounds checking and preventing unauthorized access
-2. **Type Safety**: Preventing type confusion vulnerabilities
-3. **Stack Protection**: Guarding against stack overflow attacks
-4. **Resource Limits**: Preventing resource exhaustion attacks
+1. **Compilation Path**: 
+   ```
+   CASM → COIL → [CBC Compiler] → CBC → CBC Interpreter
+          |
+          ↓
+   [COIL Processor] → COILO → OS Linker → Executable
+   ```
 
-Proper implementation of these protections is essential for secure CBC execution.
+2. **Section Integration**:
+   CBC code can be stored in dedicated sections within .coilo files, allowing:
+   - Mixed native/interpreted execution
+   - Dynamic loading of interpreted components
+   - Platform-independent portions of otherwise native applications
+
+3. **Language Backends**:
+   - Dynamic languages can target CBC directly
+   - Enables implementation of higher-level language runtimes on the COIL foundation
+
+## Related Components
+
+- [CBC Instruction Set](/cbc-docs/cbc-instruction-set.md) - CBC instruction reference
+- [CBC Format](/cbc-docs/cbc-format.md) - CBC binary format specification
+- [CBC Overview](/cbc-docs/cbc-overview.md) - General CBC introduction
+- [Toolchain Components](/coil-docs/implementation/toolchain-components.md) - COIL toolchain integration

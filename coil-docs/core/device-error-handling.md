@@ -66,50 +66,6 @@ GPUs support several error handling policies:
 3. **REPORT**: Continue but report errors
 4. **IGNORE**: Silently continue (for non-critical errors)
 
-## TPU Error Handling
-
-Tensor Processing Units have specialized error handling:
-
-```
-; TPU-specific error handling
-PROC 0x03               ; TPU
-TPU_ERROR_MASK 0x01 | 0x02  ; Enable specific error categories
-
-TPU_EXECUTE tensor_op, params
-TPU_CHECK_ERROR status  ; Check for tensor operation errors
-```
-
-### TPU-Specific Errors
-
-| Error Code | Description |
-|------------|-------------|
-| 0x04F20001 | Matrix dimension mismatch |
-| 0x04F20002 | Quantization error |
-| 0x04F20003 | Precision loss |
-| 0x04F20004 | Systolic array overflow |
-
-## FPGA Error Handling
-
-FPGAs use a different approach to error handling:
-
-```
-; FPGA-specific error handling
-PROC 0x05               ; FPGA
-FPGA_ERROR_REGISTER error_reg  ; Set error register
-
-FPGA_EXECUTE accelerator_function, params
-FPGA_READ_STATUS status_reg  ; Read error status
-```
-
-### FPGA-Specific Errors
-
-| Error Code | Description |
-|------------|-------------|
-| 0x04F50001 | Configuration error |
-| 0x04F50002 | Timing violation |
-| 0x04F50003 | Resource exhaustion |
-| 0x04F50004 | Signal integrity issue |
-
 ## Cross-Device Error Handling
 
 When code spans multiple devices, additional considerations apply:
@@ -158,21 +114,9 @@ Different devices require different recovery strategies:
 - Warp-level error containment
 - Thread redundancy for critical operations
 
-### TPU Recovery
-- Precision adjustment for unstable computations
-- Alternative algorithm selection
-- Tensor decomposition for large operations
+## Related Components
 
-## Testing Device-Specific Errors
-
-COIL provides device-specific error simulation:
-
-```
-; Simulate GPU thread divergence
-PROC 0x02               ; GPU
-SIMULATE_ERROR 0x04F10001
-; GPU code here
-END_SIMULATE
-```
-
-This allows testing error handling without triggering actual hardware errors.
+- [Error Classification](/coil-docs/core/error-classification.md) - Error categories and codes
+- [Error Detection](/coil-docs/core/error-detection.md) - Error detection mechanisms
+- [Handling Mechanisms](/coil-docs/core/handling-mechanisms.md) - Error handling approaches
+- [Device Architecture](/coil-docs/systems/device-architecture.md) - Device architecture specifications

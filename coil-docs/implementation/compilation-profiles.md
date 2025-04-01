@@ -4,53 +4,6 @@
 
 Compilation profiles define specific configurations and optimization strategies for the COIL toolchain. These profiles allow developers to tailor the compilation process for different devices, performance targets, and deployment scenarios.
 
-## Multi-Device Compilation
-
-### Device-Specific Compilation
-
-Compile for different targets separately:
-
-```bash
-# Compile for CPU
-casm -t cpu-x86-64 source.casm -o source.cpu.coil
-coilp source.cpu.coil -o source.cpu.coilo
-
-# Compile for GPU
-casm -t gpu-cuda-sm75 source.casm -o source.gpu.coil
-coilp source.gpu.coil -o source.gpu.coilo
-```
-
-This approach produces separate output files optimized for each target device.
-
-### Unified Multi-Device Compilation
-
-Compile for multiple targets in a single file:
-
-```bash
-# Compile for CPU and GPU
-casm -t cpu-x86-64,gpu-cuda-sm75 source.casm -o source.coil
-coilp source.coil -o source.coilo
-```
-
-The resulting `.coilo` file contains code sections for each target device, with runtime detection to select the appropriate implementation.
-
-### Mixed Device Code
-
-Code can be organized to optimize for different devices:
-
-```
-# Common code used by all devices
-SECTION .common, 0x01 | 0x04
-
-# CPU-specific implementation
-TARGET 0x010103
-SECTION .cpu_impl, 0x01 | 0x04, TARGET=0x010103
-
-# GPU-specific implementation
-TARGET 0x020104
-SECTION .gpu_impl, 0x01 | 0x04, TARGET=0x020104
-```
-
 ## Optimization Levels
 
 COIL defines standard optimization levels:
@@ -104,12 +57,6 @@ Each level enables specific optimizations:
 - Common tail merging
 - Prioritize compact encodings
 
-#### -Oz (Extreme Size)
-- Maximum size reduction
-- No inlining
-- Aggressive code sharing
-- Size over speed in all decisions
-
 ## Debug Profiles
 
 Debug profiles control the amount of debugging information:
@@ -120,6 +67,36 @@ Debug profiles control the amount of debugging information:
 | `-g1` | Minimal debugging information (function boundaries only) |
 | `-g2` | Standard debugging information (default with `-g`) |
 | `-g3` | Extended debugging information (including macro expansion) |
+
+## Multi-Device Compilation
+
+### Device-Specific Compilation
+
+Compile for different targets separately:
+
+```bash
+# Compile for CPU
+casm -t cpu-x86-64 source.casm -o source.cpu.coil
+coilp source.cpu.coil -o source.cpu.coilo
+
+# Compile for GPU
+casm -t gpu-cuda-sm75 source.casm -o source.gpu.coil
+coilp source.gpu.coil -o source.gpu.coilo
+```
+
+This approach produces separate output files optimized for each target device.
+
+### Unified Multi-Device Compilation
+
+Compile for multiple targets in a single file:
+
+```bash
+# Compile for CPU and GPU
+casm -t cpu-x86-64,gpu-cuda-sm75 source.casm -o source.coil
+coilp source.coil -o source.coilo
+```
+
+The resulting `.coilo` file contains code sections for each target device, with runtime detection to select the appropriate implementation.
 
 ## Target-Specific Optimizations
 
@@ -148,21 +125,6 @@ Common GPU optimization flags:
 - `-shared-mem=<size>`: Set shared memory size
 - `-block-size=<size>`: Target specific block size
 - `-unroll-factor=<n>`: Control loop unrolling
-
-## Cross-Compilation
-
-Cross-compilation targets a different platform than the build machine:
-
-```bash
-# Cross-compile from x86-64 host to ARM64 target
-casm -t cpu-arm-64 source.casm -o source.coil
-coilp -t cpu-arm-64 source.coil -o source.coilo
-```
-
-Cross-compilation requires:
-- Target device configuration
-- Appropriate ABI specifications
-- Any device-specific constraints
 
 ## Profile Configuration Files
 
@@ -225,7 +187,6 @@ Key real-time optimization flags:
 - `--predictable`: Ensure predictable execution
 - `--no-speculate`: Avoid speculative execution
 - `--bounded-loops`: Ensure loop bounds are known
-- `--max-inline-insns=<n>`: Control inline size
 - `--deterministic`: Ensure deterministic behavior
 
 ## JIT Compilation Profiles
@@ -243,12 +204,8 @@ JIT optimization flags:
 - `--hotspot-threshold=<n>`: Threshold for hotspot optimization
 - `--trace-regions`: Enable trace-based compilation
 
-## Profile Selection Guidelines
+## Related Components
 
-Guidelines for selecting appropriate profiles:
-
-1. **Development**: Use `-O0 -g` for best debugging experience
-2. **Testing**: Use `-O1 -g` for reasonable performance with good debugging
-3. **Release**: Use `-O2` or `-O3` depending on performance requirements
-4. **Embedded**: Use `-Os` or `-Oz` to minimize size
-5. **Mixed**: Use multi-device compilation for heterogeneous environments
+- [Command Interfaces](/coil-docs/implementation/command-interfaces.md) - Command-line options for specifying profiles
+- [Toolchain Components](/coil-docs/implementation/toolchain-components.md) - Toolchain components that use these profiles
+- [Device Targeting](/coil-docs/systems/device-targeting.md) - Detailed device targeting options

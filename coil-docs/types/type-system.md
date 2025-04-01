@@ -147,3 +147,9 @@ Two conversion mechanisms are provided:
 ; TYPE_V128=TYPE_FP32 (vector of 32-bit floats)
 0x3000 0x2500
 ```
+
+## Related Components
+
+- [Instruction Reference](/coil-docs/reference/instruction-reference.md) - Instructions that use types
+- [Memory and Variables](/coil-docs/systems/memory-and-variables.md) - Variable type system usage
+- [CASM Basics](/casm-docs/basics/casm-basics.md) - Type syntax in CASM

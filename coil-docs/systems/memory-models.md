@@ -153,52 +153,6 @@ GLOBAL_BARRIER
 SYNC_NODES NODE_1, NODE_2, NODE_3
 ```
 
-## Memory Operations
-
-Common memory operations across all models:
-
-```
-; Block operations
-MEMCPY dest, src, size     ; Copy memory block
-MEMSET buffer, value, size ; Fill memory block  
-MEMCMP result, buf1, buf2, size ; Compare memory blocks
-
-; Atomic operations  
-XCHG [lock_var], value     ; Atomic exchange
-CAS [lock_var], expected, new_value ; Compare and swap
-```
-
-## Device-Specific Memory Management
-
-### CPU Memory Management
-
-```
-; Stack allocation
-ALLOCA #1, size            ; Allocate on stack
-```
-
-### GPU Memory Management
-
-```
-; Shared memory allocation
-SHARED_ALLOC #1, size      ; Allocate in shared memory
-
-; Texture memory binding
-BIND_TEXTURE tex, buffer   ; Bind buffer to texture
-```
-
-## Cross-Device Memory Transfer
-
-Explicit data transfer between devices with different memory models:
-
-```
-; Copy data from CPU to GPU
-COPY gpu_buffer, cpu_buffer, size, 0x01, 0x02
-
-; Copy data from GPU to CPU
-COPY cpu_buffer, gpu_buffer, size, 0x02, 0x01
-```
-
 ## Memory Model Query
 
 Programs can query the current memory model:
@@ -213,3 +167,9 @@ BR_EQ hierarchical_path   ; Branch if hierarchical
 ```
 
 This allows code to adapt to different memory environments.
+
+## Related Components
+
+- [Memory and Variables](/coil-docs/systems/memory-and-variables.md) - Base memory and variable system
+- [Device Architecture](/coil-docs/systems/device-architecture.md) - Device specification system
+- [Device Targeting](/coil-docs/systems/device-targeting.md) - Memory model targeting

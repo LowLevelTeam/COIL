@@ -101,40 +101,6 @@ The COIL Toolchain consists of several core components that work together to tra
 - Handle errors
 - (Optional) JIT compilation
 
-## Supporting Tools
-
-### COIL Debugger
-
-**Purpose**: Enables source-level debugging of COIL programs.
-
-**Features**:
-- Breakpoint management
-- Variable inspection
-- Call stack traversal
-- Step execution
-- Source mapping
-
-### COIL Validator
-
-**Purpose**: Validates COIL binary files for correctness.
-
-**Features**:
-- Format validation
-- Type checking
-- Instruction verification
-- Reference resolution
-- Compatibility checking
-
-### COIL Disassembler
-
-**Purpose**: Converts COIL binary files back to CASM source.
-
-**Features**:
-- Binary decoding
-- Instruction reconstruction
-- Symbol recovery
-- Readable output generation
-
 ## Toolchain Flows
 
 ### Native Compilation Flow
@@ -163,17 +129,17 @@ Mixed native and interpreted execution:
                                                                        [CBC sections] → CBC Interpreter
 ```
 
-### Debug Flow
-
-Compilation with debugging information:
-
-```
-[.casm files] → CASM Assembler (-g) → [.coil objects with debug] → COIL Processor → [.coilo with debug] → OS Linker → [Executable]
-                                                                                                        ↓
-                                                                                           [.coild debug files]
-```
-
 ## Component Interfaces
+
+### File Format Interfaces
+
+Components communicate through standardized file formats:
+
+1. **CASM to COIL Assembler**: CASM source text (`.casm`)
+2. **COIL Assembler to COIL Processor**: COIL object format (`.coil`)
+3. **COIL Processor to OS Linker**: COILO output object format (`.coilo`)
+4. **COIL Processor to CBC Compiler**: COIL object format (`.coil`)
+5. **CBC Compiler to CBC Interpreter**: CBC bytecode format (`.cbc`)
 
 ### Command Line Interfaces
 
@@ -184,34 +150,19 @@ casm [options] input.casm -o output.coil
 coilp [options] input.coil -o output.coilo
 ```
 
-### Library Interfaces
-
-Components can also be used as libraries with standard APIs:
-
-```c
-// Component API examples
-COIL_Status CASM_AssembleFile(const char* input_path, const char* output_path, CASM_Options* options);
-COIL_Status COILP_ProcessFile(const char* input_path, const char* output_path, COILP_Options* options);
-```
-
-## Component Communication
-
-Components communicate through well-defined file formats and APIs:
-
-1. **CASM to COIL Assembler**: CASM source text
-2. **COIL Assembler to COIL Processor**: COIL object format
-3. **COIL Processor to OS Linker**: COILO output object format
-4. **COIL Processor to CBC Compiler**: COIL object format
-5. **CBC Compiler to CBC Interpreter**: CBC bytecode format
-
-Each interface uses a standardized format to ensure interoperability between implementations.
-
 ## Implementation Requirements
 
 A compliant COIL toolchain must:
 
-1. **Follow Format Specifications**: Adhere to all file format specifications
-2. **Maintain Compatibility**: Ensure cross-component compatibility
-3. **Support Standard Options**: Implement common command-line options
-4. **Handle Errors Consistently**: Use standardized error reporting
-5. **Enable Extension**: Allow for extensibility while maintaining core functionality
+1. Follow all file format specifications
+2. Maintain compatibility between components
+3. Support all universal instructions
+4. Provide consistent error reporting
+5. Enable appropriate optimization levels
+6. Preserve debug information when requested
+
+## Related Components
+
+- [File Formats](/coil-docs/implementation/file-formats.md) - Detailed format specifications
+- [Command Interfaces](/coil-docs/implementation/command-interfaces.md) - Command-line interface details
+- [Binary Format](/coil-docs/core/binary-format.md) - COIL binary encoding format

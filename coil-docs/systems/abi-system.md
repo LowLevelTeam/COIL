@@ -1,6 +1,6 @@
 # COIL ABI System
 
-## Introduction
+## Overview
 
 The Application Binary Interface (ABI) system provides a processor-independent mechanism for function calls, parameter passing, and return value handling while maintaining native performance.
 
@@ -166,24 +166,6 @@ ABI arm64
 EXIT
 ```
 
-## Parameter Passing Rules
-
-### Integer Parameters
-
-1. Assigned to registers in declaration order
-2. When registers are exhausted, parameters are placed on stack
-3. Parameters larger than register size may use multiple registers or stack
-
-### Floating-Point Parameters
-
-1. Use architecture-specific floating-point registers where available
-2. Follow platform conventions for mixed integer/floating-point parameters
-
-### Compound Parameters
-
-1. Small structures may be passed in registers according to their fields
-2. Larger structures are passed by reference or on stack
-
 ## Complete Function Example
 
 ```
@@ -222,21 +204,8 @@ SYM main, TYPE_PARAM0=GLOB
     RET
 ```
 
-## ABI Implementation Details
+## Related Components
 
-The ABI system automatically handles:
-
-1. **Parameter Passing**: 
-   - Maps parameters to registers or stack
-   - Follows ABI-specific parameter order
-   - Handles overflow parameters to stack
-
-2. **Return Value Handling**:
-   - Maps return values to registers or memory
-   - Handles multiple return values
-   - Ensures consistent access for callers
-
-3. **Register Preservation**:
-   - Saves/restores caller-saved registers
-   - Ensures callee-saved registers are preserved
-   - Manages the stack frame according to ABI
+- [Toolchain Components](/coil-docs/implementation/toolchain-components.md) - ABI role in the toolchain
+- [Device Architecture](/coil-docs/systems/device-architecture.md) - Device-specific ABI implementation
+- [Instruction Reference](/coil-docs/reference/instruction-reference.md) - ABI-related instructions

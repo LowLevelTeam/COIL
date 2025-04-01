@@ -247,3 +247,9 @@ default_case:
 
 end_switch:
 ```
+
+## Related Components
+
+- [Type System](/coil-docs/types/type-system.md) - Type system reference
+- [Binary Format](/coil-docs/core/binary-format.md) - Binary instruction encoding
+- [CASM Basics](/casm-docs/basics/casm-basics.md) - CASM instruction syntax
