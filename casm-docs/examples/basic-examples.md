@@ -2,12 +2,21 @@
 
 ## Hello World Example
 
-This example demonstrates a simple "Hello, World!" program in CASM.
+This example demonstrates a simple "Hello, World!" program in CASM, properly using the ABI system for system calls.
 
 ```
 ; Hello World in CASM
 PROC 0x01                       ; CPU processor
-ARCH 0x01, 0x03                 ; x86-64 architecture
+
+; Define Linux syscall ABI
+ABI linux_syscall
+  PARAMS RAX, RDI, RSI, RDX, R10, R8, R9
+  RETS RAX
+  CALLER RAX, RCX, R11
+  CALLEE RBX, RSP, RBP, R12, R13, R14, R15
+  SALLIGN 16
+  RZONE 0
+EXIT
 
 ; Data section for message
 SECTION .data, 0x02 | 0x04 | 0x08
@@ -24,19 +33,13 @@ SYM _start, TYPE_PARAM0=GLOB    ; Global entry point
     VAR #3, TYPE_PTR, hello_msg ; message pointer
     VAR #4, TYPE_UNT64, 14      ; message length
     
-    ; Write syscall
-    MOV TYPE_RGP=RAX, #1        ; Syscall number
-    MOV TYPE_RGP=RDI, #2        ; First argument (fd)
-    MOV TYPE_RGP=RSI, #3        ; Second argument (buffer)
-    MOV TYPE_RGP=RDX, #4        ; Third argument (count)
-    SYSCALL
+    ; Write syscall using linux_syscall ABI
+    SYSCALL TYPE_ABICTL=ABICTL_PARAM=linux_syscall, #1, #2, #3, #4
     
-    ; Exit syscall
+    ; Exit syscall using linux_syscall ABI
     VAR #5, TYPE_UNT64, 60      ; syscall number (exit)
     VAR #6, TYPE_UNT64, 0       ; exit code
-    MOV TYPE_RGP=RAX, #5
-    MOV TYPE_RGP=RDI, #6
-    SYSCALL
+    SYSCALL TYPE_ABICTL=ABICTL_PARAM=linux_syscall, #5, #6
     SCOPEL
 ```
 
@@ -44,7 +47,7 @@ SYM _start, TYPE_PARAM0=GLOB    ; Global entry point
 - Section definitions (code and data)
 - Symbol declaration
 - Variable usage
-- System calls
+- System calls using proper ABI abstraction
 - Basic memory operations
 
 ## Arithmetic Operations
@@ -54,7 +57,6 @@ This example shows basic arithmetic operations in CASM.
 ```
 ; Basic arithmetic examples
 PROC 0x01                       ; CPU
-ARCH 0x01, 0x03                 ; x86-64
 
 SECTION .text, 0x01 | 0x04
 SYM arithmetic_example

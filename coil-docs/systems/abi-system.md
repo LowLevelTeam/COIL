@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Application Binary Interface (ABI) system provides a processor-independent mechanism for function calls, parameter passing, and return value handling while maintaining native performance.
+The Application Binary Interface (ABI) system provides a processor-independent mechanism for parameter passing and return value handling while maintaining native performance. It applies to all forms of context switches, including function calls, system calls, and interrupts.
 
 ## What Is an ABI?
 
@@ -13,7 +13,7 @@ An ABI defines conventions for:
 - Stack alignment requirements 
 - Calling convention details
 
-COIL's ABI system automates these details, eliminating manual implementation of platform-specific calling conventions.
+COIL's ABI system automates these details, eliminating manual implementation of platform-specific conventions.
 
 ## ABI Definition
 
@@ -30,10 +30,11 @@ ABI abi_name
 EXIT
 ```
 
-### Example ABI Definition
+### Example ABI Definitions
 
+Function call ABI for x86-64 Linux:
 ```
-ABI x86_64_sysv
+ABI linux_x86_64
   PARAMS RDI, RSI, RDX, RCX, R8, R9
   RETS RAX, RDX
   CALLER RAX, RCX, RDX, RSI, RDI, R8, R9, R10, R11
@@ -43,89 +44,61 @@ ABI x86_64_sysv
 EXIT
 ```
 
-### Platform-Independent ABI
-
-COIL provides a special platform-independent ABI:
-
+System call ABI for Linux:
 ```
-ABI platform_default  ; Maps to the default ABI of the current target
+ABI linux_syscall
+  PARAMS RAX, RDI, RSI, RDX, R10, R8, R9
+  RETS RAX
+  CALLER RAX, RCX, R11
+  CALLEE RBX, RSP, RBP, R12, R13, R14, R15
+  SALLIGN 16
+  RZONE 0
+EXIT
 ```
-
-Code using `platform_default` will be compatible with any processor.
 
 ## Using ABIs
 
-### Function Declaration with ABI
-
-To declare a function using a specific ABI:
+### Function Call with ABI
 
 ```
-SYM function_name, TYPE_ABICTL=ABICTL_STANDARD=abi_name
+; Function call using linux_x86_64 ABI
+CALL function_name, TYPE_ABICTL=ABICTL_PARAM=linux_x86_64, param1, param2
+
+; Get return value
+MOV result, TYPE_ABICTL=ABICTL_RET=linux_x86_64
 ```
 
-Example:
-```
-SYM calculate_sum, TYPE_ABICTL=ABICTL_STANDARD=platform_default
-```
-
-### Calling Functions with Parameters
+### System Call with ABI
 
 ```
-; Explicit ABI specification
-CALL function, TYPE_ABICTL=ABICTL_PARAM=abi_name, param1, param2
+; System call using linux_syscall ABI
+SYSCALL TYPE_ABICTL=ABICTL_PARAM=linux_syscall, syscall_number, arg1, arg2, arg3
 
-; Automatic ABI detection (inferred from function)
-CALL function, param1, param2
-```
-
-Example:
-```
-CALL calculate_sum, TYPE_ABICTL=ABICTL_PARAM=platform_default, #1, #2
+; Get system call result
+MOV result, TYPE_ABICTL=ABICTL_RET=linux_syscall
 ```
 
 ### Receiving Parameters in Functions
 
 ```
 ; Get parameters with explicit ABI
-MOV #1, TYPE_ABICTL=ABICTL_PARAM=abi_name, 0  ; First parameter
-MOV #2, TYPE_ABICTL=ABICTL_PARAM=abi_name, 1  ; Second parameter
+MOV #1, TYPE_ABICTL=ABICTL_PARAM=linux_x86_64, 0  ; First parameter
+MOV #2, TYPE_ABICTL=ABICTL_PARAM=linux_x86_64, 1  ; Second parameter
 ```
 
 ### Returning Values from Functions
 
 ```
 ; Return values with explicit ABI
-RET TYPE_ABICTL=ABICTL_RET=abi_name, result1, result2
-
-; Return with automatic ABI detection
-RET_AUTO result
+RET TYPE_ABICTL=ABICTL_RET=linux_x86_64, result1, result2
 ```
 
-Example:
-```
-RET TYPE_ABICTL=ABICTL_RET=platform_default, #1
-```
+## Common ABI Definitions
 
-### Receiving Return Values
+### Linux x86-64 Function Call ABI
 
 ```
-; Get return value with explicit ABI
-CALL function, TYPE_ABICTL=ABICTL_PARAM=platform_default, params
-MOV result, TYPE_ABICTL=ABICTL_RET=platform_default
-
-; Get multiple return values
-MOV result1, TYPE_ABICTL=ABICTL_RET=platform_default, 0
-MOV result2, TYPE_ABICTL=ABICTL_RET=platform_default, 1
-```
-
-## Standard ABI Definitions
-
-### x86-64 System V ABI
-
-Used on Linux, macOS, and other Unix-like systems on x86-64:
-
-```
-ABI x86_64_sysv
+ABI linux_x86_64
   PARAMS RDI, RSI, RDX, RCX, R8, R9
   RETS RAX, RDX
   CALLER RAX, RCX, RDX, RSI, RDI, R8, R9, R10, R11
@@ -135,77 +108,63 @@ ABI x86_64_sysv
 EXIT
 ```
 
-### x86-64 Windows ABI
+### Linux System Call ABI
 
-Used on Windows x86-64:
+The same ABI works for both ARM64 and x86-64 when using system call numbers:
 
 ```
-ABI x86_64_windows
-  PARAMS RCX, RDX, R8, R9
+ABI linux_syscall
+  PARAMS RAX, RDI, RSI, RDX, R10, R8, R9  ; For x86-64
   RETS RAX
-  CALLER RAX, RCX, RDX, R8, R9, R10, R11
-  CALLEE RBX, RSP, RBP, RDI, RSI, R12, R13, R14, R15
-  SALLIGN 16
-  RZONE 0
-  SHADOW 32
-EXIT
-```
-
-### ARM64 ABI
-
-Used on ARM64 platforms:
-
-```
-ABI arm64
-  PARAMS X0, X1, X2, X3, X4, X5, X6, X7
-  RETS X0, X1
-  CALLER X0-X15
-  CALLEE X19-X28, X29, X30
+  CALLER RAX, RCX, R11
+  CALLEE RBX, RSP, RBP, R12, R13, R14, R15
   SALLIGN 16
   RZONE 0
 EXIT
 ```
 
-## Complete Function Example
+## Practical Example: Linux Hello World
 
 ```
-; Define a function that adds two numbers
-SYM add_numbers, TYPE_ABICTL=ABICTL_STANDARD=platform_default
+; Hello World for Linux 64-bit
+PROC 0x01                       ; CPU processor (no architecture needed)
+
+; Define Linux syscall ABI
+ABI linux_syscall
+  PARAMS RAX, RDI, RSI, RDX, R10, R8, R9
+  RETS RAX
+  CALLER RAX, RCX, R11
+  CALLEE RBX, RSP, RBP, R12, R13, R14, R15
+  SALLIGN 16
+  RZONE 0
+EXIT
+
+SECTION .text, 0x01 | 0x04
+SYM _start, TYPE_PARAM0=GLOB    ; Global entry point
     SCOPEE
-    ; Get parameters
-    VAR #1, TYPE_INT32
-    VAR #2, TYPE_INT32
-    MOV #1, TYPE_ABICTL=ABICTL_PARAM=platform_default, 0  ; First parameter
-    MOV #2, TYPE_ABICTL=ABICTL_PARAM=platform_default, 1  ; Second parameter
+    ; System call variables
+    VAR #1, TYPE_UNT64, 1       ; syscall number (write)
+    VAR #2, TYPE_UNT64, 1       ; file descriptor (stdout)
+    VAR #3, TYPE_PTR, hello_msg ; message pointer
+    VAR #4, TYPE_UNT64, 14      ; message length
     
-    ; Calculate sum
-    VAR #3, TYPE_INT32
-    ADD #3, #1, #2
+    ; Write syscall using linux_syscall ABI
+    SYSCALL TYPE_ABICTL=ABICTL_PARAM=linux_syscall, #1, #2, #3, #4
     
-    ; Return result
-    RET TYPE_ABICTL=ABICTL_RET=platform_default, #3
+    ; Exit syscall using linux_syscall ABI
+    VAR #5, TYPE_UNT64, 60      ; syscall number (exit)
+    VAR #6, TYPE_UNT64, 0       ; exit code
+    SYSCALL TYPE_ABICTL=ABICTL_PARAM=linux_syscall, #5, #6
     SCOPEL
 
-; Call the function
-SYM main, TYPE_PARAM0=GLOB
-    SCOPEE
-    VAR #1, TYPE_INT32, 10
-    VAR #2, TYPE_INT32, 20
-    VAR #3, TYPE_INT32
-    
-    ; Call function with parameters
-    CALL add_numbers, TYPE_ABICTL=ABICTL_PARAM=platform_default, #1, #2
-    
-    ; Get return value
-    MOV #3, TYPE_ABICTL=ABICTL_RET=platform_default
-    
-    ; #3 now contains 30
-    SCOPEL
-    RET
+SECTION .data, 0x02 | 0x04 | 0x08
+SYM hello_msg
+DATA TYPE_ARRAY=TYPE_UNT8, "Hello, World!", 10, 0  ; String with newline and null terminator
 ```
+
+This code works on any Linux 64-bit system regardless of architecture (ARM64 or x86-64) since the system call numbers remain the same across architectures, while the ABI handles the architecture-specific register assignments.
 
 ## Related Components
 
 - [Toolchain Components](/coil-docs/implementation/toolchain-components.md) - ABI role in the toolchain
-- [Device Architecture](/coil-docs/systems/device-architecture.md) - Device-specific ABI implementation
 - [Instruction Reference](/coil-docs/reference/instruction-reference.md) - ABI-related instructions
