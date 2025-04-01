@@ -2,11 +2,11 @@
 
 ## Overview
 
-This document provides guidelines for implementing COIL processors, assemblers, and linkers. It focuses on practical considerations rather than repeating the formal specification.
+This guide provides practical considerations for implementing COIL processors, assemblers, and linkers. It focuses on implementation strategies rather than formal specifications.
 
-## Implementation Components
+## Component Overview
 
-A complete COIL toolchain consists of these core components:
+A complete COIL toolchain consists of:
 
 1. **CASM Assembler**: Converts CASM text to COIL binary
 2. **COIL Linker**: Combines multiple COIL objects into executables
@@ -15,39 +15,34 @@ A complete COIL toolchain consists of these core components:
 
 ## CASM Assembler Implementation
 
-### Assembler Architecture
+### Architecture
 
 A CASM assembler typically uses a multi-pass approach:
 
 1. **Lexical Analysis**: Convert source to token stream
-2. **Parsing**: Build abstract syntax tree (AST)
-3. **Symbol Collection**: First pass to collect symbols
+2. **Parsing**: Build abstract syntax tree
+3. **Symbol Collection**: First pass to gather symbols
 4. **Code Generation**: Convert AST to binary
 5. **Relocation**: Generate relocation information
 6. **Output**: Produce COIL object file
 
-### Implementation Considerations
+### Key Features
 
 1. **Error Handling**:
-   - Provide clear, contextual error messages with line information
-   - Recover from syntax errors to report multiple issues
+   - Provide clear error messages with line information
+   - Recover from errors to report multiple issues
    - Use standard error codes for consistency
 
 2. **Optimization**:
-   - Variable lifetime analysis for efficient register allocation
-   - Constant folding for expressions with constant operands
+   - Variable lifetime analysis for register allocation
+   - Constant folding for expressions
    - Peephole optimizations for common patterns
-
-3. **Extensibility**:
-   - Support for custom directives
-   - Plugin architecture for specialized needs
-   - Future version compatibility hooks
 
 ## COIL Linker Implementation
 
-### Linker Architecture
+### Architecture
 
-A standard COIL linker follows these steps:
+A COIL linker follows these steps:
 
 1. **Input Processing**: Parse all input COIL objects
 2. **Symbol Resolution**: Build global symbol table
@@ -55,7 +50,7 @@ A standard COIL linker follows these steps:
 4. **Relocation Processing**: Resolve all relocations
 5. **Output Generation**: Create executable (.coilo) file
 
-### Key Linker Features
+### Key Features
 
 1. **Symbol Resolution**:
    - Handle global, weak, and local symbols
@@ -64,20 +59,14 @@ A standard COIL linker follows these steps:
 
 2. **Section Management**:
    - Respect section alignments
-   - Combine sections with same attributes
+   - Combine sections with compatible attributes
    - Handle BSS (uninitialized data) sections
-
-3. **Relocation Types**:
-   - Absolute addresses
-   - Relative addresses
-   - PC-relative addresses
-   - Section-relative addresses
 
 ## COIL Processor Implementation
 
-### Processor Architecture
+### Processor Approaches
 
-A COIL processor typically uses one of these approaches:
+A COIL processor can use one of these approaches:
 
 1. **Interpreter**: Directly executes COIL instructions
 2. **JIT Compiler**: Translates to native code at runtime
@@ -107,7 +96,7 @@ A COIL processor typically uses one of these approaches:
    - Manage function calls
    - Process return values
 
-### Performance Considerations
+### Performance Optimizations
 
 1. **Instruction Caching**:
    - Cache recently executed instructions
@@ -123,56 +112,7 @@ A COIL processor typically uses one of these approaches:
    - Use memory prefetching
    - Minimize memory copies
 
-## Testing and Validation
-
-### Test Suite Components
-
-A comprehensive test suite should include:
-
-1. **Unit Tests**: Test individual instructions
-2. **Integration Tests**: Test instruction combinations
-3. **Conformance Tests**: Verify specification compliance
-4. **Performance Tests**: Measure execution efficiency
-5. **Error Tests**: Verify error handling
-
-### Validation Methodology
-
-1. **Reference Implementation**:
-   - Use a simple, correct reference implementation
-   - Compare outputs with optimized implementations
-
-2. **Test Vectors**:
-   - Predefined input/output pairs
-   - Edge cases and corner cases
-   - Random generated tests
-
-3. **Continuous Testing**:
-   - Automated test suite
-   - Performance regression detection
-   - Cross-platform validation
-
-## Debugging Support
-
-### Debugger Architecture
-
-A COIL debugger typically provides:
-
-1. **Instruction-Level Control**:
-   - Single stepping
-   - Breakpoints
-   - Watchpoints
-
-2. **State Inspection**:
-   - Variable values
-   - Memory contents
-   - Register contents
-
-3. **Source Mapping**:
-   - CASM source to COIL mapping
-   - Line number information
-   - Symbol resolution
-
-### Debug Information
+## Debug Information
 
 Debug information includes:
 
@@ -181,11 +121,28 @@ Debug information includes:
 3. **Symbol Table**: Complete symbol information
 4. **Scope Information**: Variable lifetime and scope nesting
 
+Structure:
+```
+struct DebugSection {
+    uint32_t version;       // Debug format version
+    uint32_t tables_offset;  // Offset to debug tables
+    uint32_t strings_offset; // Offset to string table
+}
+```
+
+Main debug tables:
+- Source table (maps file IDs to source files)
+- Line table (maps binary offsets to source lines)
+- Type table (detailed type information)
+- Variable table (tracks all variables)
+- Scope table (tracks lexical scopes)
+- Function table (function information)
+
 ## Implementation Strategy
 
 ### Phased Approach
 
-We recommend implementing a COIL toolchain in phases:
+Implement a COIL toolchain in phases:
 
 1. **Phase 1**: Basic CASM assembler with core instructions
 2. **Phase 2**: Simple COIL interpreter for testing
@@ -195,7 +152,7 @@ We recommend implementing a COIL toolchain in phases:
 
 ### Optimization Strategy
 
-Optimize in this order:
+Prioritize in this order:
 
 1. **Correctness**: Ensure perfect compliance with spec
 2. **Completeness**: Implement all required features
@@ -219,7 +176,7 @@ Optimize in this order:
    - Use specialized instructions (SIMD, BMI, etc.)
    - Implement efficient memory access patterns
 
-### ARM Implementation
+### ARM64 Implementation
 
 1. **Register Mapping**:
    - Use register windows for efficient allocation
@@ -233,20 +190,18 @@ Optimize in this order:
    - Use ARM-specific instructions
    - Optimize for energy efficiency
 
-## Reference Implementation
+## Testing Strategy
 
-A reference implementation should:
+A comprehensive test suite should include:
 
-1. Prioritize correctness over performance
-2. Implement the full specification
-3. Provide clear, documented code
-4. Include comprehensive tests
-5. Be platform-independent where possible
+1. **Unit Tests**: Test individual instructions
+2. **Integration Tests**: Test instruction combinations
+3. **Conformance Tests**: Verify specification compliance
+4. **Performance Tests**: Measure execution efficiency
+5. **Error Tests**: Verify error handling
 
-## Common Implementation Issues
-
-1. **Type Handling**: Ensure proper type checking and conversion
-2. **Scope Management**: Correctly track variable lifetimes
-3. **ABI Complexity**: Handle all parameter passing cases
-4. **Memory Ordering**: Respect memory ordering rules
-5. **Error Handling**: Properly detect and report all errors
+Validation methodology:
+- Use a simple, correct reference implementation
+- Compare outputs with optimized implementations
+- Create test vectors with edge cases
+- Implement automated testing

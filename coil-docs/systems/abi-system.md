@@ -1,39 +1,39 @@
 # COIL ABI System
 
-## Purpose
+## Introduction
 
-The Application Binary Interface (ABI) system provides a processor-independent mechanism for function calls, parameter passing, and return value handling while minimizing the need for explicit ABI management.
+The Application Binary Interface (ABI) system provides a processor-independent mechanism for function calls, parameter passing, and return value handling while maintaining native performance.
 
 ## What Is an ABI?
 
-An ABI defines the conventions for:
-- How parameters are passed to functions (which registers or stack locations)
-- How return values are handled (which registers or memory locations)
-- Which registers must be preserved by callers vs. callees
-- Stack alignment requirements and calling convention details
+An ABI defines conventions for:
+- Parameter passing (which registers or stack locations)
+- Return value handling (which registers or memory)
+- Register preservation responsibilities
+- Stack alignment requirements 
+- Calling convention details
 
-COIL's ABI system automates these details, eliminating the need to manually implement calling conventions while maintaining native performance.
+COIL's ABI system automates these details, eliminating manual implementation of platform-specific calling conventions.
 
 ## ABI Definition
-
-### Defining an ABI
 
 An ABI is defined using the `ABI` directive:
 
 ```
 ABI abi_name
-  PARAMS register_list    ; Registers for parameter passing
-  RETS register_list      ; Registers for return values
+  PARAMS register_list    ; Parameter passing registers
+  RETS register_list      ; Return value registers
   CALLER register_list    ; Caller-saved registers
   CALLEE register_list    ; Callee-saved registers
-  SALLIGN alignment_value ; Stack alignment in bytes
-  RZONE size_value        ; Red zone size in bytes
+  SALLIGN alignment_value ; Stack alignment
+  RZONE size_value        ; Red zone size
 EXIT
 ```
 
-Example:
+### Example ABI Definition
+
 ```
-ABI linux_x86_64
+ABI x86_64_sysv
   PARAMS RDI, RSI, RDX, RCX, R8, R9
   RETS RAX, RDX
   CALLER RAX, RCX, RDX, RSI, RDI, R8, R9, R10, R11
@@ -45,7 +45,7 @@ EXIT
 
 ### Platform-Independent ABI
 
-For maximum portability, COIL provides a special platform-independent ABI:
+COIL provides a special platform-independent ABI:
 
 ```
 ABI platform_default  ; Maps to the default ABI of the current target
@@ -53,44 +53,7 @@ ABI platform_default  ; Maps to the default ABI of the current target
 
 Code using `platform_default` will be compatible with any processor.
 
-## ABI Context Detection
-
-### Automatic ABI Selection
-
-COIL provides automatic ABI selection based on symbols:
-
-1. **Symbol-Based ABI Detection**: When a symbol with an associated ABI is used, that ABI is automatically applied
-2. **Contextual ABI Inference**: The compiler detects the execution context and applies the appropriate ABI
-
-Example:
-```
-; Define function with explicit ABI
-SYM add_numbers, TYPE_ABICTL=ABICTL_STANDARD=linux_x86_64
-
-; Call function with automatic ABI detection
-CALL add_numbers, a, b  ; ABI is automatically inferred from the symbol
-```
-
-### ABI Type Propagation
-
-ABI types propagate through context:
-- Function calls inherit the ABI of the target function
-- Return statements inherit the ABI of their containing function
-- Symbols can specify their required ABI which is then applied to operations using that symbol
-
 ## Using ABIs
-
-### ABI Control Type
-
-ABI operations use the `TYPE_ABICTL` (0xF8) type with these control values:
-
-```
-ABICTL_STANDARD = 0x00  ; Use specified ABI convention
-ABICTL_PARAM    = 0x01  ; Passing parameters via ABI
-ABICTL_RET      = 0x02  ; Returning values via ABI
-ABICTL_SWITCH   = 0x03  ; Context switching via ABI
-ABICTL_AUTO     = 0x04  ; Automatic ABI detection
-```
 
 ### Function Declaration with ABI
 
@@ -102,144 +65,178 @@ SYM function_name, TYPE_ABICTL=ABICTL_STANDARD=abi_name
 
 Example:
 ```
-; Declare a function using the platform default ABI
 SYM calculate_sum, TYPE_ABICTL=ABICTL_STANDARD=platform_default
 ```
 
-## Context Switching
-
-COIL provides ABI-aware context switching:
+### Calling Functions with Parameters
 
 ```
-; Save current execution context according to ABI rules
-SAVE_CONTEXT ctx_var, TYPE_ABICTL=ABICTL_SWITCH=current_abi
+; Explicit ABI specification
+CALL function, TYPE_ABICTL=ABICTL_PARAM=abi_name, param1, param2
 
-; Restore context according to ABI rules
-RESTORE_CONTEXT ctx_var, TYPE_ABICTL=ABICTL_SWITCH=current_abi
+; Automatic ABI detection (inferred from function)
+CALL function, param1, param2
 ```
 
-This ensures that register preservation follows the specified ABI rules.
+Example:
+```
+CALL calculate_sum, TYPE_ABICTL=ABICTL_PARAM=platform_default, #1, #2
+```
 
-## Function Example
+### Receiving Parameters in Functions
 
 ```
-; Define a function with a specific ABI
+; Get parameters with explicit ABI
+MOV #1, TYPE_ABICTL=ABICTL_PARAM=abi_name, 0  ; First parameter
+MOV #2, TYPE_ABICTL=ABICTL_PARAM=abi_name, 1  ; Second parameter
+```
+
+### Returning Values from Functions
+
+```
+; Return values with explicit ABI
+RET TYPE_ABICTL=ABICTL_RET=abi_name, result1, result2
+
+; Return with automatic ABI detection
+RET_AUTO result
+```
+
+Example:
+```
+RET TYPE_ABICTL=ABICTL_RET=platform_default, #1
+```
+
+### Receiving Return Values
+
+```
+; Get return value with explicit ABI
+CALL function, TYPE_ABICTL=ABICTL_PARAM=platform_default, params
+MOV result, TYPE_ABICTL=ABICTL_RET=platform_default
+
+; Get multiple return values
+MOV result1, TYPE_ABICTL=ABICTL_RET=platform_default, 0
+MOV result2, TYPE_ABICTL=ABICTL_RET=platform_default, 1
+```
+
+## Standard ABI Definitions
+
+### x86-64 System V ABI
+
+Used on Linux, macOS, and other Unix-like systems on x86-64:
+
+```
+ABI x86_64_sysv
+  PARAMS RDI, RSI, RDX, RCX, R8, R9
+  RETS RAX, RDX
+  CALLER RAX, RCX, RDX, RSI, RDI, R8, R9, R10, R11
+  CALLEE RBX, RSP, RBP, R12, R13, R14, R15
+  SALLIGN 16
+  RZONE 128
+EXIT
+```
+
+### x86-64 Windows ABI
+
+Used on Windows x86-64:
+
+```
+ABI x86_64_windows
+  PARAMS RCX, RDX, R8, R9
+  RETS RAX
+  CALLER RAX, RCX, RDX, R8, R9, R10, R11
+  CALLEE RBX, RSP, RBP, RDI, RSI, R12, R13, R14, R15
+  SALLIGN 16
+  RZONE 0
+  SHADOW 32
+EXIT
+```
+
+### ARM64 ABI
+
+Used on ARM64 platforms:
+
+```
+ABI arm64
+  PARAMS X0, X1, X2, X3, X4, X5, X6, X7
+  RETS X0, X1
+  CALLER X0-X15
+  CALLEE X19-X28, X29, X30
+  SALLIGN 16
+  RZONE 0
+EXIT
+```
+
+## Parameter Passing Rules
+
+### Integer Parameters
+
+1. Assigned to registers in declaration order
+2. When registers are exhausted, parameters are placed on stack
+3. Parameters larger than register size may use multiple registers or stack
+
+### Floating-Point Parameters
+
+1. Use architecture-specific floating-point registers where available
+2. Follow platform conventions for mixed integer/floating-point parameters
+
+### Compound Parameters
+
+1. Small structures may be passed in registers according to their fields
+2. Larger structures are passed by reference or on stack
+
+## Complete Function Example
+
+```
+; Define a function that adds two numbers
 SYM add_numbers, TYPE_ABICTL=ABICTL_STANDARD=platform_default
     SCOPEE
-    ; Get parameters (explicit ABI specification)
+    ; Get parameters
     VAR #1, TYPE_INT32
     VAR #2, TYPE_INT32
     MOV #1, TYPE_ABICTL=ABICTL_PARAM=platform_default, 0  ; First parameter
     MOV #2, TYPE_ABICTL=ABICTL_PARAM=platform_default, 1  ; Second parameter
     
-    ; Alternative syntax with automatic ABI detection
+    ; Calculate sum
     VAR #3, TYPE_INT32
-    VAR #4, TYPE_INT32
-    GET_PARAM #3, 0  ; First parameter with automatic ABI detection
-    GET_PARAM #4, 1  ; Second parameter with automatic ABI detection
+    ADD #3, #1, #2
     
-    ; Calculate result
-    VAR #5, TYPE_INT32
-    ADD #5, #1, #2
-    
-    ; Return result (explicit ABI specification)
-    RET TYPE_ABICTL=ABICTL_RET=platform_default, #5
-    
-    ; Alternative return with automatic ABI detection
-    RET_AUTO #5  ; Return with automatic ABI detection
+    ; Return result
+    RET TYPE_ABICTL=ABICTL_RET=platform_default, #3
     SCOPEL
+
+; Call the function
+SYM main, TYPE_PARAM0=GLOB
+    SCOPEE
+    VAR #1, TYPE_INT32, 10
+    VAR #2, TYPE_INT32, 20
+    VAR #3, TYPE_INT32
+    
+    ; Call function with parameters
+    CALL add_numbers, TYPE_ABICTL=ABICTL_PARAM=platform_default, #1, #2
+    
+    ; Get return value
+    MOV #3, TYPE_ABICTL=ABICTL_RET=platform_default
+    
+    ; #3 now contains 30
+    SCOPEL
+    RET
 ```
 
-## Parameter Passing
-
-### Passing Parameters
-
-To call a function with parameters:
-
-```
-; Explicit ABI specification
-CALL function_name, TYPE_ABICTL=ABICTL_PARAM=abi_name, param1, param2, ...
-
-; Automatic ABI detection
-CALL function_name, param1, param2, ...  ; ABI inferred from function_name
-```
-
-Example:
-```
-; Call calculate_sum with two parameters
-CALL calculate_sum, TYPE_ABICTL=ABICTL_PARAM=platform_default, #1, #2
-
-; Equivalent call with automatic ABI detection
-CALL calculate_sum, #1, #2  ; ABI is automatically inferred
-```
-
-### Receiving Parameters
-
-Within a function, parameters are accessed:
-
-```
-; Explicit ABI specification
-MOV #1, TYPE_ABICTL=ABICTL_PARAM=abi_name, 0
-
-; Automatic ABI detection
-GET_PARAM #1, 0  ; Get first parameter using the function's ABI
-```
-
-## Return Value Handling
-
-### Returning Values
-
-To return values from a function:
-
-```
-; Explicit ABI specification
-RET TYPE_ABICTL=ABICTL_RET=abi_name, result1, result2, ...
-
-; Automatic ABI detection
-RET_AUTO result1, result2, ...  ; Uses the function's defined ABI
-```
-
-Example:
-```
-; Return a single value with explicit ABI
-RET TYPE_ABICTL=ABICTL_RET=platform_default, #1
-
-; Return a single value with automatic ABI detection
-RET_AUTO #1  ; Uses the function's defined ABI
-```
-
-### Receiving Return Values
-
-After calling a function, return values are accessed:
-
-```
-; Explicit ABI specification
-MOV #1, TYPE_ABICTL=ABICTL_RET=abi_name
-
-; Get multiple return values with explicit ABI
-MOV #1, TYPE_ABICTL=ABICTL_RET=abi_name, 0
-MOV #2, TYPE_ABICTL=ABICTL_RET=abi_name, 1
-
-; Automatic ABI detection
-GET_RESULT #1  ; Get first return value using the callee's ABI
-GET_RESULT #2, 1  ; Get second return value using the callee's ABI
-```
-
-## Implementation Details
+## ABI Implementation Details
 
 The ABI system automatically handles:
 
 1. **Parameter Passing**: 
-   - Maps parameters to registers or stack locations
-   - Follows ABI conventions for parameter order
+   - Maps parameters to registers or stack
+   - Follows ABI-specific parameter order
    - Handles overflow parameters to stack
 
 2. **Return Value Handling**:
    - Maps return values to registers or memory
    - Handles multiple return values
-   - Ensures consistent access for the caller
+   - Ensures consistent access for callers
 
 3. **Register Preservation**:
-   - Saves and restores caller-saved registers
+   - Saves/restores caller-saved registers
    - Ensures callee-saved registers are preserved
    - Manages the stack frame according to ABI
