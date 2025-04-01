@@ -1,394 +1,177 @@
-# CASM Best Practices
-
-## Coding Style
-
-### Naming Conventions
-
-1. **Variables**: Descriptive, lowercase with underscores
-   ```
-   VAR #1, TYPE_INT32, 0  ; counter
-   VAR #2, TYPE_FP64, 0.0  ; total_sum
-   ```
-
-2. **Labels**: Descriptive, lowercase with underscores
-   ```
-   loop_start:
-   function_end:
-   error_handler:
-   ```
-
-3. **Symbols**: Use camelCase for functions, UPPER_CASE for constants
-   ```
-   SYM calculateTotal
-   SYM MAX_ITERATIONS, TYPE_PARAM0=GLOB
-   ```
-
-### Indentation and Formatting
-
-1. **Indentation**: Use consistent spacing (2 or 4 spaces)
-   ```
-   SCOPEE
-     VAR #1, TYPE_INT32, 0
-     ADD #1, #1, 1
-   SCOPEL
-   ```
-
-2. **Alignment**: Align similar elements for readability
-   ```
-   VAR #1, TYPE_INT32, 0      ; Loop counter
-   VAR #2, TYPE_FP64,  3.14   ; PI value
-   VAR #3, TYPE_PTR,   buffer ; Buffer pointer
-   ```
-
-3. **Spacing**: Add spaces after commas and around operators
-   ```
-   ADD result, value1, value2  ; Not: ADD result,value1,value2
-   ```
-
-### Comments
-
-1. **Header Comments**: Start files with overview comments
-   ```
-   ; ----------------------------------------------------
-   ; File: math_utilities.casm
-   ; Description: Common mathematical functions
-   ; Author: Team Member
-   ; Created: 2025-03-30
-   ; ----------------------------------------------------
-   ```
-
-2. **Section Comments**: Describe major sections
-   ```
-   ; ================ VECTOR OPERATIONS ================
-   ```
-
-3. **Inline Comments**: Explain non-obvious code
-   ```
-   XOR #1, #1, #1  ; Zero out the counter (faster than MOV #1, 0)
-   ```
-
-4. **TODO Comments**: Mark incomplete sections
-   ```
-   ; TODO: Optimize this loop for better cache performance
-   ```
-
-## Program Structure
-
-### File Organization
-
-1. **Standard Sections**:
-   ```
-   ; Processor and architecture declaration
-   PROC 0x01
-   ARCH 0x01, 0x03
-
-   ; Constant definitions
-   SECTION .data, 0x02 | 0x04 | 0x08
-   
-   ; Code section
-   SECTION .text, 0x01 | 0x04
-   
-   ; Uninitialized data
-   SECTION .bss, 0x02 | 0x04 | 0x10
-   ```
-
-2. **Function Groups**: Group related functions together
-
-3. **Header Files**: Use INCLUDE for common definitions
-   ```
-   INCLUDE "standard_defs.coilh"
-   ```
-
-### Modularization
-
-1. **Single Responsibility**: Each file should have a clear purpose
-
-2. **Separation of Concerns**: Separate logic from data
-
-3. **Library Organization**: Group related functionality in libraries
-
-## Scope Management
-
-### Variable Scoping
-
-1. **Minimize Scope**: Keep variables in the smallest possible scope
-   ```
-   SCOPEE
-     VAR #1, TYPE_INT32, 0  ; Only needed in this scope
-     ; Use #1
-   SCOPEL  ; #1 is destroyed here
-   ```
-
-2. **Resource Management**: Use scopes for automatic cleanup
-   ```
-   SCOPEE
-     VAR #1, TYPE_PTR  ; Resource handle
-     ; Acquire and use resource
-   SCOPEL  ; Resource automatically released
-   ```
-
-3. **Nested Scopes**: Use for logical grouping
-   ```
-   SCOPEE  ; Function scope
-     ; Function setup
-     
-     SCOPEE  ; Inner processing scope
-       ; Processing logic
-     SCOPEL
-     
-     ; Function cleanup
-   SCOPEL
-   ```
-
-## Performance Optimization
-
-### Register Usage
-
-1. **Minimize Variables**: Reuse variables when possible
-
-2. **Access Patterns**: Place frequently accessed variables first
-   ```
-   VAR #1, TYPE_INT32, 0  ; Frequently used counter (likely in register)
-   VAR #2, TYPE_ARRAY=TYPE_UNT8, buffer  ; Less frequently accessed (likely in memory)
-   ```
-
-3. **Register Hints**: Use sparingly for critical code
-   ```
-   VAR #1, TYPE_INT32, 0, TYPE_RGP=RAX  ; Suggest using RAX for variable #1
-   ```
-
-### Memory Access
-
-1. **Locality**: Keep related data together
-
-2. **Alignment**: Respect data alignment for performance
-   ```
-   ALIGN 16  ; Align data to 16-byte boundary for SIMD operations
-   ```
-
-3. **Efficient Access**: Use optimal addressing modes
-   ```
-   ; Prefer direct addressing when possible
-   MOV value, [base_ptr]  ; Instead of calculating address separately
-   ```
-
-### Loop Optimization
-
-1. **Loop Invariants**: Move calculations outside loops
-   ```
-   ; Calculate once before loop
-   MUL size, width, height
-   
-   ; Loop using precalculated size
-   SCOPEE
-     VAR #1, TYPE_INT32, 0  ; Loop counter
-   loop_start:
-     CMP #1, size
-     BR_GE loop_end
-     ; Loop body
-     INC #1
-     BR loop_start
-   loop_end:
-   SCOPEL
-   ```
-
-2. **Loop Unrolling**: For small, performance-critical loops
-   ```
-   ; Process 4 elements per iteration
-   ADD #1, #1, [array]
-   ADD #1, #1, [array + 4]
-   ADD #1, #1, [array + 8]
-   ADD #1, #1, [array + 12]
-   ADD array, array, 16
-   ```
-
-3. **Early Exit**: Exit loops as soon as possible
-   ```
-   ; Find item in array
-   SCOPEE
-     VAR #1, TYPE_INT32, 0  ; Loop counter
-   search_loop:
-     CMP #1, length
-     BR_GE not_found
-     
-     INDEX #2, array, #1
-     CMP #2, target
-     BR_EQ found
-     
-     INC #1
-     BR search_loop
-   
-   found:
-     ; Item found logic
-     BR search_end
-     
-   not_found:
-     ; Item not found logic
-     
-   search_end:
-   SCOPEL
-   ```
-
-## Error Handling
-
-### Defensive Programming
-
-1. **Input Validation**: Check parameters before use
-   ```
-   ; Ensure divisor is not zero
-   CMP divisor, 0
-   BR_EQ handle_division_by_zero
-   
-   DIV result, dividend, divisor
-   ```
-
-2. **Bounds Checking**: Verify array accesses
-   ```
-   ; Check array bounds
-   CMP index, array_length
-   BR_GE handle_out_of_bounds
-   
-   INDEX value, array, index
-   ```
-
-3. **Status Codes**: Use consistent error reporting
-   ```
-   ; Function returns status in #1, result in #2
-   CALL process_data, TYPE_ABICTL=ABICTL_PARAM=platform_default, input
-   MOV status, TYPE_ABICTL=ABICTL_RET=platform_default, 0
-   MOV result, TYPE_ABICTL=ABICTL_RET=platform_default, 1
-   
-   ; Check status
-   CMP status, 0
-   BR_NE handle_error
-   ```
-
-### Error Recovery
-
-1. **Cleanup**: Ensure resources are freed on error
-   ```
-   SCOPEE
-     VAR #1, TYPE_PTR  ; Resource
-     
-     ; Try operation
-     CMP status, 0
-     BR_NE error_cleanup
-     
-     ; Normal processing
-     BR end_process
-     
-   error_cleanup:
-     ; Error-specific cleanup
-     
-   end_process:
-   SCOPEL  ; Automatic cleanup
-   ```
-
-2. **Graceful Degradation**: Continue with reduced functionality
-   ```
-   ; Try preferred method
-   CALL optimal_function, TYPE_ABICTL=ABICTL_PARAM=platform_default, data
-   MOV status, TYPE_ABICTL=ABICTL_RET=platform_default
-   
-   ; Fall back to alternative if needed
-   CMP status, 0
-   BR_EQ processing_succeeded
-   
-   CALL fallback_function, TYPE_ABICTL=ABICTL_PARAM=platform_default, data
-   ```
-
-## Portability
-
-### Platform Independence
-
-1. **Architecture Abstraction**: Use platform-independent types
-   ```
-   VAR #1, TYPE_INT, 0  ; Instead of TYPE_INT32 (adapts to platform)
-   VAR #2, TYPE_PTR, address  ; Instead of fixed-size address
-   ```
-
-2. **Conditional Assembly**: Use for platform-specific code
-   ```
-   IF ARCH == 0x01
-     ; x86-specific optimized code
-   ELSE
-     ; Generic implementation
-   ENDIF
-   ```
-
-3. **ABI Abstraction**: Use platform_default ABI
-   ```
-   CALL function, TYPE_ABICTL=ABICTL_PARAM=platform_default, param1, param2
-   ```
-
-### Future Compatibility
-
-1. **Version Checking**: Verify COIL version support
-   ```
-   VERSION 1, 0, 0  ; Requires COIL v1.0.0 or later
-   ```
-
-2. **Feature Isolation**: Isolate version-specific features
-   ```
-   IF VERSION >= 0x010100  ; COIL v1.1.0 or later
-     ; Use v1.1 features
-   ELSE
-     ; Compatible alternative
-   ENDIF
-   ```
-
-## Testing and Debugging
-
-### Testability
-
-1. **Modular Design**: Create testable units
-   ```
-   SYM test_function, TYPE_PARAM0=GLOB  ; Exposed for testing
-   ```
-
-2. **Deterministic Behavior**: Avoid dependencies on external state
-   ```
-   ; Pass all needed data explicitly
-   CALL process, TYPE_ABICTL=ABICTL_PARAM=platform_default, input, state
-   ```
-
-3. **Error Injection**: Support testing error paths
-   ```
-   IF DEBUG
-     ; Allow artificially triggering error conditions
-     CMP test_error_flag, 1
-     BR_EQ simulate_error
-   ENDIF
-   ```
-
-### Debugging Aids
-
-1. **Debug Output**: Add conditional debug code
-   ```
-   IF DEBUG
-     CALL debug_print, TYPE_ABICTL=ABICTL_PARAM=platform_default, message, value
-   ENDIF
-   ```
-
-2. **State Validation**: Add assertions
-   ```
-   IF DEBUG
-     ; Assert counter is positive
-     CMP counter, 0
-     BR_GE assert_passed
-     CALL assert_failed, TYPE_ABICTL=ABICTL_PARAM=platform_default, assertion_msg
-   assert_passed:
-   ENDIF
-   ```
-
-3. **Jump Tables**: Use for easier debugging
-   ```
-   ; Jump table for state machine
-   BR_EQ state_idle
-   BR_EQ state_running
-   BR_EQ state_paused
-   BR_EQ state_error
-   
-   state_idle:
-   ; ...
-   ```
+# COIL Binary Format
+
+## Overview
+The COIL binary format is the native representation of COIL programs. This document provides the concrete specification needed to implement COIL processors, assemblers, and linkers.
+
+## File Format
+
+### COIL Header
+Every COIL binary file begins with this header:
+
+```
+struct CoilHeader {
+    char     magic[4];        // "COIL"
+    uint8_t  major;           // Major version
+    uint8_t  minor;           // Minor version
+    uint8_t  patch;           // Patch version
+    uint8_t  flags;           // Format flags
+    uint32_t symbol_offset;   // Offset to symbol table
+    uint32_t section_offset;  // Offset to section table
+    uint32_t reloc_offset;    // Offset to relocation table
+    uint32_t debug_offset;    // Offset to debug info (0 if none)
+    uint32_t file_size;       // Total file size
+}
+```
+
+Format flags:
+- `0x01`: Object file (.coil)
+- `0x02`: Output object file (.coilo)
+- `0x04`: Contains debug information
+- `0x08`: Big-endian encoding (default is little-endian)
+
+### Instruction Encoding
+Every COIL instruction follows this structure:
+```
+[Opcode (8 bits)] [Operand Count (8 bits)] [Operands...]
+```
+
+Opcode ranges:
+- `0x00-0xBF`: Universal instructions (available on all processor types)
+- `0xC0-0xFE`: Processor-specific instructions
+- `0xFF`: Implementation-specific extensions
+
+### Operand Format
+Each operand follows this format:
+```
+[Type (16 bits)] [Type-Specific Data (variable)] [Value (variable)]
+```
+
+Type field (16 bits) consists of:
+- First 8 bits: Main Type (primary type category)
+- Second 8 bits: Type Extensions (qualifiers like const, volatile, immediate)
+
+## Symbol and Section Tables
+
+### Symbol Table
+Contains information about all named entities:
+```
+struct SymbolTable {
+    uint32_t count;           // Number of symbols
+    Symbol   entries[];       // Array of symbol entries
+}
+
+struct Symbol {
+    uint16_t name_length;     // Length of symbol name
+    char     name[];          // Symbol name
+    uint32_t attributes;      // Symbol attributes
+    uint32_t value;           // Symbol value
+    uint16_t section_index;   // Section index
+    uint8_t  processor_type;  // Target processor
+}
+```
+
+Symbol attributes (bit flags):
+- `0x0001`: Global symbol (visible outside the file)
+- `0x0002`: Weak symbol (can be overridden)
+- `0x0004`: Local symbol (file scope only)
+- `0x0008`: Function symbol
+- `0x0010`: Data symbol
+- `0x0020`: Absolute symbol (fixed address)
+- `0x0040`: Common symbol (uninitialized)
+- `0x0080`: Exported symbol
+
+### Section Table
+Defines memory regions in the program:
+```
+struct SectionTable {
+    uint32_t count;           // Number of sections
+    Section  entries[];       // Array of section entries
+}
+
+struct Section {
+    uint16_t name_index;      // Symbol table index for name
+    uint32_t attributes;      // Section attributes
+    uint32_t offset;          // Offset from file start
+    uint32_t size;            // Size in bytes
+    uint32_t address;         // Virtual address
+    uint32_t alignment;       // Required alignment
+    uint8_t  processor_type;  // Target processor
+}
+```
+
+Section attributes (bit flags):
+- `0x01`: Executable
+- `0x02`: Writable
+- `0x04`: Readable
+- `0x08`: Initialized data
+- `0x10`: Uninitialized data (BSS)
+- `0x20`: Linked section (contains relocations)
+- `0x40`: Discardable (can be removed)
+
+## Relocation Table
+Used to resolve symbol references during linking:
+```
+struct RelocationTable {
+    uint32_t count;           // Number of relocations
+    Relocation entries[];     // Array of relocation entries
+}
+
+struct Relocation {
+    uint32_t offset;          // Offset within section
+    uint16_t symbol_index;    // Symbol table index
+    uint16_t section_index;   // Section table index
+    uint8_t  type;            // Relocation type
+    uint8_t  size;            // Relocation size
+}
+```
+
+Relocation types:
+- `0x01`: Absolute (fill with symbol value)
+- `0x02`: Relative (fill with symbol value - current location)
+- `0x03`: PC-relative (for branch instructions)
+- `0x04`: Section-relative
+- `0x05`: Symbol+Addend
+
+## File Types
+
+### COIL Object File (.coil)
+- Used during compilation and linking
+- Contains relocations and unresolved symbols
+- Can be linked with other COIL object files
+- Usually not directly executable
+
+### COIL Output Object File (.coilo)
+- Final executable format after linking
+- All relocations are resolved
+- All symbols are resolved
+- Can be directly loaded and executed
+
+## Example: Simple Instruction Encoding
+
+MOV instruction (`MOV #1, 42`):
+```
+0x10                   ; Opcode for MOV
+0x02                   ; Two operands
+0x9000 0x01            ; TYPE_VAR + Variable ID 1
+0x1320 0x2A000000      ; TYPE_UNT32+IMM + Value 42 (little-endian)
+```
+
+ADD instruction (`ADD #1, #2, #3`):
+```
+0x60                   ; Opcode for ADD
+0x03                   ; Three operands
+0x9000 0x01            ; TYPE_VAR + Variable ID 1
+0x9000 0x02            ; TYPE_VAR + Variable ID 2
+0x9000 0x03            ; TYPE_VAR + Variable ID 3
+```
+
+## Implementation Requirements
+
+A compliant COIL processor must:
+1. Correctly parse the file header and all tables
+2. Validate that all referenced symbols and sections exist
+3. Enforce memory protection based on section attributes
+4. Implement all universal instructions (0x00-0xBF)
+5. Either implement or reject processor-specific instructions
+6. Handle all specified relocation types
+7. Ensure proper memory alignment for all data types
