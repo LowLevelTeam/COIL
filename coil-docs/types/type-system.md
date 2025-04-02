@@ -81,6 +81,15 @@ TYPE_ARRAY=TYPE_UNT8  ; Array of unsigned 8-bit integers
 ### Special Types
 | Type ID | Name | Description |
 |---------|------|-------------|
+| 0xFA    | TYPE_PARAM4 | check function for params real type |
+| 0xFB    | TYPE_PARAM3 | check function for params real type |
+| 0xFC    | TYPE_PARAM2 | check function for params real type |
+| 0xFD    | TYPE_PARAM1 | check function for params real type |
+| 0xFE    | TYPE_PARAM0 | check function for params real type |
+
+### Special Types
+| Type ID | Name | Description |
+|---------|------|-------------|
 | 0x40    | TYPE_BIT | Bit (boolean) type, 1/8 byte |
 | 0xFF    | TYPE_VOID | Void type (no value) |
 
