@@ -12,8 +12,8 @@ COIL is built on these foundational concepts:
 
 Instructions derive their behavior from operand types, allowing a single opcode to handle different data types:
 
-```c
-ADD result, a, b  // Works for integers, floats, or vectors based on operand types
+```
+ADD result, a, b  // Works for integers, floats, vectors, matrices based on operand types
 ```
 
 This approach provides:
@@ -35,28 +35,55 @@ COIL maintains a clean separation between:
 ### Instruction Sets
 
 COIL is organized into three main instruction sets:
-- [ISA Universal](./isa-u/index.md): Core instructions for all platforms
-- [ISA Extended](./isa-e/index.md): Platform-specific instructions
-- [ISA Compiler](./isa-c/index.md): Directives for the COIL processor
 
-## COIL in the Toolchain
+1. **ISA Universal (ISA-U)**: Core instructions that work on all platforms
+   - Control flow, memory operations, arithmetic, bit manipulation
+   - Type-determined behavior adapts to operand types
+   - Maximum portability across all environments
 
-COIL serves as an intermediate representation in a complete toolchain:
+2. **ISA Extended (ISA-E)**: Platform-specific instructions
+   - Organized by processing unit, architecture, and mode
+   - Enables hardware-specific optimizations
+   - Conditional compilation for portability
 
-```
-Source Language (.*/.casm) → Frontend Compiler → COIL (.coil) →
+3. **ISA Compiler (ISA-C)**: Directives for the COIL processor
+   - Configuration and compilation control
+   - ABI definitions and linking directives
+   - Conditional compilation constructs
 
-.coil → COIL Processor → COIL Compiled Code (.ccc) → COIL Linker → Executable/Library
+## Type System
 
-.coil → COIL Processor → .acoil (COIL Library)
+COIL's type system defines how data is represented and manipulated:
 
-.coil → COIL Processor → .dcoil (COIL Dynamic Library)
-```
+- **Fixed-Width Types**: Standard integer and floating-point types
+- **Vector Types**: SIMD-friendly multi-element types
+- **Matrix Types**: Two-dimensional data structures with algebraic properties
+- **Tensor Types**: Multi-dimensional data structures
+- **Complex Types**: Custom-width numeric types
+- **Composite Types**: Structured data aggregates
 
-The COIL ecosystem includes:
-- **CASM**: Text representation of COIL for direct programming
-- **COIL**: COIL Code stored in an object format using default instruction set
-- **CCC**: COIL Compiled Code stored in an object format (contains either CBC for JIT and interpretation or native machine code)
+Types determine instruction behavior, memory layout, and optimization opportunities.
+
+## Binary Format
+
+COIL uses a compact binary format for representing programs:
+
+- **Instructions**: [opcode][operand count][operands...]
+- **Operands**: [type opcode][type extension][type data][value]
+- **Object Format**: Header, sections, symbols, and code
+
+The binary format is designed for efficient parsing, verification, and execution.
+
+## Configuration System
+
+COIL programs can be configured for specific targets:
+
+- **Target Specification**: Processing unit, architecture, and mode
+- **Feature Detection**: Available hardware capabilities
+- **Optimization Settings**: Performance vs. size tradeoffs
+- **ABI Configuration**: Calling conventions and memory model
+
+Configuration files use a standardized format for consistent results across tools.
 
 ## Version Information
 
@@ -70,9 +97,9 @@ The COIL specification follows semantic versioning:
 ## Related Components
 
 - [Binary Format](./core/binary-format.md) - COIL binary encoding specification
+- [Configuration Format](./core/config-format.md) - Target configuration specification
 - [Type System](./types/type-system.md) - Complete type system reference
-- [ISA Universal](./isa-u/index.md) - Universal instruction set
-- [ISA Extended](./isa-e/index.md) - Extended instruction set
-- [ISA Compiler](./isa-c/index.md) - Compiler directives
-- [CBC](../cbc-docs/index.md) - COIL Byte Code
-- [CASM](../casm-docs/index.md) - COIL Assembly Language
+- [Extended Types](./types/extended-types.md) - Matrix and tensor type specifications
+- [Universal ISA](./isa-u/overview.md) - Universal instruction set
+- [Extended ISA](./isa-e/overview.md) - Extended instruction set
+- [Compiler ISA](./isa-c/index.md) - Compiler directives
