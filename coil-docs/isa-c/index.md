@@ -13,7 +13,9 @@ INCL = 0xF4 // include a file
 SECT = 0xF5 // put this into a specific section
 DATA = 0xF6 // insert data directly into program memory
 PADD = 0xF7 // padd a program with zeros up to specified btye (warn if this is overflowed)
-ABI = 0xF9 // define an ABI
+ABI  = 0xF9 // define an ABI
+DEF  = 0xFA // define a compile time value
+UDEF = 0xFB // undefine a compile time value
 ```
 
 ### Compilation Conditionals
@@ -144,6 +146,24 @@ Exit ABI instruction scope
 ```
 [0xFF]
 ```
+
+### DEF and UDEF
+
+Defining a compilation value.
+
+no operands defines it empty
+
+```
+[0xFA][0x02]
+  [0xF3][defid: uint64_t]
+  [0x00][0x10][0xFF] // uint8, immediate extension, immediate value 0xFF
+```
+
+Deleting a compilation value
+```
+[0xFB][definition_id: uint64_t]
+```
+
 
 ## Related Components
 

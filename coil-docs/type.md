@@ -86,8 +86,10 @@ Special-purpose optimized types:
 | 0xF0   | BIT     | Single bit (boolean)         | N/A                  |
 | 0xF1   | VARID   | Variable identifier          | [var id: uint64_t]   |
 | 0xF2   | SYMBOL  | Symbol reference             | [symbol id: uint64_t]|
-| 0xF3   | STRING  | String reference             | [string id: uint64_t]|
+| 0xF3   | DEFID   | Definition Identifier        | [definition id: uint64_t] |
+| 0xF4   | STRING  | String reference             | [string id: uint64_t]|
 | 0xF9   | REG     | Hardware register reference  | [register: uint16_t] |
+
 
 ### Special Types (0xFA-0xFF)
 
@@ -106,14 +108,19 @@ Parameter and control types:
 
 Type extensions are bitmasks that modify type behavior:
 
-| Bit     | Name      | Description                                  |
-|---------|-----------|----------------------------------------------|
-| (1 << 0)| CONST     | Value cannot be modified                     |
-| (1 << 1)| VOLATILE  | Value may change unexpectedly                |
-| (1 << 2)| ATOMIC    | Operations must be atomic                    |
-| (1 << 3)| SATURATE  | Operations saturate instead of wrap          |
-| (1 << 6)| VARIABLE  | Value is a variable reference                |
-| (1 << 7)| SYMBOL    | Value is a symbol reference                  |
+If neither IMMEDIATE, DEFINITION, VARIABLE or SYMBOL is set then there is no value following the type.
+If more then one is set it should be reported as an error
+
+| Bit     | Name       | Description                                  |
+|---------|------------|----------------------------------------------|
+| (1 << 0)| CONST      | Value cannot be modified                     |
+| (1 << 1)| VOLATILE   | Value may change unexpectedly                |
+| (1 << 2)| ATOMIC     | Operations must be atomic                    |
+| (1 << 3)| SATURATE   | Operations saturate instead of wrap          |
+| (1 << 4)| IMMEDIATE  | Value is embedded in instruction             |
+| (1 << 5)| DEFINITION | Value is a compile time definition           |
+| (1 << 6)| VARIABLE   | Value is a variable reference                |
+| (1 << 7)| SYMBOL     | Value is a symbol reference                  |
 
 ## Parameter Types
 
@@ -131,6 +138,7 @@ Used for conditional execution:
 | 0x03   | FLAG_COND_GTE  | Greater than or equal        |
 | 0x04   | FLAG_COND_LT   | Less than                    |
 | 0x05   | FLAG_COND_LTE  | Less than or equal           |
+| 0xFF   | FLAG_COND_DEF  | Is value defined             |
 
 ### Processing Unit Parameters
 
