@@ -12,36 +12,6 @@ COIL is a universal binary instruction format designed for maximum portability w
 - **ABI System**: Automated function call conventions
 - **Performance-First**: No abstraction penalties for core operations
 
-## Documentation Structure
-
-The documentation is organized into distinct sections:
-
-### COIL Core Documentation
-- [Introduction](/coil-docs/core/introduction.md) - COIL purpose and design
-- [Binary Format](/coil-docs/core/binary-format.md) - Specification of COIL binary encoding
-- [Instruction Set](/coil-docs/reference/instruction-reference.md) - Complete instruction reference
-- [Type System](/coil-docs/types/type-system.md) - Type definitions and operations
-
-### Systems Documentation
-- [Memory and Variables](/coil-docs/systems/memory-and-variables.md) - Memory access and variable system
-- [ABI System](/coil-docs/systems/abi-system.md) - Function calling conventions
-- [Device Architecture](/coil-docs/systems/device-architecture.md) - Device targeting framework
-
-### CASM Documentation
-- [CASM Basics](/casm-docs/basics/casm-basics.md) - Assembly language syntax
-- [Directives](/casm-docs/features/directives.md) - Assembly control directives
-- [Scopes](/casm-docs/features/scopes.md) - Variable scoping and lifetime
-
-### CBC Documentation
-- [CBC Overview](/cbc-docs/cbc-overview.md) - COIL Byte Code introduction
-- [CBC Format](/cbc-docs/cbc-format.md) - CBC binary encoding format
-- [CBC Instruction Set](/cbc-docs/cbc-instruction-set.md) - CBC instructions reference
-
-### Implementation Documentation
-- [Toolchain Components](/coil-docs/implementation/toolchain-components.md) - Core components
-- [File Formats](/coil-docs/implementation/file-formats.md) - File format specifications
-- [Command Interfaces](/coil-docs/implementation/command-interfaces.md) - Command-line interfaces
-
 ## Version Information
 
 Current specification version: 1.0.0
