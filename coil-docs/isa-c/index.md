@@ -60,6 +60,8 @@ Define a linker section.
 [0xF5][0xF3][string table id: uint64_t]
 ```
 
+**PARAM0** = [sect_flag_p](./../type.md#sect_flag_p)
+
 ### DATA and PADD
 Insert bytes into program
 
@@ -91,6 +93,7 @@ CESAVE = 0x03 // callee saved registers
 SALLIN = 0x04 // stack allignment
 RZONE  = 0x05 // red zone
 // needs to be extended for varadic and structures
+EABI = 0xFF // exit abi instruction scope
 ```
 
 #### PARAMS
@@ -128,12 +131,18 @@ Define the required stack allignment
 [0x04][stack_allignment: uint16_t]
 ```
 
-
 #### RZONE
 Define the red zone
 
 ```
 [0x05][red zone: uint16_t]
+```
+
+#### EABI
+Exit ABI instruction scope
+
+```
+[0xFF]
 ```
 
 ## Related Components

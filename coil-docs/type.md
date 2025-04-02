@@ -1,194 +1,205 @@
 # COIL Type System
 
-The COIL Type System is a complex but needed way to define operands real operations through type inference.
+## Overview
 
-Utilizing a type opcode with type extensions uint16_t base the type system is incredibly powerful and can support multiple high level language features natively and will do so in the future.
+The COIL Type System defines how data types are represented and manipulated within the COIL architecture. Types determine instruction behavior and memory layout.
+
+## Type Representation
+
+Every type in COIL is represented by:
 
 ```
-[type opcode: uint8_t][type extension: optional uint8_t][type data: optional ...][data: optional ...]
+[type opcode: uint8_t] [type extension: optional uint8_t] [type data: optional ...] [data: optional ...]
 ```
 
-## Type Opcode
+data in the cases down below depend on the type extension where it would be an immediate value, a variable identifier or a symbol id.
 
-The Type Opcodes are as follows
-```c
-// Fixed Width Integral Scalar (0x00 - 0x0F)
-INT8 = 0x00
-UNT8 = 0x01
-INT16 = 0x02
-UNT16 = 0x03
-INT32 = 0x04
-UNT32 = 0x05
-INT64 = 0x06
-UNT64 = 0x07
+## Type Categories
 
-// Fixed Width Floating Scalar (0x10 - 0x1F)
-FP32 = 0x10
-FP64 = 0x11
+### Fixed-Width Integral Types (0x00-0x0F)
 
-// Fixed Width Vector (0x20 - 0x2F)
-V128 = 0x20
-V256 = 0x21
-V512 = 0x22
+Standard integer types with fixed bit widths:
 
-// Complex (0x30 - 0x33)
-CINT = 0x30
-CUNT = 0x31
-CFP  = 0x32
-CVEC = 0x33
+| Opcode | Name   | Description         |
+|--------|--------|---------------------|
+| 0x00   | INT8   | 8-bit signed int    |
+| 0x01   | UNT8   | 8-bit unsigned int  |
+| 0x02   | INT16  | 16-bit signed int   |
+| 0x03   | UNT16  | 16-bit unsigned int |
+| 0x04   | INT32  | 32-bit signed int   |
+| 0x05   | UNT32  | 32-bit unsigned int |
+| 0x06   | INT64  | 64-bit signed int   |
+| 0x07   | UNT64  | 64-bit unsigned int |
 
-// Composite (0xA0 - 0xAF)
-STRUCT = 0x00
-PACK = 0x01
-UNION = 0x02
-// could be expanded with higher level types like classes...
+### Fixed-Width Floating-Point Types (0x10-0x1F)
 
-// Optimized (0xF0 - 0xF9)
-BIT = 0xF0
-VARID = 0xF1
-SYMBOL = 0xF2
-STRING = 0xF3
-// later on platform specific types will also be here
-// like the largest possible integer, fastest floating point, default pointer type etc...
-REG = 0xF9
+Standard floating-point types:
 
-// Special (0xFA - 0xFF)
-PARAM4 = 0xFA
-PARAM3 = 0xFB
-PARAM2 = 0xFC
-PARAM1 = 0xFD
-PARAM0 = 0xFE
-VOID = 0xFF
-```
+| Opcode | Name   | Description          |
+|--------|--------|----------------------|
+| 0x10   | FP32   | 32-bit float         |
+| 0x11   | FP64   | 64-bit double        |
 
-### Fixed Width Types
-A fixed width type is a complex type shorthand utilizing common system types like integers with a size in the 8 times table. You can find that most fixed width types directly map to your language of choice (if not interpreted). Example float = FP32 and double = FP64 etc...
+### Fixed-Width Vector Types (0x20-0x2F)
 
-### Complex
-A complex type is complex (surprise). They utilize information after known as type data to determine the size of the type, it could also be called in long form a complex fixed width type.
+SIMD-friendly vector types:
 
-#### Integral
-```
-type_data = [bit size: uint16_t]
-```
+| Opcode | Name   | Description          |
+|--------|--------|----------------------|
+| 0x20   | V128   | 128-bit vector       |
+| 0x21   | V256   | 256-bit vector       |
+| 0x22   | V512   | 512-bit vector       |
 
-#### Floating
-```
-type_data = [mantissa bit size: uint16_t][exponenet bit size: uint16_t]
-```
+This type is follwed up by the element type.
 
-#### Vector
-```
-type_data = [type: Type][count: uint16_t]
-```
+[element type: Type]
 
-### Composite
-Composite types are the integration of high level features into COIL allowing for combination of types in the same structure utilize a variable identifier system for the members.
+### Complex Types (0x30-0x33)
 
-This type is not being worked on right now and is not expected to be completed for some time.
+User-defined bit-width types:
 
-Any reference implementations should leave structures as a Not Implemented Yet error.
+| Opcode | Name   | Description             | Type Data Format             |
+|--------|--------|-------------------------|------------------------------|
+| 0x30   | CINT   | Custom-width signed int | [bit size: uint16_t]         |
+| 0x31   | CUNT   | Custom-width unsigned   | [bit size: uint16_t]         |
+| 0x32   | CFP    | Custom-width float      | [mantissa: uint16_t][exp: uint16_t] |
+| 0x33   | CVEC   | Custom vector           | [element type: Type][count: uint16_t] |
 
-### Optimized
-Optimized types do not have a real size but only explain how much size they need and leave the processor to define them some space. This is to allow COIL to optimize places with multiple boolean values to exist in the same byte, word, etc... in a bitmap structure. This allows for better runtime space optimization.
+### Composite Types (0xA0-0xAF)
 
-#### BIT
-A binary value of either 0 or 1
+Compound types that group other types:
 
-#### Variable ID
-In some situations the variable ID may be used as the value in which case this type can be used.
+| Opcode | Name   | Description                      |
+|--------|--------|----------------------------------|
+| 0xA0   | STRUCT | Fields at fixed offsets          |
+| 0xA1   | PACK   | Packed structure (no padding)    |
+| 0xA2   | UNION  | Overlapping fields               |
 
-[0xF1][variable id: uint64_t]
+Type data for composite types includes field count and field definitions.
 
-#### Symbol
-In some situations you don't want the value behind the symbol but the address of the symbol in which case this type can be used.
+### Optimized Types (0xF0-0xF9)
 
-[0xF2][symbol table id: uint64_t]
+Special-purpose optimized types:
 
-#### String
-In some situations an immediate or constant string may be needed these are handled in a string table and the data after the string it just a uint64_t id in the string table.
+| Opcode | Name    | Description                  | Data Format          |
+|--------|---------|------------------------------|----------------------|
+| 0xF0   | BIT     | Single bit (boolean)         | N/A                  |
+| 0xF1   | VARID   | Variable identifier          | [var id: uint64_t]   |
+| 0xF2   | SYMBOL  | Symbol reference             | [symbol id: uint64_t]|
+| 0xF3   | STRING  | String reference             | [string id: uint64_t]|
+| 0xF9   | REG     | Hardware register reference  | [register: uint16_t] |
 
-[0xF3][string table id: uint64_t]
+### Special Types (0xFA-0xFF)
 
-#### Register
-Code involving registers is mostly removed but undersatnding that there may still be some cases where register usage is mandatory there is a system to utilize registers in default operations.
+Parameter and control types:
 
-If there register types is used it should look something like the following
-```
-[0xF9][register: uint16_t]
-```
-
-[For more information.](./isa-e/index.md)
-
-### Special Types
-
-#### VOID
-The VOID type is literally as it sounds a way to explain the lack of a type. void has a size of '0' and nothing comes after it.
-
-#### PARAMETERS
-The parameter types are a special way to modify an instruction utilizing the operand list. Parameters are counted in the operand count, they have a value that depends on the instruction. All use cases of the parameter type is listed below with reference to the original function.
-
-Parameter types do not have a type extension they are just 8 bit and then the data defined by the parameter type as defined [here](#parameter-types).
+| Opcode | Name    | Description                  |
+|--------|---------|------------------------------|
+| 0xFA   | PARAM4  | Parameter type 4             |
+| 0xFB   | PARAM3  | Parameter type 3             |
+| 0xFC   | PARAM2  | Parameter type 2             |
+| 0xFD   | PARAM1  | Parameter type 1             |
+| 0xFE   | PARAM0  | Parameter type 0             |
+| 0xFF   | VOID    | No type/value                |
 
 ## Type Extensions
-A type extension is stored as a bitmap of values following the following format.
 
-If neither variable or symbol is set then it must be an immediate.
+Type extensions are bitmasks that modify type behavior:
 
-```c
-CONST     = (1 << 0) // ensure no modifications
-VOLATILE  = (1 << 1) // do not optimize expressions with the value
-ATOMIC    = (1 << 2) // instruction should use atomic variant if possible
-SATURATE  = (1 << 3) // no overflow instead the value is capped at largest value 
-RESERVED  = (1 << 4)
-RESERVED  = (1 << 5)
-VARIABLE  = (1 << 6) // the type in question refers to a value at a variable id
-SYMBOL    = (1 << 7) // the type in question refers to a value at a named memory address
-```
+| Bit     | Name      | Description                                  |
+|---------|-----------|----------------------------------------------|
+| (1 << 0)| CONST     | Value cannot be modified                     |
+| (1 << 1)| VOLATILE  | Value may change unexpectedly                |
+| (1 << 2)| ATOMIC    | Operations must be atomic                    |
+| (1 << 3)| SATURATE  | Operations saturate instead of wrap          |
+| (1 << 6)| VARIABLE  | Value is a variable reference                |
+| (1 << 7)| SYMBOL    | Value is a symbol reference                  |
 
 ## Parameter Types
-Each instruction can only have one of each parameter type.
+
+Parameter types modify instruction behavior:
+
+### Flag Condition Parameters
+
+Used for conditional execution:
+
+| Value  | Name           | Description                  |
+|--------|----------------|------------------------------|
+| 0x00   | FLAG_COND_EQ   | Equal                        |
+| 0x01   | FLAG_COND_NEQ  | Not equal                    |
+| 0x02   | FLAG_COND_GT   | Greater than                 |
+| 0x03   | FLAG_COND_GTE  | Greater than or equal        |
+| 0x04   | FLAG_COND_LT   | Less than                    |
+| 0x05   | FLAG_COND_LTE  | Less than or equal           |
+
+### Processing Unit Parameters
+
+Specify the target processing unit:
+
+| Value  | Name     | Description                  |
+|--------|----------|------------------------------|
+| 0x00   | PU_CPU   | Central Processing Unit      |
+
+### Architecture Parameters
+
+Specify the target architecture (values depend on PU):
+
+For PU_CPU:
+| Value  | Name     | Description                  |
+|--------|----------|------------------------------|
+| 0x00   | CPU_X86  | x86 architecture             |
+| 0x01   | CPU_ARM  | ARM architecture             |
+
+### Mode Parameters
+
+Specify the architecture mode:
+
+| Value  | Name     | Description                  |
+|--------|----------|------------------------------|
+| 0x00   | MODE_8   | 8-bit mode                   |
+| 0x01   | MODE_16  | 16-bit mode                  |
+| 0x02   | MODE_32  | 32-bit mode                  |
+| 0x03   | MODE_64  | 64-bit mode                  |
+| 0x04   | MODE_128 | 128-bit mode                 |
+
+### sect_flag_p
+
+Specify section capabilities as a bitmap:
+
+| Value  | Name       | Description                |
+|--------|------------|----------------------------|
+| bit 0  | SECT_EXEC  | Executable                 |
+| bit 1  | SECT_READ  | Readable                   |
+| bit 2  | SECT_WRITE | Writeable                  |
+| bit 3  | SECT_INIT  | Initalized Data            |
+| bit 4  | SECT_UNIT  | Uninitalized Data          |
+
+## Examples
+
+### 32-bit Integer Variable
 
 ```
-[type opcode: uint8_t][value: uint8_t]
+[0x04]           // INT32 type
+[0x40]           // VARIABLE flag set
+[variable_id]    // 64-bit variable identifier
 ```
 
-#### flag_condition_p
-The flag conditional is used for runtime conditionals. As defined below there are multiple values for the branch condition.
+### Immediate 64-bit Float
 
-```c
-FLAG_COND_EQ = 0x00
-FLAG_COND_NEQ = 0x01
-FLAG_COND_GT = 0x02
-FLAG_COND_GTE = 0x03
-FLAG_COND_LT = 0x04
-FLAG_COND_LTE = 0x05
+```
+[0x11]           // FP64 type
+[0x00]           // No flags set
+[value]          // 64-bit double value
 ```
 
-#### pu_type_p
-The processing unit type is used to specify the processing unit for specific instructions.
+### Conditional Branch Parameter
 
-```c
-PU_CPU = 0x00
+```
+[0xFE]           // PARAM0 type
+[0x02]           // FLAG_COND_GT value
 ```
 
-#### arch_type_p
-The architecture type is used to specify the processing units architecture (different values based on current processing unit selected)
+## Related Components
 
-```c
-if (PU_CPU) {
-  CPU_X86 = 0x00
-  CPU_ARM = 0x01
-}
-```
-
-#### mode_type_p
-The mode type is used to specifiy architecture mode.
-
-```c
-MODE_8   = 0x00
-MODE_16  = 0x01
-MODE_32  = 0x02
-MODE_64  = 0x03
-MODE_128 = 0x04
-```
+- [Binary Format](../core/binary-format.md)
+- [Universal ISA](../isa-u/index.md)
