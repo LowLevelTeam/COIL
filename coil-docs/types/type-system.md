@@ -78,11 +78,12 @@ User-defined bit-width types and advanced data structures:
 
 Compound types that group other types:
 
-| Opcode | Name   | Description                      | Type Data Format |
-|--------|--------|----------------------------------|------------------|
-| 0xA0   | STRUCT | Fields at fixed offsets          | [field count][fields...] |
-| 0xA1   | PACK   | Packed structure (no padding)    | [field count][fields...] |
-| 0xA2   | UNION  | Overlapping fields               | [field count][fields...] |
+| Opcode | Name   | Description                             | Type Data Format         |
+|--------|--------|-----------------------------------------|--------------------------|
+| 0xA0   | STRUCT | Fields at fixed offsets                 | [field count][fields...] |
+| 0xA1   | PACK   | Packed structure (no padding)           | [field count][fields...] |
+| 0xA2   | UNION  | Overlapping fields                      | [field count][fields...] |
+| 0xA3   | ALIAS  | Utilizes a type ID to get the real type | [typeid: uint64_T]       |
 
 Composite type data includes member count and member definitions:
 
