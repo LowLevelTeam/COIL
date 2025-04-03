@@ -16,44 +16,6 @@ COIL is a universal binary instruction format designed for maximum portability w
 
 The COIL documentation is organized as follows:
 
-```
-/
-├── README.md                  # This overview
-├── coil-docs/                 # Main documentation
-│   ├── index.md               # COIL introduction
-│   ├── instruction-reference.md # Instruction reference
-│   ├── type.md                # Type system overview
-│   ├── core/                  # Core concepts
-│   │   ├── binary-format.md   # Binary encoding specification
-│   │   ├── config-format.md   # Configuration format
-│   │   ├── memory-model.md    # Memory model specification
-│   │   └── linking-model.md   # Linking and loading model
-│   ├── format/                # File formats
-│   │   ├── binary-format.md   # Binary instruction format
-│   │   └── object-format.md   # Object file format
-│   ├── isa-u/                 # Universal instruction set
-│   │   ├── overview.md        # ISA-U overview
-│   │   ├── control-flow.md    # Control flow instructions
-│   │   ├── memory-operations.md # Memory instructions
-│   │   ├── arithmetic-operations.md # Arithmetic instructions
-│   │   ├── bit-manipulation.md # Bit manipulation instructions
-│   │   └── vector-operations.md # Vector processing instructions
-│   ├── isa-e/                 # Extended instruction set
-│   │   ├── overview.md        # ISA-E overview
-│   │   ├── cpu-operations.md  # CPU-specific instructions
-│   │   └── ...                # Platform-specific instructions
-│   ├── isa-c/                 # Compiler directives
-│   │   ├── index.md           # ISA-C overview
-│   │   ├── overview.md        # Comprehensive overview
-│   │   ├── conditional-compilation.md # Conditional directives
-│   │   ├── code-organization.md # Code organization directives
-│   │   ├── abi-definition.md  # ABI directives
-│   │   └── compile-time-definitions.md # Definition directives
-│   └── types/                 # Type system details
-│       ├── extended-types.md  # Matrix and tensor types
-│       └── ...                # Other type documentation
-```
-
 ## Instruction Set Architecture
 
 COIL is organized into three main instruction sets:

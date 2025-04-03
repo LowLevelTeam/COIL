@@ -223,4 +223,3 @@ EIF
 ## Related Components
 
 - [Extended ISA Overview](./overview.md) - Extended instruction set summary
-- [Tensor Types](../types/extended-types.md) - Tensor data type specifications

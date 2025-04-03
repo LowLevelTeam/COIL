@@ -193,6 +193,5 @@ Types have natural alignment requirements:
 
 ## Related Components
 
-- [Extended Types](./extended-types.md) - Matrix and tensor type specifications
 - [Binary Format](../core/binary-format.md) - COIL binary encoding
 - [Instruction Encoding](../instruction-encoding.md) - Instruction format details

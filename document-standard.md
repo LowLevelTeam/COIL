@@ -14,35 +14,6 @@ This document defines standards for the COIL specification documentation to ensu
 
 ## Document Organization
 
-### Directory Structure
-
-```
-/
-├── README.md                  # Project overview
-├── documentation-standard.md  # This document
-├── CONTRIBUTING.md            # Contribution guidelines
-├── LICENSE                    # License information
-├── coil-docs/                 # Core specification
-│   ├── index.md               # Introduction to COIL
-│   ├── core/                  # Core concepts
-│   │   ├── binary-format.md   # Binary format specification
-│   │   └── config-format.md   # Configuration format
-│   ├── isa-u/                 # Universal instruction set
-│   │   ├── overview.md        # ISA-U overview
-│   │   ├── control-flow.md    # Control flow instructions
-│   │   └── ...                # Other instruction categories
-│   ├── isa-e/                 # Extended instruction set
-│   │   ├── overview.md        # ISA-E overview
-│   │   ├── cpu-operations.md  # CPU-specific instructions
-│   │   └── ...                # Other processor/architecture docs
-│   ├── isa-c/                 # Compiler directives
-│   │   ├── overview.md        # ISA-C overview
-│   │   └── ...                # Specific directive docs
-│   └── types/                 # Type system
-│       ├── type-system.md     # Type system overview
-│       └── extended-types.md  # Advanced type definitions
-```
-
 ### File Naming
 
 - Use lowercase with hyphens for file names (e.g., `binary-format.md`)

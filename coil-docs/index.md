@@ -98,7 +98,6 @@ The COIL specification follows semantic versioning:
 - [Binary Format](./core/binary-format.md) - COIL binary encoding specification
 - [Configuration Format](./core/config-format.md) - Target configuration specification
 - [Type System](./types/type-system.md) - Complete type system reference
-- [Extended Types](./types/extended-types.md) - Matrix and tensor type specifications
 - [Universal ISA](./isa-u/overview.md) - Universal instruction set
 - [Extended ISA](./isa-e/overview.md) - Extended instruction set
 - [Compiler ISA](./isa-c/index.md) - Compiler directives

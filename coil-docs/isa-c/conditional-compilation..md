@@ -113,18 +113,43 @@ The following conditions can be used with conditional directives:
 | 0x03  | GTE      | Greater than or equal |
 | 0x04  | LT       | Less than |
 | 0x05  | LTE      | Less than or equal |
+| 0x06  | AND      | Logical AND |
+| 0x07  | OR       | Logical OR |
+| 0x08  | XOR      | Logical XOR |
 | 0xFF  | DEF      | Defined (exists) |
 
-## Nesting and Scope
+## Relationship with TARGET Directives
 
-Conditional directives can be nested to create complex conditions:
+While conditional directives (IF/ELIF/ELSE/EIF) can be used for all types of compile-time conditions, the TARGET/ETARGET directives (described in [targeting.md](./targeting.md)) provide a more specialized approach for selecting processing units, architectures, and modes:
 
-- Each IF must have a matching EIF
-- Maximum nesting depth is implementation-defined
-- Inner conditionals are only evaluated if the outer condition is true
+```
+// Using conditional directives
+IF PU_TYPE EQ CPU
+    IF ARCH_TYPE EQ X86
+        TARGET CPU x86
+        ...
+    EIF
+EIF
+
+// Equivalent using TARGET directives
+TARGET CPU
+    TARGET X86
+        // x86-specific code
+    ETARGET
+ETARGET
+```
+
+The key differences are:
+
+1. **Extended Instruction Access**: TARGET directives enable access to the extended instruction set of the specified target
+2. **Nesting Behavior**: TARGET directives have specific nesting rules for PU, architecture, and mode
+3. **Error Handling**: TARGET directives provide more specific error messages for target compatibility issues
+
+Use conditional directives for general compile-time decisions, and TARGET directives specifically for platform-specific code sections that use extended instructions.
 
 ## Related Components
 
+- [Targeting](./targeting.md) - TARGET and ETARGET directives
 - [Code Organization](./code-organization.md) - INCL, SECT, DATA, PADD directives
 - [Compile-time Definitions](./compile-time-definitions.md) - DEF, UDEF directives
 - [Configuration Format](../core/config-format.md) - Target configuration specification
