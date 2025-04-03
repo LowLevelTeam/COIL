@@ -39,26 +39,6 @@ Begins a conditional compilation block.
 - For three-operand form, a comparison is performed between op1 and op2
 - For two-operand form, an implied equality comparison is performed
 
-**Examples:**
-```
-// Check if DEBUG is defined
-IF DEBUG
-    // Debug code here
-EIF
-
-// Check if CPU architecture is x86
-IF PU_TYPE EQ CPU
-    IF ARCH_TYPE EQ X86
-        // x86-specific code
-    EIF
-EIF
-
-// Check if floating-point precision is high
-IF FP_PRECISION GT 2
-    // High-precision code
-EIF
-```
-
 ### ELIF (0xF1)
 
 Provides an alternative condition when the previous IF or ELIF was false.
@@ -81,22 +61,6 @@ Provides an alternative condition when the previous IF or ELIF was false.
 - If false, the code block is excluded until the next ELIF, ELSE, or EIF
 - Encoding and evaluation follow the same rules as IF
 
-**Examples:**
-```
-// Platform-specific code
-IF PU_TYPE EQ CPU
-    IF ARCH_TYPE EQ X86
-        // x86-specific code
-    ELIF ARCH_TYPE EQ ARM
-        // ARM-specific code
-    ELSE
-        // Generic CPU code
-    EIF
-ELIF PU_TYPE EQ GPU
-    // GPU-specific code
-EIF
-```
-
 ### ELSE (0xF2)
 
 Provides a default case when all previous conditions were false.
@@ -112,16 +76,6 @@ Provides a default case when all previous conditions were false.
 - Must appear after at least one IF or ELIF directive
 - Must appear before the matching EIF directive
 
-**Examples:**
-```
-// Feature detection
-IF SIMD_SUPPORT
-    // SIMD implementation
-ELSE
-    // Scalar fallback implementation
-EIF
-```
-
 ### EIF (0xF3)
 
 Ends a conditional compilation block.
@@ -135,18 +89,6 @@ Ends a conditional compilation block.
 - Marks the end of a conditional compilation block
 - Must match a preceding IF directive
 - Compilation continues normally after this directive
-
-**Examples:**
-```
-// Conditional block with multiple cases
-IF OPTIMIZATION_LEVEL EQ 0
-    // No optimization
-ELIF OPTIMIZATION_LEVEL EQ 1
-    // Basic optimization
-ELSE
-    // Maximum optimization
-EIF  // End of conditional block
-```
 
 ## Parameter Types
 
@@ -180,18 +122,6 @@ Conditional directives can be nested to create complex conditions:
 - Each IF must have a matching EIF
 - Maximum nesting depth is implementation-defined
 - Inner conditionals are only evaluated if the outer condition is true
-
-```
-IF PU_TYPE EQ CPU
-    // CPU-specific code
-    IF ARCH_TYPE EQ X86
-        // x86-specific code
-        IF MODE_TYPE EQ MODE_64
-            // 64-bit mode specific code
-        EIF
-    EIF
-EIF
-```
 
 ## Related Components
 

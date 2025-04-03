@@ -79,8 +79,7 @@ Technical specifications should include these sections:
 1. **Overview**: Brief introduction to the component
 2. **Purpose**: Problem being solved and design goals
 3. **Specification**: Technical details and requirements
-4. **Examples**: Practical usage examples
-5. **Related Components**: Links to related documentation
+4. **Related Components**: Links to related documentation
 
 ### Instruction Documentation Template
 
@@ -100,15 +99,6 @@ Brief description of the instruction.
 - Detailed behavior description
 - Edge cases and special considerations
 - Flags affected
-
-**Examples:**
-```
-// Example 1
-INSTRUCTION param1, param2
-
-// Example 2
-INSTRUCTION param3
-```
 ```
 
 ## Content Guidelines
@@ -120,13 +110,6 @@ INSTRUCTION param3
 - Keep paragraphs short (3-5 sentences maximum)
 - Use active voice when possible
 - Avoid ambiguous pronouns (it, they, etc.)
-
-### Code Examples
-
-- Include meaningful code examples for every major concept
-- Add comments to explain key aspects of examples
-- Use consistent naming conventions
-- Limit examples to what's necessary to illustrate the concept
 
 ### Tables
 
