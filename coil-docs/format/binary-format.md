@@ -203,4 +203,3 @@ The binary format includes version information to support evolution:
 
 - [Object Format](./object-format.md) - COIL object file specification
 - [Type System](../types/type-system.md) - Complete type system reference
-- [Instruction Reference](../instruction-reference.md)
