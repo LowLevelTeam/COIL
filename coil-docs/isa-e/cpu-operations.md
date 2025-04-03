@@ -23,6 +23,15 @@ CPU Operations are extended instructions (0xA0-0xBF) that work across all Centra
 | 0xA8   | RDTSC    | Read time-stamp counter |
 | 0xA9   | HLT      | Halt processor |
 
+## Architecture Instruction Set
+
+### x86
+
+| Opcode | Mnemonic | Description                |
+|--------|----------|----------------------------|
+| 0xA0   | IN       | Input to processor IO port |
+| 0xA1   | OUT      | Input to processor IO port |
+
 ## Detailed Specifications
 
 ### INT (0xA0)
@@ -178,6 +187,8 @@ Halts the processor until an interrupt occurs.
 ## Register Conventions
 
 Each CPU architecture defines its own register set. When using CPU operations, the appropriate registers are implied based on the target architecture. For explicit register references, use the REG type with architecture-specific register codes.
+
+**TODO: Who removed the register to uint16_t mapping for each architecture, wait was it me? either way this needs fixing!**
 
 ## Privilege Levels
 

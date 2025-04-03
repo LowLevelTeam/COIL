@@ -1,5 +1,7 @@
 # NPU Operations
 
+**IMPORTANT**: Not a single instruction here is finalized
+
 ## Overview
 
 NPU Operations are extended instructions (0xA0-0xBF) that work across all Neural Processing Units regardless of their specific architecture. These instructions provide access to hardware capabilities specialized for machine learning workloads, including tensor operations, activation functions, and quantization.

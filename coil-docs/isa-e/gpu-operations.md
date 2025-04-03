@@ -1,5 +1,7 @@
 # GPU Operations
 
+**IMPORTANT**: Not a single instruction here is finalized
+
 ## Overview
 
 GPU Operations are extended instructions (0xA0-0xBF) that work across all Graphics Processing Units regardless of their specific architecture. These instructions provide access to GPU-specific capabilities such as parallel execution, shared memory, and synchronization primitives.

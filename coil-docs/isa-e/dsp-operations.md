@@ -1,5 +1,7 @@
 # DSP Operations
 
+**IMPORTANT**: Not a single instruction here is finalized
+
 ## Overview
 
 DSP Operations are extended instructions (0xA0-0xBF) that work across all Digital Signal Processors regardless of their specific architecture. These instructions provide access to specialized capabilities for signal processing, including filtering, transforms, and complex number operations.
