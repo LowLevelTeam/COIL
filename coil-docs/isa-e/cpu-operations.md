@@ -186,9 +186,9 @@ Halts the processor until an interrupt occurs.
 
 ## Register Conventions
 
-Each CPU architecture defines its own register set. When using CPU operations, the appropriate registers are implied based on the target architecture. For explicit register references, use the REG type with architecture-specific register codes.
-
-**TODO: Who removed the register to uint16_t mapping for each architecture, wait was it me? either way this needs fixing!**
+Register conventions for each architecture is specified in dedicated page for the architecture.
+  [x86](./cpu/x86-operations.md)
+  [ARM](./cpu/arm-operations.md)
 
 ## Privilege Levels
 
