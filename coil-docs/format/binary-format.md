@@ -24,16 +24,22 @@ The first byte of every instruction is the primary opcode:
 ### Extended Opcode
 
 Some instructions require an extended opcode:
-- When the primary opcode is 0xFF, the extended opcode specifies the vendor-specific operation
-- When additional precision is needed within an instruction category
+- When the primary opcode is 0xFF, the extended opcode byte is **mandatory** and specifies the vendor-specific operation
+- Extended opcodes are **never** used in the current specification for any opcodes other than 0xFF
+- Reserved for future use to expand instruction space when needed
 
 ### Operand Count
 
-The operand count is a single byte that specifies the number of operands that follow.
+The operand count is a single byte that specifies the number of operands that follow:
+- **Always** present, even for instructions that never accept operands (in which case it will be 0)
+- Maximum number of operands is 255 (0xFF) for any single instruction
+- Each instruction defines its own maximum operand count which may be less than 255
 
-Notable exceptions:
-- Instructions that never accept operands (e.g., NOP) may omit the operand count
-- Certain directive operations have fixed operand formats
+### Special Cases
+
+- **Zero-operand instructions**: Always include the operand count byte set to 0
+- **Fixed-operand instructions**: Still include the operand count byte for consistency
+- **Directive operations**: Follow the same format, with operand count followed by operands
 
 ## Operand Encoding
 
@@ -68,6 +74,8 @@ VARIABLE  = (1 << 6)  // Refers to a variable id
 SYMBOL    = (1 << 7)  // Refers to a named memory address
 ```
 
+The type extension byte is **always** present for all operands.
+
 ### Type Data
 
 Additional data required to fully specify the type:
@@ -75,16 +83,43 @@ Additional data required to fully specify the type:
 - For composite types: structure definition
 - For vector types: element type and count
 
+Type data size and format depends on the specific type, as defined in the type system documentation.
+
 ### Data
 
 The actual value or reference:
-- For immediate values: literal data of the specified type
+- For immediate values: literal data of the specified type with size determined by the type
 - For variables: variable ID (uint64_t)
 - For symbols: symbol index (uint64_t)
 
+## Type Size and Alignment
+
+Types have defined sizes and alignment requirements:
+
+| Type          | Size (bytes)              | Alignment (bytes)         |
+|---------------|---------------------------|---------------------------|
+| INT8/UNT8     | 1                         | 1                         |
+| INT16/UNT16   | 2                         | 2                         |
+| INT32/UNT32   | 4                         | 4                         |
+| INT64/UNT64   | 8                         | 8                         |
+| FP32          | 4                         | 4                         |
+| FP64          | 8                         | 8                         |
+| V128          | 16                        | 16                        |
+| V256          | 32                        | 32                        |
+| V512          | 64                        | 64                        |
+| Complex Types | Varies (as specified)     | Largest component         |
+| Composite     | Sum of components + padding| Largest component         |
+
 ## Complete Instruction Examples
 
-### Integer Addition Example
+### NOP (No Operation)
+
+```
+[0x00]             // NOP opcode
+[0x00]             // 0 operands
+```
+
+### Integer Addition Example (Three-operand form)
 
 Adding two 32-bit integers (a = b + c):
 
@@ -100,7 +135,35 @@ Adding two 32-bit integers (a = b + c):
   [variable_id_c]  // Variable ID for 'c' (uint64_t)
 ```
 
-### Branch If Equal Example
+### Integer Addition Example (Two-operand form)
+
+Incrementing a 32-bit integer (a += b):
+
+```
+// ADD dest, src
+[0x40]             // ADD opcode
+[0x02]             // 2 operands
+  [0x04][0x40]     // INT32 type, VARIABLE flag
+  [variable_id_a]  // Variable ID for 'a' (uint64_t)
+  [0x04][0x40]     // INT32 type, VARIABLE flag
+  [variable_id_b]  // Variable ID for 'b' (uint64_t)
+```
+
+### Integer Addition with Immediate Value
+
+Adding an immediate value to a variable (a += 5):
+
+```
+// ADD dest, immediate
+[0x40]             // ADD opcode
+[0x02]             // 2 operands
+  [0x04][0x40]     // INT32 type, VARIABLE flag
+  [variable_id_a]  // Variable ID for 'a' (uint64_t)
+  [0x04][0x10]     // INT32 type, IMMEDIATE flag
+  [0x00000005]     // Immediate value 5 (little-endian)
+```
+
+### Conditional Branch Example
 
 Conditional branch if two values are equal:
 
@@ -118,8 +181,8 @@ Conditional branch if two values are equal:
 Setting a vector element:
 
 ```
-// VSET vector, index, value
-[0x81]             // VSET opcode
+// SETE vector, index, value
+[0x81]             // SETE opcode
 [0x03]             // 3 operands
   [0x20][0x40]     // V128 type, VARIABLE flag
   [vector_id]      // Variable ID for vector (uint64_t)
@@ -129,75 +192,66 @@ Setting a vector element:
   [0x0000000A]     // Immediate value 10
 ```
 
-## Endianness Considerations
+### Structure Type Definition Example
 
-- All multi-byte values follow the endianness specified in the configuration
-- By default, COIL uses the endianness of the target architecture
-- For universal portability, files may include an endianness marker
+```
+// VAR struct_var, STRUCT {...}
+[0x26]             // VAR opcode
+[0x02]             // 2 operands
+  [0xF1][0x00]     // VARID type
+  [variable_id]    // Variable ID (uint64_t)
+  [0xA0][0x00]     // STRUCT type
+  [0x0003]         // 3 members
+    [0x0001]       // Member ID
+    [0x04][0x00]   // INT32 type
+    [0x0002]       // Member ID
+    [0x11][0x00]   // FP64 type
+    [0x0003]       // Member ID
+    [0x20][0x00]   // V128 type
+    [0x10][0x00]   // Element type: FP32
+```
 
-## Alignment Requirements
+## Endianness Handling
 
-Instruction and operand alignment follows these rules:
+All multi-byte values in COIL binary format follow these endianness rules:
 
-1. Instructions begin at architecture-appropriate boundaries
-   - For most platforms: 1-byte aligned
-   - For RISC platforms: may require 2 or 4-byte alignment
+1. **File-level Endianness**: Determined by the configuration specified in the file header
+2. **Default Endianness**: Little-endian unless explicitly specified otherwise
+3. **Endianness Marker**: Object files include an endianness marker in the header
+4. **Multi-byte Fields**: Follow the file's specified endianness for all:
+   - Immediate values
+   - Offsets and addresses
+   - Size and count fields
+   - Type data
 
-2. Operands follow immediately after the instruction header
-   - No padding between operands by default
-   - Explicit alignment may be required by certain architectures
+For cross-platform compatibility, endianness conversion must be applied when:
+- Reading COIL files with different endianness than the host
+- Generating COIL files for a target with different endianness
 
-3. Data elements align according to their natural alignment
-   - 16-bit values: 2-byte alignment
-   - 32-bit values: 4-byte alignment
-   - 64-bit values: 8-byte alignment
+## Instruction Alignment
 
-## Edge Cases and Special Values
+COIL instructions follow these alignment rules:
 
-1. **Immediate Zero Values**
-   - May use optimized encoding for common zero values
+1. **Basic Alignment**: Instructions are 1-byte aligned by default
+2. **Architecture-Specific Alignment**: Target platforms may specify stricter alignment:
+   - x86: 1-byte alignment
+   - ARM: 4-byte alignment may be required for some modes
+   - RISC-V: May require 2-byte or 4-byte alignment
 
-2. **Null References**
-   - Variable ID 0 represents a null reference
-   - Symbol ID 0 represents an undefined symbol
+The COIL processor is responsible for:
+- Respecting the target architecture's alignment requirements
+- Inserting padding bytes when necessary to maintain alignment
+- Documenting alignment requirements in the configuration
 
-3. **Extended Types**
-   - Types exceeding standard width use the Complex type encoding
+## Nesting Limits
 
-4. **Overflow and Underflow**
-   - Handled according to the SATURATE flag
+COIL enforces these limits on nested structures:
 
-## Platform-Specific Variations
-
-While the core binary format remains consistent, platforms may have special requirements:
-
-1. **Big Endian vs. Little Endian**
-   - Multi-byte values stored according to platform endianness
-   - Conversion performed during cross-platform execution
-
-2. **Instruction Alignment**
-   - Some platforms require instructions to be aligned
-   - Padding bytes may be inserted to meet alignment requirements
-
-3. **Register References**
-   - Platform-specific register encoding in the REG type
-   - Abstracted through the variable system for portability
-
-4. **Extended Instruction Sets**
-   - Vendor-specific extensions use the 0xFF opcode range
-   - Must include capability detection for portability
-
-## Binary Format Evolution
-
-The binary format includes version information to support evolution:
-
-1. **Version Identification**
-   - Major version changes indicate incompatible format changes
-   - Minor version changes add new capabilities while maintaining compatibility
-
-2. **Compatibility Layer**
-   - Processors can implement translation for older formats
-   - Format converters available for offline conversion
+1. **Type Nesting**: Maximum 8 levels of nested types (structs within structs)
+2. **Vector Nesting**: Maximum 3 levels (vectors of vectors of vectors)
+3. **Matrix Dimensions**: Maximum 4 dimensions for tensors
+4. **Struct Members**: Maximum 65,535 members in a structure
+5. **Vector Elements**: Maximum 65,535 elements in a vector
 
 ## Related Components
 

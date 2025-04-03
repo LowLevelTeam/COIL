@@ -26,6 +26,16 @@ Note: Basic arithmetic operations (ADD, SUB, MUL, DIV, etc.) are already support
 | 0x8D   | COL      | Get/set column |
 | 0x8E   | DIAG     | Get/set diagonal |
 
+## Linear Algebra Conventions
+
+All vector and matrix operations in COIL follow these conventions:
+
+1. **Matrix Storage**: Row-major order (rows are stored as contiguous elements)
+2. **Vector Orientation**: Column vectors by default for linear algebra operations
+3. **Indexing**: Zero-based indexing for all elements
+4. **Matrix Multiplication**: Follows standard mathematical definition (A × B requires A.cols = B.rows)
+5. **Dimensions**: Explicitly checked before operations
+
 ## Detailed Specifications
 
 ### GETE (0x80)
@@ -43,8 +53,12 @@ Retrieves an element from a vector.
 - Destination type must be compatible with the vector element type
 - Index must be an integral type
 - For fixed-width vectors, index must be in range [0, element_count-1]
-- Out-of-range indices raise an exception or have implementation-defined behavior
+- Out-of-range indices raise an exception
 - Sets flags based on the extracted value
+
+**Mathematical Definition:**
+For a vector v and index i:
+dest = v[i]
 
 ### SETE (0x81)
 
@@ -61,8 +75,12 @@ Sets an element in a vector.
 - Index must be an integral type
 - For fixed-width vectors, index must be in range [0, element_count-1]
 - Value type must be compatible with the vector element type
-- Out-of-range indices raise an exception or have implementation-defined behavior
-- Sets flags based on the operation success
+- Out-of-range indices raise an exception
+- Sets no flags
+
+**Mathematical Definition:**
+For a vector v, index i, and value val:
+v[i] = val
 
 ### DOT (0x82)
 
@@ -70,7 +88,7 @@ Calculates the dot product of vectors.
 
 **Encoding:**
 ```
-// Three-operand form
+// Vector dot product
 [0x82][0x03][dest: Operand][vec1: Operand][vec2: Operand]
 ```
 
@@ -82,6 +100,14 @@ Calculates the dot product of vectors.
 - For integer vectors, result is an integer
 - For floating-point vectors, result is a floating-point value
 - Sets flags based on the result (zero, sign)
+
+**Mathematical Definition:**
+For vectors a and b of length n:
+dot(a, b) = ∑(i=0 to n-1) a[i] × b[i]
+
+**Error Handling:**
+- If vector dimensions don't match, an exception is raised
+- For empty vectors (length 0), the result is defined as 0
 
 ### CROSS (0x83)
 
@@ -99,7 +125,18 @@ Calculates the cross product of 3D vectors.
 - Result is a 3D vector
 - Produces a vector perpendicular to both input vectors
 - Sets flags based on the result (zero)
-- For non-3D vectors, raises an exception or has implementation-defined behavior
+- For non-3D vectors, raises an exception
+
+**Mathematical Definition:**
+For 3D vectors a and b:
+cross(a, b) = [
+  a[1] × b[2] - a[2] × b[1],
+  a[2] × b[0] - a[0] × b[2],
+  a[0] × b[1] - a[1] × b[0]
+]
+
+**Error Handling:**
+- If either vector doesn't have exactly 3 elements, an exception is raised
 
 ### NORM (0x84)
 
@@ -117,11 +154,18 @@ Normalizes a vector to unit length.
 **Behavior:**
 - Normalizes the vector to have a magnitude of 1.0
 - Divides each element by the vector magnitude
-- For zero vectors, behavior is implementation-defined
+- For zero vectors, sets D flag and produces a vector of zeros
 - Element types must support division
 - For integer vectors, result may be truncated
 - For floating-point vectors, result is exact
 - Sets flags based on the operation success
+
+**Mathematical Definition:**
+For a vector v with length |v|:
+norm(v) = v / |v| if |v| > 0, otherwise [0, 0, ..., 0]
+
+**Error Handling:**
+- If the vector has length 0, D flag is set and a zero vector is produced
 
 ### LEN (0x85)
 
@@ -139,6 +183,10 @@ Calculates the length (magnitude) of a vector.
 - Uses the formula: sqrt(sum(v[i]²))
 - Sets flags based on the result (zero, sign)
 
+**Mathematical Definition:**
+For a vector v of length n:
+|v| = √(∑(i=0 to n-1) v[i]²)
+
 ### SHUF (0x86)
 
 Shuffles elements of a vector according to a mask.
@@ -153,8 +201,15 @@ Shuffles elements of a vector according to a mask.
 - Destination must be a vector type
 - Mask must be a vector of integral values
 - Each element in the mask specifies the source element index
-- Out-of-range indices yield implementation-defined behavior
-- Sets flags based on the operation success
+- Out-of-range indices in mask raise an exception
+- Sets no flags
+
+**Mathematical Definition:**
+For a vector v, mask m, and destination d:
+For each i, d[i] = v[m[i]]
+
+**Error Handling:**
+- If any index in the mask is out of range, an exception is raised
 
 ### EXTRACT (0x87)
 
@@ -170,8 +225,12 @@ Extracts a contiguous subvector.
 - Start specifies the first element index (integral value)
 - Length specifies the number of elements to extract (integral value)
 - Destination must be a vector type that can hold the specified number of elements
-- Sets flags based on the operation success
-- Out-of-range extraction raises an exception or has implementation-defined behavior
+- Sets no flags
+- Out-of-range extraction raises an exception
+
+**Mathematical Definition:**
+For a vector v, start index s, and length l:
+extract(v, s, l) = [v[s], v[s+1], ..., v[s+l-1]]
 
 ### INSERT (0x88)
 
@@ -188,8 +247,12 @@ Inserts a subvector into another vector.
 - Length specifies the number of elements to insert (integral value)
 - Length must not exceed the length of subvec
 - Destination must be a writable vector with sufficient space
-- Sets flags based on the operation success
-- Out-of-range insertion raises an exception or has implementation-defined behavior
+- Sets no flags
+- Out-of-range insertion raises an exception
+
+**Mathematical Definition:**
+For vectors d and s, start index t, and length l:
+For i from 0 to l-1: d[t+i] = s[i]
 
 ### TRANS (0x89)
 
@@ -210,7 +273,15 @@ Transposes a matrix.
 - Destination must be a matrix type with dimensions swapped
 - For square matrices, can be performed in-place
 - For non-square matrices, dest must have correct dimensions (rows=src.cols, cols=src.rows)
-- Sets flags based on the operation success
+- Sets no flags
+
+**Mathematical Definition:**
+For a matrix A with elements a_ij, the transpose A^T has elements:
+a^T_ij = a_ji
+
+**Error Handling:**
+- If destination dimensions don't match required dimensions, an exception is raised
+- For in-place transposition of non-square matrices, an exception is raised
 
 ### INV (0x8A)
 
@@ -229,10 +300,22 @@ Calculates a matrix inverse.
 - Calculates the inverse of a matrix
 - Source must be a square matrix type (SQMAT)
 - Destination must be a square matrix of the same dimensions
-- For singular matrices, raises an exception or has implementation-defined behavior
+- For singular matrices (determinant = 0), sets D flag and raises an exception
 - For floating-point matrices, may have precision limitations
 - Sets flags based on the operation success
-- Sets a condition flag if the matrix is singular
+- Sets Z flag if matrix is singular (determinant = 0)
+
+**Mathematical Definition:**
+For a matrix A with inverse A^(-1):
+A × A^(-1) = A^(-1) × A = I (identity matrix)
+
+**Implementation Notes:**
+- For 2×2 matrices: Direct formula using determinant
+- For 3×3 matrices: Adjugate matrix divided by determinant
+- For larger matrices: Gaussian elimination, LU decomposition, or other numerical methods
+
+**Error Handling:**
+- If the matrix is singular (determinant = 0), D flag is set and an exception is raised
 
 ### DET (0x8B)
 
@@ -250,6 +333,24 @@ Calculates a matrix determinant.
 - For non-square matrices, raises an exception
 - For large matrices, uses efficient algorithms (LU decomposition)
 - Sets flags based on the result (zero, sign)
+
+**Mathematical Definition:**
+For a 2×2 matrix A:
+det(A) = a_00 × a_11 - a_01 × a_10
+
+For a 3×3 matrix A:
+det(A) = a_00(a_11a_22 - a_12a_21) - a_01(a_10a_22 - a_12a_20) + a_02(a_10a_21 - a_11a_20)
+
+For larger matrices:
+- Use cofactor expansion, LU decomposition, or other methods
+
+**Implementation Notes:**
+- 2×2 and 3×3 matrices: Direct formula calculation
+- 4×4 matrices: Cofactor expansion or decomposition methods
+- Larger matrices: LU decomposition for efficiency
+
+**Error Handling:**
+- If the matrix is not square, an exception is raised
 
 ### ROW (0x8C)
 
@@ -270,8 +371,13 @@ Gets or sets a matrix row.
 - Row index must be an integral type in range [0, matrix.rows-1]
 - For get: Destination must be a vector type that can hold matrix.cols elements
 - For set: Vector must be a vector type with matrix.cols elements
-- Sets flags based on the operation success
+- Sets no flags
 - Out-of-range indices raise an exception
+
+**Mathematical Definition:**
+For a matrix A, row index r, and vector v:
+- Get: v = [A_r0, A_r1, ..., A_r(cols-1)]
+- Set: For each i: A_ri = v_i
 
 ### COL (0x8D)
 
@@ -292,8 +398,13 @@ Gets or sets a matrix column.
 - Column index must be an integral type in range [0, matrix.cols-1]
 - For get: Destination must be a vector type that can hold matrix.rows elements
 - For set: Vector must be a vector type with matrix.rows elements
-- Sets flags based on the operation success
+- Sets no flags
 - Out-of-range indices raise an exception
+
+**Mathematical Definition:**
+For a matrix A, column index c, and vector v:
+- Get: v = [A_0c, A_1c, ..., A_(rows-1)c]
+- Set: For each i: A_ic = v_i
 
 ### DIAG (0x8E)
 
@@ -316,21 +427,81 @@ Gets or sets a matrix diagonal.
   - positive = above main diagonal
   - negative = below main diagonal
 - Length of diagonal depends on matrix dimensions and diagonal index
-- Sets flags based on the operation success
-- Out-of-range indices raise an exception
+- Sets no flags
+- Out-of-range diagonal indices raise an exception
 
-## Vector Types
+**Mathematical Definition:**
+For an m×n matrix A and diagonal index d:
+- Main diagonal (d=0): Elements A_ii for all valid i
+- Above main diagonal (d>0): Elements A_i(i+d) for all valid i
+- Below main diagonal (d<0): Elements A_(i-d)i for all valid i
 
-Vector operations work with several types of multi-element data structures:
+**Diagonal Length Calculation:**
+- Main diagonal (d=0): min(rows, cols)
+- Above main diagonal (d>0): min(rows, cols-d)
+- Below main diagonal (d<0): min(rows+d, cols)
 
-| Vector Types | Description |
-|-------------|-------------|
-| Fixed-width | Standard SIMD vectors (V128, V256, V512) |
-| Custom-width | User-defined vector (CVEC) |
-| Matrix | 2D arrays represented as vectors of vectors |
-| Tensor | Multi-dimensional arrays |
+## Matrix Multiplication
+
+The MUL instruction performs matrix multiplication when both operands are matrices:
+
+**Behavior:**
+- For matrix A (m×n) and matrix B (n×p), result is matrix C (m×p)
+- Element types must be compatible for multiplication and addition
+- Dimensions must be compatible (A.cols = B.rows)
+- Row-major storage is used for all matrices
+- Result is calculated using the standard matrix multiplication formula
+- Incompatible dimensions raise an exception
+
+**Mathematical Definition:**
+For matrices A (m×n) and B (n×p), the result C (m×p) has elements:
+C_ij = ∑(k=0 to n-1) A_ik × B_kj
+
+**Binary Encoding Example:**
+```
+// MUL C, A, B where C is 2×3, A is 2×4, B is 4×3
+[0x42][0x03]
+  [0x34][0x40][0x10][0x00][0x0002][0x0003][var_id_C]  // C: 2×3 matrix of FP32
+  [0x34][0x40][0x10][0x00][0x0002][0x0004][var_id_A]  // A: 2×4 matrix of FP32
+  [0x34][0x40][0x10][0x00][0x0004][0x0003][var_id_B]  // B: 4×3 matrix of FP32
+```
+
+## Matrix-Vector Multiplication
+
+The MUL instruction performs matrix-vector multiplication when operands are a matrix and a vector:
+
+**Behavior:**
+- For matrix A (m×n) and vector v (n), result is vector r (m)
+- Vector is treated as a column vector
+- Element types must be compatible for multiplication and addition
+- Dimensions must be compatible (A.cols = v.length)
+- Incompatible dimensions raise an exception
+
+**Mathematical Definition:**
+For matrix A (m×n) and vector v (n), the result r (m) has elements:
+r_i = ∑(j=0 to n-1) A_ij × v_j
+
+**Binary Encoding Example:**
+```
+// MUL r, A, v where r is length 3, A is 3×4, v is length 4
+[0x42][0x03]
+  [0x33][0x40][0x10][0x00][0x0003][var_id_r]  // r: vector of 3 FP32 elements
+  [0x34][0x40][0x10][0x00][0x0003][0x0004][var_id_A]  // A: 3×4 matrix of FP32
+  [0x33][0x40][0x10][0x00][0x0004][var_id_v]  // v: vector of 4 FP32 elements
+```
+
+## Non-Conforming Dimensions
+
+When vector or matrix operations encounter non-conforming dimensions:
+
+1. **Compile-time Detection**: If dimensions are known at compile time and don't conform, compilation fails with an error
+2. **Runtime Detection**: If dimensions are only known at runtime and don't conform:
+   - An exception is raised
+   - The D flag may be set to indicate the dimension error
+   - No partial results are produced
 
 ## Related Components
 
 - [Arithmetic Operations](./arithmetic-operations.md) - Mathematical computation instructions
 - [Type System](../types/type-system.md) - Complete type system reference
+- [Flag Effects](../core/flag-effects.md) - Detailed flag behavior documentation

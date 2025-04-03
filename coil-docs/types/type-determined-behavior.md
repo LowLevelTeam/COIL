@@ -17,9 +17,9 @@ In COIL, a single instruction opcode can perform different operations depending 
 
 When determining instruction behavior, implementations must follow these rules:
 
-1. **Type Priority**: When operands have different types, the higher-priority type determines behavior
+1. **Type Priority**: When operands have different types, the highest-priority type determines behavior
 2. **Implicit Conversion**: Lower-priority types are converted to higher-priority types when needed
-3. **Size Preservation**: Operations preserve the bit width of operands
+3. **Size Preservation**: Operations preserve the bit width of operands unless explicitly changed
 4. **Domain Consistency**: Operations maintain the mathematical properties of their domains
 5. **Explicit Control**: Type extension flags modify default behavior
 
@@ -34,124 +34,201 @@ From highest to lowest priority:
 5. Integer types
 6. Boolean/bit types
 
-## Examples by Instruction Category
+## Type Combination Matrix
 
-### Arithmetic Operations
+The following matrix defines the expected behavior for different type combinations across major instructions. For each cell, the result type and behavior are specified.
 
-#### ADD Instruction (0x40)
+### ADD Instruction (0x40)
 
-| Operand Types | Behavior | Example | Result |
-|---------------|----------|---------|--------|
-| INT32 + INT32 | Integer addition | ADD r0(5), r1(10) | r0 = 15 |
-| INT32 + FP32 | Floating-point addition | ADD r0(5), r1(10.5) | r0 = 15.5 |
-| INT32 + CONST INT32 | Integer addition with immediate | ADD r0(5), 10 | r0 = 15 |
-| V128 + V128 | Element-wise vector addition | ADD v0([1,2,3,4]), v1([5,6,7,8]) | v0 = [6,8,10,12] |
-| MAT + MAT | Element-wise matrix addition | ADD m0([[1,2],[3,4]]), m1([[5,6],[7,8]]) | m0 = [[6,8],[10,12]] |
-| MAT + INT32 | Scalar addition to all elements | ADD m0([[1,2],[3,4]]), 5 | m0 = [[6,7],[8,9]] |
+| Operand 1 | Operand 2 | Result Type | Behavior | Error Conditions |
+|-----------|-----------|-------------|----------|------------------|
+| INT8      | INT8      | INT8        | Integer addition with potential overflow | None |
+| INT16     | INT8      | INT16       | INT8 promoted to INT16, then addition | None |
+| INT32     | INT16     | INT32       | INT16 promoted to INT32, then addition | None |
+| INT64     | INT32     | INT64       | INT32 promoted to INT64, then addition | None |
+| FP32      | INT32     | FP32        | INT32 converted to FP32, then addition | None |
+| FP64      | FP32      | FP64        | FP32 promoted to FP64, then addition | None |
+| V128(INT32) | INT32   | V128(INT32) | Scalar added to each vector element | None |
+| V128(INT32) | V128(INT32) | V128(INT32) | Element-wise addition | Vector dimensions must match |
+| V128(FP32) | V128(INT32) | V128(FP32) | INT32 elements converted to FP32, then element-wise addition | Vector dimensions must match |
+| MAT(INT32) | INT32   | MAT(INT32)  | Scalar added to each matrix element | None |
+| MAT(FP32) | MAT(FP32) | MAT(FP32)  | Element-wise matrix addition | Matrix dimensions must match |
+| MAT(INT32) | MAT(FP32) | MAT(FP32)  | INT32 elements converted to FP32, then element-wise addition | Matrix dimensions must match |
+| TENSOR    | TENSOR   | TENSOR      | Element-wise tensor addition | Tensor dimensions must match |
 
-#### MUL Instruction (0x42)
+### SUB Instruction (0x41)
 
-| Operand Types | Behavior | Example | Result |
-|---------------|----------|---------|--------|
-| INT32 * INT32 | Integer multiplication | MUL r0(5), r1(10) | r0 = 50 |
-| FP32 * FP32 | Floating-point multiplication | MUL r0(5.5), r1(2.0) | r0 = 11.0 |
-| V128 * V128 | Element-wise vector multiplication | MUL v0([1,2,3,4]), v1([5,6,7,8]) | v0 = [5,12,21,32] |
-| MAT * MAT | Matrix multiplication | MUL m0([[1,2],[3,4]]), m1([[5,6],[7,8]]) | m0 = [[19,22],[43,50]] |
-| MAT * INT32 | Scalar multiplication of all elements | MUL m0([[1,2],[3,4]]), 2 | m0 = [[2,4],[6,8]] |
+| Operand 1 | Operand 2 | Result Type | Behavior | Error Conditions |
+|-----------|-----------|-------------|----------|------------------|
+| INT32     | INT32     | INT32       | Integer subtraction with potential underflow | None |
+| FP32      | INT32     | FP32        | INT32 converted to FP32, then subtraction | None |
+| V128(INT32) | INT32   | V128(INT32) | Scalar subtracted from each vector element | None |
+| V128(INT32) | V128(INT32) | V128(INT32) | Element-wise subtraction | Vector dimensions must match |
+| MAT(FP32) | MAT(FP32) | MAT(FP32)  | Element-wise matrix subtraction | Matrix dimensions must match |
 
-### Bit Manipulation Operations
+### MUL Instruction (0x42)
 
-#### AND Instruction (0x60)
+| Operand 1 | Operand 2 | Result Type | Behavior | Error Conditions |
+|-----------|-----------|-------------|----------|------------------|
+| INT32     | INT32     | INT32       | Integer multiplication with potential overflow | None |
+| FP32      | INT32     | FP32        | INT32 converted to FP32, then multiplication | None |
+| V128(INT32) | INT32   | V128(INT32) | Scalar multiplies each vector element | None |
+| V128(INT32) | V128(INT32) | V128(INT32) | Element-wise multiplication (not dot product) | Vector dimensions must match |
+| MAT(FP32) | MAT(FP32) | MAT(FP32)  | Matrix multiplication | Matrix dimensions must be compatible (M×N * N×P = M×P) |
+| MAT(FP32) | V128(FP32) | V128(FP32) | Matrix-vector multiplication | Vector length must match matrix columns |
+| MAT(FP32) | FP32      | MAT(FP32)  | Scalar multiplies each matrix element | None |
 
-| Operand Types | Behavior | Example | Result |
-|---------------|----------|---------|--------|
-| INT32 & INT32 | Bitwise AND | AND r0(0x0F), r1(0xF0) | r0 = 0x00 |
-| BIT & BIT | Boolean AND | AND b0(1), b1(0) | b0 = 0 |
-| V128 & V128 | Element-wise bitwise AND | AND v0([0x0F,0xFF]), v1([0xF0,0x0F]) | v0 = [0x00,0x0F] |
-| V128 & INT32 | AND scalar with all elements | AND v0([0x0F,0xFF]), 0x0F | v0 = [0x0F,0x0F] |
+### DIV Instruction (0x43)
 
-### Memory Operations
+| Operand 1 | Operand 2 | Result Type | Behavior | Error Conditions |
+|-----------|-----------|-------------|----------|------------------|
+| INT32     | INT32     | INT32       | Integer division with truncation toward zero | Division by zero |
+| FP32      | INT32     | FP32        | INT32 converted to FP32, then division | Division by zero |
+| V128(INT32) | INT32   | V128(INT32) | Each vector element divided by scalar | Division by zero |
+| V128(INT32) | V128(INT32) | V128(INT32) | Element-wise division | Vector dimensions must match, division by zero |
+| MAT(FP32) | FP32      | MAT(FP32)  | Each matrix element divided by scalar | Division by zero |
+| MAT(FP32) | MAT(FP32) | MAT(FP32)  | Matrix multiplication by inverse of second matrix | Second matrix must be invertible |
 
-#### MOV Instruction (0x20)
+### Bitwise Operations (AND, OR, XOR)
 
-| Operand Types | Behavior | Example | Result |
-|---------------|----------|---------|--------|
-| INT32 ← INT32 | Copy integer value | MOV r0, r1(42) | r0 = 42 |
-| FP64 ← FP32 | Convert and copy float | MOV d0, f0(3.14) | d0 = 3.14 (as FP64) |
-| V128 ← V128 | Copy vector | MOV v0, v1([1,2,3,4]) | v0 = [1,2,3,4] |
-| MAT ← MAT | Copy matrix | MOV m0, m1([[1,2],[3,4]]) | m0 = [[1,2],[3,4]] |
-| INT32 ← [INT32] | Load from memory | MOV r0, [0x1000] | r0 = *0x1000 |
-| [INT32] ← INT32 | Store to memory | MOV [0x1000], r0(42) | *0x1000 = 42 |
+| Operand 1 | Operand 2 | Result Type | Behavior | Error Conditions |
+|-----------|-----------|-------------|----------|------------------|
+| INT32     | INT32     | INT32       | Bitwise operation on integers | None |
+| BIT       | BIT       | BIT         | Logical operation on bits | None |
+| V128(INT32) | INT32   | V128(INT32) | Scalar bitwise operation with each element | None |
+| V128(INT32) | V128(INT32) | V128(INT32) | Element-wise bitwise operation | Vector dimensions must match |
+| FP32      | INT32     | Error       | Invalid operation on FP | Type mismatch error |
+| FP32      | FP32      | Error       | Invalid operation on FP | Type mismatch error |
 
-### Vector Operations
+### Memory Operations (MOV, PUSH, POP)
 
-#### DOT Instruction (0x82)
+| Operand Types | Behavior | Error Conditions |
+|---------------|----------|------------------|
+| dest:INT32, src:INT32 | Copy 32-bit integer | None |
+| dest:FP32, src:INT32 | Convert INT32 to FP32, then copy | Potential precision loss |
+| dest:INT16, src:INT32 | Truncate INT32 to INT16, then copy | Potential value loss |
+| dest:V128, src:V128 | Copy entire vector | Vector types must be compatible |
+| dest:MAT, src:MAT | Copy entire matrix | Matrix dimensions must match |
+| dest:STRUCT, src:STRUCT | Copy entire structure | Structure definitions must match |
 
-| Operand Types | Behavior | Example | Result |
-|---------------|----------|---------|--------|
-| V128 DOT V128 | Vector dot product | DOT r0, v0([1,2,3]), v1([4,5,6]) | r0 = 32 (1*4+2*5+3*6) |
-| MAT DOT V128 | Matrix-vector product | DOT v0, m0([[1,2],[3,4]]), v1([5,6]) | v0 = [17,39] |
-| V128 DOT MAT | Vector-matrix product | DOT v0, v1([1,2]), m0([[3,4],[5,6]]) | v0 = [13,16] |
+### Comparison Operations (CMP, TEST)
 
-## Type Extension Modifiers
+| Operand 1 | Operand 2 | Flag Effects | Behavior |
+|-----------|-----------|--------------|----------|
+| INT32     | INT32     | Z,S,C,V      | Compare values and set flags |
+| FP32      | FP32      | Z,S,N        | Compare values according to IEEE 754 |
+| FP32      | INT32     | Z,S,N        | Convert INT32 to FP32, then compare |
+| V128      | V128      | Z only       | Element-wise comparison, Z set if all elements equal |
+| MAT       | MAT       | Z only       | Element-wise comparison, Z set if all elements equal |
 
-Type extension flags modify instruction behavior:
+## Mixed Type Operation Examples
 
-### SATURATE Flag
-
-When set, prevents overflow by clamping to type limits:
+### Example 1: Adding Integer to Floating-Point
 
 ```
-// Without SATURATE
-ADD r0(INT32_MAX), 1  // Result: INT32_MIN (overflow)
-
-// With SATURATE
-ADD r0(INT32_MAX<SATURATE>), 1  // Result: INT32_MAX (clamped)
+// ADD result, a, b  where a is FP32 and b is INT32
+[0x40][0x03]
+  [0x10][0x40][var_id_result]  // result: FP32 variable
+  [0x10][0x40][var_id_a]       // a: FP32 variable
+  [0x04][0x40][var_id_b]       // b: INT32 variable
 ```
 
-### CONST Flag
+Behavior:
+1. Operand b (INT32) is converted to FP32
+2. Floating-point addition is performed
+3. FP32 result is stored in the result variable
 
-Prevents modification of values:
-
-```
-// Variable can be modified
-MOV r0(10), 20  // r0 = 20
-
-// Constant cannot be modified
-MOV r0(10<CONST>), 20  // Error: Cannot modify constant
-```
-
-### ATOMIC Flag
-
-Ensures operations are atomic even in multi-threaded environments:
+### Example 2: Matrix Multiplication with Vector
 
 ```
-// Regular addition (not thread-safe)
-ADD [shared_counter], 1
-
-// Atomic addition (thread-safe)
-ADD [shared_counter<ATOMIC>], 1
+// MUL result, mat, vec  where mat is 3×4 MAT(FP32) and vec is V128(FP32) with 4 elements
+[0x42][0x03]
+  [0x33][0x40][0x10][0x00][0x0003][var_id_result]  // result: vector of 3 FP32 elements
+  [0x34][0x40][0x10][0x00][0x0003][0x0004][var_id_mat]  // mat: 3×4 matrix of FP32
+  [0x33][0x40][0x10][0x00][0x0004][var_id_vec]      // vec: vector of 4 FP32 elements
 ```
 
-## Type Conversion Rules
+Behavior:
+1. Mathematical matrix-vector multiplication is performed
+2. Result is a vector with length matching matrix rows (3)
+3. Each element in result is the dot product of a matrix row with the vector
 
-When operands have different types, conversion follows these rules:
+### Example 3: Bitwise Operation with Mixed Integer Types
 
-1. **Widening Conversions** (smaller to larger type):
-   - Preserve exact value
-   - Example: INT8 to INT32, FP32 to FP64
+```
+// AND result, a, b  where a is INT32 and b is INT8
+[0x60][0x03]
+  [0x04][0x40][var_id_result]  // result: INT32 variable
+  [0x04][0x40][var_id_a]       // a: INT32 variable
+  [0x00][0x40][var_id_b]       // b: INT8 variable
+```
 
-2. **Narrowing Conversions** (larger to smaller type):
-   - May lose precision or range
-   - Example: INT64 to INT32, FP64 to FP32
+Behavior:
+1. Operand b (INT8) is sign-extended to INT32
+2. Bitwise AND is performed
+3. INT32 result is stored in the result variable
 
-3. **Domain Conversions** (between different type domains):
-   - Follow standard mathematical rules
-   - Example: INT32 to FP32, FP32 to INT32 (truncation)
+## Error Handling for Invalid Type Combinations
 
-4. **Composite Conversions** (between complex types):
-   - Applied element-wise to components
-   - Example: V128(INT32) to V128(FP32)
+When invalid type combinations are encountered, implementations must:
+
+1. **Compilation Time**: If detected at compile time, generate an error and abort compilation
+2. **Runtime**: If only detectable at runtime, either:
+   - Throw a type mismatch exception
+   - Set a special error flag
+   - Produce a well-defined error value
+
+### Common Error Conditions
+
+| Operation | Invalid Type Combination | Required Error Handling |
+|-----------|--------------------------|-------------------------|
+| Arithmetic | Bitwise types in floating-point operation | Type mismatch error |
+| Vector | Operations on vectors with mismatched dimensions | Dimension mismatch error |
+| Matrix | Matrix multiplication with incompatible dimensions | Dimension mismatch error |
+| Division | Division by zero | Division by zero exception or special flag |
+| Conversion | Conversion that would lose required precision | Precision loss warning (compile time) |
+
+## Handling Special Values
+
+### NaN Handling
+
+For floating-point operations that produce NaN:
+
+1. The NaN flag (N) must be set
+2. The result must be a quiet NaN
+3. Propagation follows IEEE-754 rules (NaN input → NaN output)
+
+### Infinity Handling
+
+For floating-point operations with infinity:
+
+1. Operations follow IEEE-754 rules
+2. Infinity signs are preserved according to IEEE-754
+3. Infinity combined with finite values follows IEEE-754 rules
+
+### Division by Zero
+
+For division operations with zero divisor:
+
+1. Integer division: Sets the divide-by-zero flag (D) and either:
+   - Raises an exception, or
+   - Returns a well-defined error value (typically 0)
+
+2. Floating-point division: 
+   - Produces IEEE-754 infinity with appropriate sign
+   - Sets the divide-by-zero flag (D)
+
+### Overflow and Underflow
+
+For operations that exceed representable range:
+
+1. Integer operations:
+   - Without SATURATE flag: Wrap around and set overflow flag (V)
+   - With SATURATE flag: Clamp to max/min value and set overflow flag (V)
+
+2. Floating-point operations:
+   - Follow IEEE-754 overflow/underflow behavior
+   - Set appropriate flags (V for overflow, Z for underflow to zero)
 
 ## Implementation Requirements
 
@@ -161,105 +238,11 @@ Conforming implementations must:
 2. **Handle Edge Cases**: Properly manage overflow, underflow, NaN, infinity, etc.
 3. **Document Precision**: Clearly specify precision guarantees for floating-point operations
 4. **Maintain Consistency**: Ensure consistent behavior across all supported platforms
+5. **Check Dimensions**: Validate vector and matrix dimensions for compatibility
+6. **Report Errors**: Provide clear error messages for type incompatibilities
 
-## Common Implementation Patterns
+## Related Components
 
-### 1. Generic Templates
-
-Implementations often use templated code to handle different types:
-
-```cpp
-template <typename T>
-void ExecuteAdd(T& dest, const T& src1, const T& src2) {
-    dest = src1 + src2;
-}
-
-// Specializations for specific types
-template <>
-void ExecuteAdd<Matrix>(Matrix& dest, const Matrix& src1, const Matrix& src2) {
-    // Matrix-specific addition implementation
-}
-```
-
-### 2. Type Dispatch Tables
-
-Function pointers selected based on operand types:
-
-```cpp
-typedef void (*AddFunction)(void* dest, void* src1, void* src2);
-
-AddFunction addDispatchTable[TYPE_COUNT][TYPE_COUNT] = {
-    // [dest_type][src_type] = implementation
-    [INT32][INT32] = AddInt32Int32,
-    [FP32][FP32] = AddFp32Fp32,
-    [INT32][FP32] = AddInt32Fp32,
-    // ...
-};
-```
-
-### 3. Layered Implementation
-
-Operations implemented in layers with common machinery:
-
-1. Type checking and validation
-2. Type conversion where needed
-3. Core operation implementation
-4. Result post-processing
-5. Flag setting
-
-## Standard Type Behavior Patterns
-
-These patterns should be consistent across all instructions:
-
-### 1. Scalar-Scalar Operations
-
-Basic operations between scalar values:
-- Follow standard mathematical rules
-- Respect type domain semantics
-- Set appropriate flags
-
-### 2. Vector-Vector Operations
-
-Operations between vectors:
-- Applied element-wise
-- Require matching dimensions
-- Optimize for SIMD when possible
-
-### 3. Matrix-Matrix Operations
-
-Operations between matrices:
-- Follow linear algebra rules
-- Check dimension compatibility
-- Optimize for spatial locality
-
-### 4. Scalar-Vector/Matrix Operations
-
-Operations between scalars and vectors/matrices:
-- Scalar applied to all elements
-- Preserve matrix/vector dimensions
-- Optimize for parallel execution
-
-## Case Study: ADD Across Type Categories
-
-Detailed examination of how ADD behaves:
-
-1. **Integer Addition**:
-   - Standard binary addition with wrap-around on overflow
-   - Sets Zero, Sign, Carry, Overflow flags
-
-2. **Floating-Point Addition**:
-   - IEEE-754 compliant addition
-   - Handles special values (NaN, Infinity)
-   - Sets Zero, Sign, NaN flags
-
-3. **Vector Addition**:
-   - Element-wise addition
-   - Result has same dimensions as inputs
-   - Sets flags based on element-wise results
-
-4. **Matrix Addition**:
-   - Element-wise addition of corresponding elements
-   - Requires matching dimensions
-   - Sets flags based on element-wise results
-
-By following these guidelines, implementations can ensure consistent type-determined behavior across all COIL operations.
+- [Type System](./type-system.md) - Complete type system reference
+- [Flag Effects](../core/flag-effects.md) - Detailed flag behavior documentation
+- [Vector Operations](../isa-u/vector-operations.md) - Vector-specific operations
