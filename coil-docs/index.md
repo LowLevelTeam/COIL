@@ -26,9 +26,8 @@ This approach provides:
 COIL maintains a clean separation between:
 
 - **Universal Operations** (0x00-0x9F): Work identically across all platforms
-- **PU Operations** (0xA0-0xBF): Work across identical processing units
-- **Architecture-Specific Operations** (0xC0-0xDF): Tailored to specific architectures
-- **Mode-Specific Operations** (0xE0-0xEF): Tailored to specific architecture modes
+- **Extended Opeations** (0xA0-0xDF): Works on specific targets according to the rules defined
+- **Type Operations** (0xE0-0xEF): Tailored to specific architecture modes
 - **Directive Operations** (0xF0-0xFE): Direct communication with the COIL Processor
 - **Extension Operations** (0xFF): Vendor-specific features
 

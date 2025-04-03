@@ -16,6 +16,7 @@ The Universal ISA is organized into the following categories:
 | 0x60-0x7F | Bit Manipulation | Bitwise operations |
 | 0x80-0x8F | Vector/Array Operations | Vector and array processing |
 | 0x90-0x9F | Special Operations | Specialized instructions |
+| 0xE0-0xEF | Type Operations | Direct functionality for types |
 
 ## Type-Determined Behavior
 
@@ -46,4 +47,5 @@ For a processing unit to be COIL-compliant, it must implement all Universal ISA 
 - [Arithmetic Operations](./arithmetic-operations.md) - Mathematical computation instructions
 - [Bit Manipulation](./bit-manipulation.md) - Bitwise operation instructions
 - [Vector Operations](./vector-operations.md) - Vector processing instructions
+- [Type Operations](./type.md) - Type Operations
 - [Type System](../types/type-system.md) - Complete type system reference
