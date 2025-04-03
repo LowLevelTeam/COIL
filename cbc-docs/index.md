@@ -8,6 +8,10 @@ CBC has several sub formats for each processing unit. CBC serves as a way to cre
 
 CBC is its own file format with a specific purpose. A COIL JIT Compiler can be called upon from the standard library which will utilize the generated .cbc file. The COIL Processor will create both a native object binary with the code for the host system and a .cbc file for the device code.
 
+```
+Source -> Compiler -> COIL -> [Source.o && Source.cbc]
+```
+
 ## Purpose
 
 CBC addresses several key needs in the COIL ecosystem:

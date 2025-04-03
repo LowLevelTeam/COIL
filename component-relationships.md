@@ -80,7 +80,6 @@ Key characteristics:
 
 4. **COIL to CBC**:
    - COIL processor can generate CBC for portions designated for non-host execution
-   - CBC is embedded in .coilo files for JIT compilation or interpretation
 
 ## Usage Scenarios
 

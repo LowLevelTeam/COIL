@@ -43,7 +43,6 @@ Adds two values.
 - For vector types: Element-wise addition
 - For matrix types: Element-wise addition
 - Sets flags based on result (zero, sign, overflow, etc.)
-- If SATURATE flag is set on the type, saturates instead of wrapping
 
 ### SUB (0x41)
 
@@ -64,7 +63,6 @@ Subtracts one value from another.
 - For vector types: Element-wise subtraction
 - For matrix types: Element-wise subtraction
 - Sets flags based on result (zero, sign, overflow, etc.)
-- If SATURATE flag is set on the type, saturates instead of wrapping
 
 ### MUL (0x42)
 
@@ -86,7 +84,6 @@ Multiplies two values.
 - For matrix types with scalar: Scalar multiplication
 - For matrix types with matrix: Matrix multiplication
 - Sets flags based on result (zero, sign, overflow, etc.)
-- If SATURATE flag is set on the type, saturates instead of wrapping
 
 ### DIV (0x43)
 
@@ -144,7 +141,6 @@ Increments a value by 1.
 - For floating-point types: Adds 1.0
 - For vector types: Increments each element by 1
 - Sets flags based on result (zero, sign, overflow, etc.)
-- If SATURATE flag is set on the type, saturates instead of wrapping
 
 ### DEC (0x46)
 
@@ -161,7 +157,6 @@ Decrements a value by 1.
 - For floating-point types: Subtracts 1.0
 - For vector types: Decrements each element by 1
 - Sets flags based on result (zero, sign, overflow, etc.)
-- If SATURATE flag is set on the type, saturates instead of wrapping
 
 ### NEG (0x47)
 
