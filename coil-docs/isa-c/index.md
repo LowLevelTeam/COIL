@@ -27,6 +27,12 @@ ABI  = 0xF9  // Define an ABI
 // Compile-time Definitions
 DEF  = 0xFA  // Define a compile-time value
 UDEF = 0xFB  // Undefine a compile-time value
+
+// Compilation Targets
+TARGET = 0xFC // needed to utilize extended opcode. Within a TARGET scope access to the extended opcode of the selected target type is accessible. Any attempt to use the extended opcode range without defining the expected target is an error
+ETARGET = 0xFD // end the target specific code block
+
+PRAGMA = 0xFE //
 ```
 
 ## Purpose

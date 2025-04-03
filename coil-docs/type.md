@@ -77,6 +77,16 @@ Compound types that group other types:
 
 Type data for composite types includes field count and field definitions.
 
+Right after each definition an inline structure or if this is to be used with a type operation for easy definition then you have to define a member count.
+this is a uint16_t and if zero is defined then the next value would instead be the uint64_t type id.
+
+```
+[0xA.][member_count: uint16_t ?= 0] 
+  [type_id: uint64_T]
+  : 
+  [[member_id: uint16_t] [type opcode: uint8_t] [type extension: optional uint8_t] [type data: optional ...] [data: optional ...], ...member_count]
+```
+
 ### Optimized Types (0xF0-0xF9)
 
 Special-purpose optimized types:
@@ -116,11 +126,13 @@ If more then one is set it should be reported as an error
 | (1 << 0)| CONST      | Value cannot be modified                     |
 | (1 << 1)| VOLATILE   | Value may change unexpectedly                |
 | (1 << 2)| ATOMIC     | Operations must be atomic                    |
-| (1 << 3)| SATURATE   | Operations saturate instead of wrap          |
+| (1 << 3)| SIZE       | Type must be stored as specified size        |
 | (1 << 4)| IMMEDIATE  | Value is embedded in instruction             |
 | (1 << 5)| DEFINITION | Value is a compile time definition           |
 | (1 << 6)| VARIABLE   | Value is a variable reference                |
 | (1 << 7)| SYMBOL     | Value is a symbol reference                  |
+
+The size extension may be slightly confusing but for some types like a float 16 or float 8 the compiler may see it faster to just use a float 32 as it can represent all values needed making it no differnt from the type except in sizing. In some cases however you may want to ensure that when stored in a structure or on the stack it utilizes the exact space specified making it explicit you want to optimize for memory over speed. The value may still be moved of the stack or memory or structure into a register of larger size as the type is still faster but will have storage and loading functionality as if it was the bitsize (this is also needed with something like complex types as an int24 will more often then not be a int32 to the compiler unless otherwise specified or unless there is native int24 functionality).
 
 ## Parameter Types
 
@@ -138,7 +150,14 @@ Used for conditional execution:
 | 0x03   | FLAG_COND_GTE  | Greater than or equal        |
 | 0x04   | FLAG_COND_LT   | Less than                    |
 | 0x05   | FLAG_COND_LTE  | Less than or equal           |
+| 0x06   | FLAG_COND_O    | Overflow                     |
+| 0x07   | FLAG_COND_NO   | No Overflow                  |
+| 0x08   | FLAG_COND_S    | Sign                         |
+| 0x09   | FLAG_COND_NS   | Not sign                     |
+| 0x0A   | FLAG_COND_Z    | Equal Zero                   |
+| 0x0B   | FLAG_COND_NZ   | Not Equal Zero               |
 | 0xFF   | FLAG_COND_DEF  | Is value defined             |
+
 
 ### Processing Unit Parameters
 
@@ -147,6 +166,7 @@ Specify the target processing unit:
 | Value  | Name     | Description                  |
 |--------|----------|------------------------------|
 | 0x00   | PU_CPU   | Central Processing Unit      |
+| 0x01   | PU_GPU   | Graphic Processing Unit      | (Planned)
 
 ### Architecture Parameters
 
@@ -157,6 +177,13 @@ For PU_CPU:
 |--------|----------|------------------------------|
 | 0x00   | CPU_X86  | x86 architecture             |
 | 0x01   | CPU_ARM  | ARM architecture             |
+
+For PU_GPU
+| Value  | Name     | Description                  |
+|--------|----------|------------------------------|
+| 0x00   | GPU_NV   | Nvidia architecture (SASS)   |
+| 0x01   | GPU_AMD  | AMD architecture (GCN,RDNA)  |
+
 
 ### Mode Parameters
 

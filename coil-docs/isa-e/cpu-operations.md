@@ -1,5 +1,9 @@
 # CPU Operations
 
+**WARNING - It is important to note all operations below can be overidden, 0xA0 is only an interrupt on CPU targets, on GPU targets it would be something completly different. Macros can help to ensure COIL compltes the correct functionality or ensure that if you are building a library that the current target is a CPU. If you already know your target device to be a CPU then of course you can use this as expected.**
+
+**WARNING - Operations in the extended instruction set differ for each processing unit**
+
 ## Overview
 
 CPU Operations are extended instructions (0xA0-0xBF) that work across all Central Processing Units regardless of their specific architecture or mode. These instructions provide access to hardware capabilities common to all CPUs, such as interrupt handling, system calls, and register management.
