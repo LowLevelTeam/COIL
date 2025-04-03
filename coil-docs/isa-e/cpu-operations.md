@@ -29,8 +29,8 @@ CPU Operations are extended instructions (0xA0-0xBF) that work across all Centra
 
 | Opcode | Mnemonic | Description                |
 |--------|----------|----------------------------|
-| 0xA0   | IN       | Input to processor IO port |
-| 0xA1   | OUT      | Input to processor IO port |
+| 0xB0   | IN       | Input to processor IO port |
+| 0xB1   | OUT      | Input to processor IO port |
 
 ## Detailed Specifications
 
