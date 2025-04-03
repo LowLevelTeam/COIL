@@ -194,4 +194,3 @@ multi scalar type operations work with several types of multi-element data struc
 
 - [Arithmetic Operations](./arithmetic-operations.md) - Mathematical computation instructions
 - [Type System](../types/type-system.md) - Complete type system reference
-- [Matrix Operations](./matrix-operations.md) - Matrix-specific operations

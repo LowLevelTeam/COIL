@@ -224,4 +224,3 @@ EIF
 
 - [Extended ISA Overview](./overview.md) - Extended instruction set summary
 - [Tensor Types](../types/extended-types.md) - Tensor data type specifications
-- [Matrix Operations](../isa-u/matrix-operations.md) - Universal matrix operations
