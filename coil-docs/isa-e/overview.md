@@ -4,22 +4,6 @@
 
 The Extended Instruction Set Architecture (ISA-E) provides platform-specific instructions that are optimized for particular processing units, architectures, and modes. While not universally portable, these instructions enable high-performance code when targeting specific hardware platforms.
 
-## Instruction Categories
-
-Extended instructions are organized into three hierarchical layers:
-
-1. **Processing Unit Operations** (0xA0-0xBF)
-   - Work across all instances of a specific processing unit type
-   - Example: All CPUs, regardless of architecture
-
-2. **Architecture-Specific Operations** (0xC0-0xDF)
-   - Work for specific architectures within a processing unit type
-   - Example: x86-specific or ARM-specific CPU instructions
-
-3. **Mode-Specific Operations** (0xE0-0xEF)
-   - Work only for specific modes within an architecture
-   - Example: x86-64 specific instructions that don't work in x86-32
-
 ## Compatibility Model
 
 Extended instructions use a nested compatibility model:
@@ -75,7 +59,7 @@ ATOMIC = 0xA3   // Atomic operations
 
 Each processor unit type has architecture-specific operations:
 
-### x86-Specific CPU Operations (0xC0-0xDF)
+### x86-Specific CPU Operations
 
 Instructions specific to the x86 architecture:
 
@@ -86,7 +70,7 @@ OUT = 0xC2      // Output to port
 LIDT = 0xC3     // Load interrupt descriptor table
 ```
 
-### ARM-Specific CPU Operations (0xC0-0xDF)
+### ARM-Specific CPU Operations
 
 Instructions specific to the ARM architecture:
 
@@ -95,18 +79,6 @@ SVC = 0xC0      // Supervisor call
 DMB = 0xC1      // Data memory barrier
 DSB = 0xC2      // Data synchronization barrier
 ISB = 0xC3      // Instruction synchronization barrier
-```
-
-## Mode-Specific Operations
-
-Some operations are only available in specific architecture modes:
-
-### x86-64 Mode Operations (0xE0-0xEF)
-
-```
-SWAPGS = 0xE0   // Swap GS base register
-RDFSBASE = 0xE1 // Read FS base
-RDGSBASE = 0xE2 // Read GS base
 ```
 
 ## Usage Recommendations

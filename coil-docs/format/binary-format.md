@@ -17,9 +17,7 @@ All COIL instructions follow this basic structure:
 The first byte of every instruction is the primary opcode:
 
 - **0x00-0x9F**: Universal operations
-- **0xA0-0xBF**: Processing unit operations
-- **0xC0-0xDF**: Architecture-specific operations
-- **0xE0-0xEF**: Mode-specific operations
+- **0xA0-0xDF**: Target operations
 - **0xF0-0xFE**: Directive operations
 - **0xFF**: Extension operations
 
