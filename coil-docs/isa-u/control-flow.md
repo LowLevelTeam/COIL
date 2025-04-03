@@ -40,13 +40,15 @@ Branches to the specified address, optionally based on a flag condition.
 [0x01][0x01][address: integral, symbol]
 
 // Conditional branch
-[0x01][0x02][0xFE][FLAG_CONDITION][address: integral, symbol]
+[0x01][0x02][0xFE][flag_p][address: integral, symbol]
 ```
 
 **Behavior:**
 - Unconditional: Program execution continues at specified address
 - Conditional: Execution branches only if the specified condition is met
 - Address can be an immediate value, variable, or symbol reference
+
+[flag_p](./../types/parameters.md#flags_p)
 
 ### CALL (0x02)
 
@@ -58,7 +60,7 @@ Calls a function, saving the return address.
 [0x02][0x01][address: integral, symbol]
 
 // Conditional call
-[0x02][0x02][0xFE][FLAG_CONDITION][address: integral, symbol]
+[0x02][0x02][0xFE][flag_p][address: integral, symbol]
 ```
 
 **Behavior:**
@@ -66,6 +68,8 @@ Calls a function, saving the return address.
 - Saves the return address to the call stack
 - Transfers control to the specified address
 - Conditional calls only execute if the specified condition is met
+
+[flag_p](./../types/parameters.md#flags_p)
 
 ### RET (0x03)
 
@@ -77,13 +81,15 @@ Returns from a function to the caller.
 [0x03][0x00]
 
 // Conditional return
-[0x03][0x01][0xFE][FLAG_CONDITION]
+[0x03][0x01][0xFE][flag_p]
 ```
 
 **Behavior:**
 - Restores the previous call frame according to the current ABI
 - Returns control to the saved return address
 - Conditional returns only execute if the specified condition is met
+
+[flag_p](./../types/parameters.md#flags_p)
 
 ### CMP (0x04)
 

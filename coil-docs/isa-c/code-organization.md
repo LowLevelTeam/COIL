@@ -83,18 +83,7 @@ Pads the current section to a specified size.
 
 ## Section Flags
 
-Section flags specify the properties of a section:
-
-| Bit  | Name        | Description                 |
-|------|-------------|-----------------------------|
-| 0    | SECT_EXEC   | Section is executable       |
-| 1    | SECT_READ   | Section is readable         |
-| 2    | SECT_WRITE  | Section is writable         |
-| 3    | SECT_INIT   | Section contains initialized data |
-| 4    | SECT_UNINIT | Section contains uninitialized data |
-
-Multiple flags can be combined with bitwise OR as you would a normal bitmap
-
+Section flags specify the properties of a section learn more about section_p [here](./../types/parameters.md#section_p)
 
 ## Standard Sections
 

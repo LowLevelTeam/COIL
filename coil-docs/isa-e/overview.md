@@ -28,59 +28,6 @@ IF PU_TYPE EQ CPU
 ENDIF
 ```
 
-## Processing Unit Categories
-
-### CPU Operations (0xA0-0xBF)
-
-Instructions that work across all central processing units:
-
-```
-INT = 0xA0      // Software interrupt
-SYSCALL = 0xA1  // System call
-SYSRET = 0xA2   // Return from system call
-PUSHA = 0xA3    // Push all registers
-POPA = 0xA4     // Pop all registers
-PUSHFD = 0xA5   // Push flags register
-POPFD = 0xA6    // Pop flags register
-```
-
-### GPU Operations (0xA0-0xBF)
-
-Instructions that work across all graphics processing units:
-
-```
-BARRIER = 0xA0  // Synchronization barrier
-WGSIZE = 0xA1   // Get work group size
-WGID = 0xA2     // Get work group ID
-ATOMIC = 0xA3   // Atomic operations
-```
-
-## Architecture-Specific Operations
-
-Each processor unit type has architecture-specific operations:
-
-### x86-Specific CPU Operations
-
-Instructions specific to the x86 architecture:
-
-```
-CPUID = 0xC0    // CPU identification
-IN = 0xC1       // Input from port
-OUT = 0xC2      // Output to port
-LIDT = 0xC3     // Load interrupt descriptor table
-```
-
-### ARM-Specific CPU Operations
-
-Instructions specific to the ARM architecture:
-
-```
-SVC = 0xC0      // Supervisor call
-DMB = 0xC1      // Data memory barrier
-DSB = 0xC2      // Data synchronization barrier
-ISB = 0xC3      // Instruction synchronization barrier
-```
-
 ## Usage Recommendations
 
 1. **Portability**: Prefer Universal ISA instructions for maximum portability

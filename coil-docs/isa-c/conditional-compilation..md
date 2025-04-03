@@ -96,37 +96,23 @@ Conditional directives can use special parameter types for target-specific condi
 
 | Parameter Type | Mnemonic | Description |
 |----------------|----------|-------------|
-| 0xFE (PARAM0)  | FLAG_CONDITION | Comparison condition (EQ, NEQ, GT, etc.) |
-| 0xFD (PARAM1)  | PU_TYPE       | Processing unit type (CPU, GPU, etc.) |
-| 0xFC (PARAM2)  | ARCH_TYPE     | Architecture type (X86, ARM, etc.) |
-| 0xFB (PARAM3)  | MODE_TYPE     | Architecture mode (16, 32, 64, etc.) |
+| 0xFE (PARAM0)  | flags_p | Comparison condition (EQ, NEQ, GT, etc.) |
+| 0xFD (PARAM1)  | pu_p       | Processing unit type (CPU, GPU, etc.) |
+| 0xFC (PARAM2)  | arch_p     | Architecture type (X86, ARM, etc.) |
+| 0xFB (PARAM3)  | [mode_p](./../types/parameters.md)     | Architecture mode (16, 32, 64, etc.) |
 
-## Flag Conditions
-
-The following conditions can be used with conditional directives:
-
-| Value | Mnemonic | Description |
-|-------|----------|-------------|
-| 0x00  | EQ       | Equal |
-| 0x01  | NEQ      | Not equal |
-| 0x02  | GT       | Greater than |
-| 0x03  | GTE      | Greater than or equal |
-| 0x04  | LT       | Less than |
-| 0x05  | LTE      | Less than or equal |
-| 0x06  | AND      | Logical AND |
-| 0x07  | OR       | Logical OR |
-| 0x08  | XOR      | Logical XOR |
-| 0xFF  | DEF      | Defined (exists) |
 
 ## Relationship with TARGET Directives
 
 While conditional directives (IF/ELIF/ELSE/EIF) can be used for all types of compile-time conditions, the TARGET/ETARGET directives (described in [targeting.md](./targeting.md)) provide a more specialized approach for selecting processing units, architectures, and modes:
 
+
 ```
 // Using conditional directives
 IF PU_TYPE EQ CPU
+    TARGET CPU
     IF ARCH_TYPE EQ X86
-        TARGET CPU x86
+        TARGET x86
         ...
     EIF
 EIF

@@ -34,7 +34,7 @@ Begins a target compilation block.
 - Evaluates the condition at compile time
 - If a previous target directive set processing unit the next one inside the block can select architecture and so on with mode
 - If only architecture is given and no discernable processing unit is available expect an error
-- If only mode is given and no discernable architecture is available expect an error
+- If only mode is given and no discernable architecture or processing unit is available expect an error
 
 ### ETARGET (0xFD)
 

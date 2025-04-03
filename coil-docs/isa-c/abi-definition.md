@@ -10,6 +10,29 @@ Application Binary Interface (ABI) definition directives allow COIL programs to 
 |--------|----------|-------------|
 | 0xF9   | ABI      | Begin ABI definition block |
 
+```
+# Define an ABI
+[0xF9][0x00]
+
+# Set an ABI Globally for the following code
+[0xF9][0x01][abi_id: uint16_t]
+
+# Next symbol is a function that will utilize this ABI
+[0xF9][0x02][abi_id: uint16_t]
+
+[0xF9][0x03][var_id: uint16_t][type opcode: uint8_t] [type extension: optional uint8_t] [type data: optional ...]
+
+[0xF9][0x04][var_id: uint16_t][type opcode: uint8_t] [type extension: optional uint8_t] [type data: optional ...] [data: optional ...]
+
+[0xF9][0x05][var_id: uint16_t][type opcode: uint8_t] [type extension: optional uint8_t] [type data: optional ...] [data: optional ...]
+
+[0xF9][0x06][var_id: uint16_t][type opcode: uint8_t] [type extension: optional uint8_t] [type data: optional ...]
+```
+
+One thing which may be obvious to notice is that although an ABI defines a way to get parameters there is no function signature or defined return values and parameters. This is because this is an assembly like language and limiting a function to have to stick to some parameters would limit functionality.
+
+You are of course not expected to compile in COIL so this wouldn't matter as no program makes mistakes (unless you program it to of course). Compile time checking should happen in higher level languages when dealing with higher level features like functions.
+
 ## Sub-Directives
 
 Within an ABI block, the following sub-directives are available:
@@ -22,7 +45,10 @@ Within an ABI block, the following sub-directives are available:
 | 0x03   | CESAVE   | Define callee-saved registers |
 | 0x04   | SALLIN   | Define stack alignment requirements |
 | 0x05   | RZONE    | Define red zone size |
+| 0xFE   | SETID    | Set the ABI ID for referncing |
 | 0xFF   | EABI     | End ABI definition block |
+
+Implement more for name mangling and other ABI specifics like varadics etc...
 
 ## Detailed Specifications
 
@@ -135,6 +161,20 @@ Defines the red zone size.
 - Red zone is an area below the stack pointer that is guaranteed not to be modified by asynchronous events
 - Functions can use the red zone for temporary storage without adjusting the stack pointer
 - Size of 0 indicates no red zone is available
+
+### SETID (0xFE)
+
+Set ABI ID
+
+**Encoding:**
+```
+[0xFE][id: uint16_t]
+```
+
+It is recommended to utilize an ID of 1000+ as the first 1000 may be reserved by the standard library.
+
+**Behavior:**
+- The id value will be used to reference this ABI
 
 ### EABI (0xFF)
 
