@@ -1,4 +1,55 @@
-# COIL Binary Format
+## Optimized Operand Types
+
+For storage efficiency, COIL provides optimized operand types that reference tables in the object file:
+
+### Symbol References (0xF2)
+
+```
+[0xF2][0x80][symbol_index: uint64_t]
+```
+
+Where:
+- `symbol_index`: Index into the symbol table, not a direct string
+
+This allows instructions to reference named symbols without embedding full symbol names.
+
+### String References (0xF4)
+
+```
+[0xF4][extension][string_index: uint64_t]
+```
+
+Where:
+- `string_index`: Index into the string table, not a direct string
+
+This allows instructions to reference strings without embedding the string data inline.
+
+## String and Data Handling
+
+COIL object files never embed string literals or large data directly in the instruction stream:
+
+1. **String Literals**: Always stored in the string table and referenced by index
+2. **Symbol Names**: Always stored in the string table and referenced by index
+3. **Large Vector Constants**: Stored in data sections and referenced by address
+4. **Complex Immediate Values**: Stored in constant sections and referenced by address
+
+This approach significantly reduces object file size, especially for programs with many string constants or large data sets.
+
+## Example with String Table References
+
+Conceptual representation (for documentation):
+```
+// String literal example
+[0xF4][0x00]["Hello, World"]  // STRING type with actual string value
+```
+
+Actual binary encoding:
+```
+// String reference using string table index
+[0xF4][0x00][0x000000000000001A]  // STRING type with index 0x1A into string table
+```
+
+The string "Hello, World" would be stored in the string table at index 0x1A, not embedded in the instruction stream.# COIL Binary Format
 
 ## Overview
 
@@ -12,7 +63,11 @@ All COIL instructions follow this basic structure:
 [opcode: uint8_t][operand_count: uint8_t][[operand: Operand], ...operand_count]
 ```
 
-When the opcode is 0xFF, an extended opcode byte follows to specify vendor-specific operations.
+When the opcode is 0xFF, an extended opcode byte follows to specify vendor-specific operations:
+
+```
+[0xFF][extended_opcode: uint8_t][operand_count: uint8_t][[operand: Operand], ...operand_count]
+```
 
 ### Opcode Ranges
 

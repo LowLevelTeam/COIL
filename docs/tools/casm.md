@@ -2,16 +2,17 @@
 
 ## Overview
 
-CASM (COIL Assembly) is a human-readable text representation of COIL code. It provides a syntax for writing COIL programs directly, serving as both a low-level programming language and an assembly language for COIL.
+CASM (COIL Assembly) is a human-readable text representation of COIL binary code. It provides a syntax for writing and visualizing COIL programs, serving as a textual interface to the binary COIL format.
 
 ## Purpose
 
-CASM addresses several important needs:
+CASM serves as:
 
-1. **Human-Writable COIL**: Allows direct programming in COIL
+1. **Human-Readable Representation**: Makes COIL binary code readable and writable
 2. **Learning Tool**: Provides a way to understand COIL concepts
-3. **Implementation Reference**: Serves as a reference for implementations
-4. **Debugging Aid**: Facilitates inspection and debugging
+3. **Debugging Aid**: Facilitates inspection and debugging of COIL programs
+
+Note that compilers targeting COIL can generate the binary format directly without using CASM as an intermediate step.
 
 ## Basic Syntax
 
@@ -68,25 +69,27 @@ Directives control the assembly process and define metadata:
 .string "Hello, World!"        ; Define null-terminated string
 ```
 
-## Preprocessor Directives
+## Textual Representation of Preprocessor Instructions
 
-CASM includes preprocessor directives for conditional compilation:
+CASM provides a textual syntax for COIL's preprocessor instructions:
 
 ```
-!define DEBUG                  ; Define symbol DEBUG
-!undef NDEBUG                  ; Undefine symbol NDEBUG
+!define DEBUG                  ; Represents PPDEF instruction
+!undef NDEBUG                  ; Represents PPUNDEF instruction
 
-!if defined(DEBUG)            ; Conditional compilation
+!if defined(DEBUG)            ; Represents PPCOND and PPIF instructions
     ; Debug code here
-!else
+!else                         ; Represents PPELSE instruction
     ; Release code here
-!endif
+!endif                        ; Represents PPENDIF instruction
 
-!include "header.inc"          ; Include file
+!include "header.inc"          ; Represents PPINC instruction
 
-!target CPU                    ; Target CPU processing unit
-!arch X86_64                   ; Target x86-64 architecture
+!target CPU                    ; Represents PPTARG instruction
+!arch X86_64                   ; Represents PPTARG instruction
 ```
+
+These directives are processed by the CASM assembler and translated to their corresponding COIL binary instructions.
 
 ## Functions and Scope
 

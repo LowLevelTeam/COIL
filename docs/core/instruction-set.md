@@ -1,4 +1,40 @@
-# COIL Instruction Set Architecture
+## Vector and Complex Immediates
+
+COIL handles large immediate values efficiently:
+
+### Vector Immediates
+
+Vector constants are not embedded directly in the instruction stream. Instead:
+
+1. Vector constants are stored in the data section of the object file
+2. Instructions reference these constants by address or symbol
+
+Example (conceptual representation):
+```
+// Vector initialization
+V128 v1 = [1.0, 2.0, 3.0, 4.0]
+
+// Actual implementation
+// 1. Vector data stored in data section
+// 2. Instruction references the data by address
+MOV v1, [vector_data_address]
+```
+
+### String Immediates
+
+String literals are stored in the string table and referenced by index:
+
+```
+// Conceptual representation (for documentation)
+STRING s = "Hello, World"
+
+// Actual implementation
+// 1. String stored in string table at index 0x1A
+// 2. Instruction contains reference to string table
+[0x20][0x02][dst_operand][0xF4][0x00][0x000000000000001A]
+```
+
+This approach significantly reduces the size of the binary format and enables efficient string pooling.# COIL Instruction Set Architecture
 
 ## Overview
 
