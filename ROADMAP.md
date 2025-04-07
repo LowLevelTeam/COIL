@@ -6,77 +6,84 @@ This roadmap outlines the planned development trajectory for the COIL specificat
 
 ## Current Status
 
-The COIL specification is currently in development with the following progress:
+The COIL specification has made significant progress with the following components:
 
-- **Core Specification**: ~80% complete
-  - Type system, memory model, and instruction set largely defined
-  - Binary format and linking model established
-  - Object format detailed
+- **Core Specification**: ~95% complete
+  - Type system fully defined
+  - Memory model established
+  - Instruction set comprehensively documented
+  - Binary format specified
+  - Execution model detailed
+  - Object format completed
   
-- **Extensions**: ~40% complete
-  - Multi-dimensional types framework established
-  - Composite types framework defined
-  - ABI and preprocessor extensions partially specified
+- **Extensions**: ~80% complete
+  - Multi-dimensional types fully specified
+  - Composite types framework completed
+  - ABI extension defined
+  - Preprocessor extension detailed
   
-- **Processing Units**: ~30% complete
-  - CPU instruction set partially defined
-  - GPU, NPU, and DSP instruction sets in early planning
+- **Processing Units**: ~70% complete
+  - CPU instruction set fully defined
+  - GPU instruction set defined
+  - NPU instruction set defined
+  - DSP instruction set pending
   
-- **Tools**: ~20% complete
-  - Basic concepts defined
-  - Detailed syntax and semantics in progress
+- **Tools**: ~50% complete
+  - CASM syntax and semantics defined
+  - CBC format specified
+  - Implementation details for tools in progress
 
 ## Short-Term Goals (6 Months)
 
 ### Specification Completion
 
 1. **Core Specification**
-   - Complete execution model documentation
-   - Finalize flag effects documentation
-   - Address any inconsistencies across specification documents
+   - Finalize any remaining inconsistencies across documents
+   - Standardize example formats across documentation
+   - Develop comprehensive conformance tests
 
 2. **Processing Units**
-   - Complete CPU instruction set documentation
-   - Begin GPU instruction set documentation
-   - Define basic NPU operations
+   - Complete DSP instruction set documentation
+   - Define interoperability standards between processing units
+   - Establish performance benchmarks for cross-PU operations
 
 3. **Extensions**
-   - Complete multi-dimensional types specification
-   - Finalize composite types specification
-   - Develop initial ABI specifications for major platforms
+   - Develop specialized domain extensions (graphics, cryptography, etc.)
+   - Create cross-platform extension verification tools
+   - Standardize extension documentation format
 
 ### Implementation
 
 1. **Reference Implementation**
    - Develop core COIL processor reference implementation
-   - Implement basic type system and universal instructions
-   - Create initial test suite
+   - Implement all universal instructions
+   - Create comprehensive test suite for validation
 
 2. **Tools**
-   - Develop basic CASM assembler
-   - Create object file validator
-   - Build simple linker for COIL objects
+   - Complete CASM assembler implementation
+   - Develop CBC interpreter and debugger
+   - Build object file validator and linker
 
 ### Documentation
 
 1. **User Guides**
-   - Create COIL programming guide
-   - Develop CASM language reference
-   - Write implementation guide for compiler developers
+   - Create tutorial series for different experience levels
+   - Develop migration guides from other intermediate languages
+   - Publish best practice documents
 
 ## Medium-Term Goals (1-2 Years)
 
 ### Specification Expansion
 
 1. **Processing Units**
-   - Complete GPU instruction set
-   - Develop full NPU instruction set
-   - Define DSP instruction set
+   - Define emerging hardware acceleration targets
+   - Create quantum computing extension plan
+   - Develop specialized AI acceleration instructions
 
 2. **Extensions**
-   - Develop specialized domain extensions (graphics, cryptography, etc.)
+   - Establish formal extension certification process
    - Create platform-specific extension guidelines
-   - Establish extension certification process
+   - Develop domain-specific extension libraries
 
 3. **Interoperability**
    - Define language binding specifications
@@ -110,30 +117,30 @@ The COIL specification is currently in development with the following progress:
    - Build predictive optimization systems
 
 3. **Hardware Integration**
-   - Create COIL-aware hardware accelerators
-   - Develop COIL-native processor designs
+   - Create CBC-aware hardware accelerators
+   - Develop CBC-native processor designs
    - Build integrated heterogeneous computing platforms
 
 ## Priority Areas for Contribution
 
 Current high-priority areas for contribution include:
 
-1. **Documentation Completion**
-   - Filling gaps in existing documentation
-   - Creating tutorials and examples
-   - Developing architecture-specific guides
+1. **Implementation Work**
+   - Creating reference implementations for all processing units
+   - Developing the core toolchain components
+   - Building standard library elements
 
 2. **Test Suite Development**
    - Creating comprehensive test cases
    - Developing validation tools
    - Building conformance test frameworks
 
-3. **Implementation Work**
-   - Developing reference implementations
-   - Creating toolchain components
-   - Building standard library elements
-
-4. **Use Case Development**
+3. **Use Case Development**
    - Identifying key application areas
    - Creating proof-of-concept implementations
    - Documenting performance characteristics
+
+4. **Documentation Improvement**
+   - Standardizing examples across specification
+   - Creating interactive learning resources
+   - Developing architecture-specific guides
