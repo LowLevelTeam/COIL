@@ -2,24 +2,30 @@
 
 ## Overview
 
-COIL is a universal binary instruction format designed for maximum portability while retaining native performance across diverse processing architectures. It bridges the gap between high-level programming languages and hardware-specific machine code through a type-determined instruction model.
+COIL is a universal binary instruction format designed for direct device interaction and maximum portability while retaining native performance across diverse processing architectures. It bridges the gap between high-level programming languages and hardware-specific machine code through a type-determined instruction model, without operating system dependencies.
 
 ## Key Components
 
 The COIL ecosystem consists of three primary components:
 
 ### 1. COIL (Computer Oriented Intermediate Language)
-The universal binary instruction format that serves as the intermediate representation for COIL-compatible systems.
+The universal binary instruction format that serves as the intermediate representation for COIL-compatible systems. COIL interacts directly with target devices without operating system dependencies.
 
 ### 2. CASM (COIL Assembly)
 The standard human-readable text representation of COIL code, serving as both a low-level programming language and assembly language for COIL.
 
 ### 3. CBC (COIL Byte Code)
-A compact, portable binary representation optimized for efficient interpretation and JIT compilation.
+A specialized format designed for debugging, JIT compilation, and heterogeneous computing support. CBC is not the primary compilation target but serves specific purposes within the COIL ecosystem.
 
-## Core Architecture
+## Core Philosophy
 
 COIL is built on several fundamental principles:
+
+### Direct Device Interaction
+COIL programs interact directly with hardware, without operating system dependencies:
+- No dependency on OS abstractions in core specification
+- Direct access to device features based on capabilities
+- OS services accessed through standard library, not core instructions
 
 ### Type-Determined Instructions
 Instructions derive their behavior from operand types, allowing a single opcode to represent multiple operations:
@@ -35,6 +41,12 @@ COIL maintains a clean separation between:
 - **Extended Operations**: Tailored to specific architecture modes
 - **Compiler Operations**: Direct communication with the COIL Processor
 
+### Capability-Based Design
+COIL uses abstract capabilities that can be checked at compile time:
+- COIL capabilities represent abstract features (e.g., atomic operations)
+- Native features represent hardware-specific capabilities
+- Configuration determines available capabilities
+
 ## Documentation Structure
 
 This repository contains comprehensive documentation organized as follows:
@@ -45,6 +57,9 @@ This repository contains comprehensive documentation organized as follows:
 - [Binary Format](/coil-docs/core/binary-format.md) - Encoding format for instructions
 - [Instruction Set](/coil-docs/core/instruction-set.md) - Universal instruction reference
 - [Memory Model](/coil-docs/core/memory-model.md) - Memory organization and access patterns
+- [Atomic Operations](/coil-docs/core/atomic-operations.md) - Atomic operations specification
+- [Configuration Format](/coil-docs/core/config-format.md) - Capability configuration details
+- [Device Interaction](/coil-docs/core/device-interaction.md) - Direct hardware interaction model
 - [Flags](/coil-docs/core/flags.md) - Condition flags and their behaviors
 - [Linking](/coil-docs/core/linking.md) - Object linking and loading specification
 - [Object Format](/coil-docs/core/object-format.md) - Binary object file structure
@@ -56,10 +71,11 @@ This repository contains comprehensive documentation organized as follows:
 - [NPU](/coil-docs/pu/npu.md) - NPU-specific instruction set and features
 
 ### Extensions
-- [Multi-Dimensional Types](/coil-docs/extensions/multidim/overview.md) - Vectors, matrices, and tensors
-- [Composite Types](/coil-docs/extensions/composite/overview.md) - Structures, unions, and complex data types
-- [ABI](/coil-docs/extensions/abi/overview.md) - Application Binary Interface specifications
-- [Preprocessor](/coil-docs/extensions/preprocessor/overview.md) - Conditional compilation and compile-time features
+- [Multi-Dimensional Types](/coil-docs/extensions/multidim.md) - Vectors, matrices, and tensors
+- [Composite Types](/coil-docs/extensions/composite.md) - Structures, unions, and complex data types
+- [ABI](/coil-docs/extensions/abi.md) - Application Binary Interface specifications
+- [Preprocessor](/coil-docs/extensions/preprocessor.md) - Conditional compilation and compile-time features
+- [Overview](/coil-docs/extensions/overview.md) - Extensions framework introduction
 
 ### CASM (COIL Assembly)
 - [Overview](/casm-docs/index.md) - Introduction to CASM
@@ -83,3 +99,7 @@ COIL is released under the Unlicense. See [LICENSE](/LICENSE) for details.
 ## Contributing
 
 Guidelines for contributing to the COIL specification can be found in [CONTRIBUTING.md](/CONTRIBUTING.md).
+
+## Roadmap
+
+For planned development and future directions, see [ROADMAP.md](/ROADMAP.md).
