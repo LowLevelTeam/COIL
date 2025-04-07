@@ -142,6 +142,9 @@ CASM Equivalent:
 
 The PPTARG instruction sets target platform characteristics:
 
+Architecture can only be set after Processing Unit
+Mode can only be used after architecture
+
 ```
 PPTARG target_type, target_value
 ```
@@ -166,12 +169,12 @@ Examples:
 ```
 ; CASM:
 !target PU_CPU
-!arch X86_64
+!arch CPU_X86
 !mode LONG_64
 
 ; Binary COIL (conceptual):
 [0xF9][0x02][INT8:0x01][INT8:0x01]  ; PU_TYPE = CPU
-[0xF9][0x02][INT8:0x02][INT8:0x01]  ; ARCH_TYPE = X86_64
+[0xF9][0x02][INT8:0x02][INT8:0x01]  ; ARCH_TYPE = X86
 [0xF9][0x02][INT8:0x03][INT8:0x03]  ; MODE_TYPE = LONG_64
 ```
 
@@ -187,7 +190,7 @@ The preprocessor provides several predefined symbols:
 | \_\_DATE\_\_ | Compilation date | "Mar 15 2024" |
 | \_\_TIME\_\_ | Compilation time | "14:30:45" |
 | \_\_PU\_\_ | Current processing unit | "CPU" |
-| \_\_ARCH\_\_ | Current architecture | "x86_64" |
+| \_\_ARCH\_\_ | Current architecture | "x86" |
 | \_\_MODE\_\_ | Current architecture mode | "LONG_64" |
 | \_\_ENDIAN\_\_ | Current endianness | "LITTLE" |
 

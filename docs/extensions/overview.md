@@ -27,11 +27,20 @@ Extensions specific to particular processing units:
 
 ### 3. Architecture Extensions
 
-Extensions targeting specific hardware architectures:
+#### 3.1 CPU
+
+Extensions targeting specific CPU hardware architectures:
 
 - **x86/x64**: Intel/AMD CPU architecture extensions
 - **ARM**: ARM CPU architecture extensions
 - **RISC-V**: RISC-V CPU architecture extensions
+
+#### 3.2 GPU
+
+Extensions targeting specific GPU hardware architectures:
+
+- **PTX**: Instruction Set for Nvidia GPUs 
+- **CGN**: Instruction Set for AMD GPUs
 
 ### 4. Functional Extensions
 

@@ -144,9 +144,12 @@ To target specific CPU features in code, use the preprocessor directives:
 For architecture-specific code:
 
 ```
-!if defined(PU_CPU) && defined(ARCH_X86_64)
+!if defined(PU_CPU) && defined(ARCH_x86)
   !target CPU
-  !arch X86_64
+  ; CPU specific code here
+  !arch x86
+  ; x86 specific code here
+  !mode LONG_64
   ; x86-64 specific code here
 !endif
 ```
