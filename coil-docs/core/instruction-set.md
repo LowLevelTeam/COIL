@@ -107,6 +107,23 @@ The COIL Instruction Set Architecture (ISA) defines the core operations availabl
 | 0x98   | EXPAND   | Data expansion | 3-4 | Core |
 | 0x99   | CHECKSUM | Checksum calculation | 3 | Core |
 
+## Specific Operations (0xA0-0xDF)
+These 64 instructions are split between processing unit instructions, architecture specific instructions and mode specific instructions.
+The split is processing unit dependent where some PUs may have more instructions global across all devices others may have more instructions that only work on certain architectures.
+
+For CPUs this generally goes like 
+PU:
+  Interrupts
+
+Arch:
+  Identification
+
+Mode:
+  Interrupt Table
+
+To account for the CPU structure.
+More information can be found in the pu/ section
+
 ## Type Operations (0xE0-0xEF)
 
 | Opcode | Mnemonic | Description | Operands | Extension |
