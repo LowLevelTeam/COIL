@@ -60,10 +60,6 @@ File flags define key object characteristics:
 | PIC     | 0x0004 | Position-independent code |
 | DEBUG   | 0x0008 | Contains debug information |
 | RELOC   | 0x0010 | Relocatable object |
-| CPU     | 0x0020 | Contains CPU-specific code |
-| GPU     | 0x0040 | Contains GPU-specific code |
-| NPU     | 0x0080 | Contains NPU-specific code |
-| DSP     | 0x0100 | Contains DSP-specific code |
 
 Flags can be combined with bitwise OR.
 
@@ -71,9 +67,14 @@ Flags can be combined with bitwise OR.
 
 These fields identify the target environment:
 
-- **Target PU**: Identifies the processing unit (0x01 for CPU, 0x02 for GPU, etc.)
+- **Target PU**: Identifies the primary processing unit (0x01 for CPU, 0x02 for GPU, etc.)
 - **Target Architecture**: Identifies the specific architecture (0x01 for x86, 0x02 for ARM, etc.)
-- **Target Mode**: Identifies specific mode (0x01 for 32-bit, 0x02 for 64-bit, etc.)
+- **Target Mode**: Identifies architecture mode:
+  - For x86: 0x01 (16-bit), 0x02 (protected 32-bit), 0x03 (long 64-bit)
+  - For ARM: 0x01 (A32), 0x02 (T32/Thumb), 0x03 (A64)
+  - Virtual modes use 0x80 bit flag (e.g., 0x81 for v16, 0x82 for v32, 0x83 for v64)
+
+Note: Additional processing units are specified within the code using directives rather than header flags. The header only indicates the primary target.
 
 ## Section Table
 

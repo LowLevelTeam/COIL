@@ -2,7 +2,20 @@
 
 ## Overview
 
-The CPU Processing Unit defines COIL instructions specific to traditional Central Processing Units. These instructions leverage CPU-specific features while maintaining compatibility with the core COIL specification.
+The CPU Processing Unit defines COIL instructions specific to traditional Central Processing Units. These instructions provide a consistent interface for CPU-specific functionality while maintaining compatibility with the core COIL specification.
+
+## Architecture Modes
+
+CPU instructions adapt to different architecture modes:
+
+| Mode Value | Name | Description |
+|------------|------|-------------|
+| 0x01 | Real/16-bit | Original 16-bit mode (x86) |
+| 0x02 | Protected/32-bit | 32-bit protected mode (x86), A32 (ARM) |
+| 0x03 | Long/64-bit | 64-bit mode (x86-64), A64 (ARM64) |
+| 0x81 | v16 | Virtualized 16-bit mode |
+| 0x82 | v32 | Virtualized 32-bit mode |
+| 0x83 | v64 | Virtualized 64-bit mode |
 
 ## Instruction Categories
 
@@ -19,96 +32,56 @@ CPU-specific instructions use opcodes in the 0xA0-0xDF range, divided into three
 | Opcode | Mnemonic | Description | Operands | Extension |
 |--------|----------|-------------|----------|-----------|
 | 0xA0   | INT      | Software interrupt | 1 | CPU |
-| 0xA1   | INTD     | Software interrupt with data | 2 | CPU |
-| 0xA2   | IRET     | Return from interrupt | 0 | CPU |
-| 0xA3   | CLI      | Clear interrupt flag | 0 | CPU |
-| 0xA4   | STI      | Set interrupt flag | 0 | CPU |
-| 0xA5   | EXCPT    | Generate exception | 1 | CPU |
-| 0xA6   | EHTRY    | Try block entry | 1 | CPU |
-| 0xA7   | EHCAT    | Catch block entry | 2 | CPU |
+| 0xA1   | IRET     | Return from interrupt | 0 | CPU |
+| 0xA2   | CLI      | Clear interrupt flag | 0 | CPU |
+| 0xA3   | STI      | Set interrupt flag | 0 | CPU |
+| 0xA4   | EXCPT    | Generate exception | 1 | CPU |
+| 0xA5   | HLT      | Halt processor | 0 | CPU |
+| 0xA6   | WAIT     | Wait for interrupt | 0 | CPU |
+| 0xA7   | FENCE    | Memory fence | 0-1 | CPU |
 
 ### CPU Control (0xA8-0xAF)
 
 | Opcode | Mnemonic | Description | Operands | Extension |
 |--------|----------|-------------|----------|-----------|
-| 0xA8   | HLT      | Halt processor | 0 | CPU |
-| 0xA9   | WAIT     | Wait for interrupt | 0 | CPU |
-| 0xAA   | YIELD    | Yield execution to another thread | 0 | CPU |
-| 0xAB   | FENCE    | Memory fence | 0-1 | CPU |
-| 0xAC   | CPUID    | Get CPU identification | 1-2 | CPU |
-| 0xAD   | SYSINFO  | Get system information | 1-2 | CPU |
-| 0xAE   | RDTSC    | Read time-stamp counter | 1 | CPU |
-| 0xAF   | NOP2     | Multi-byte NOP | 0-1 | CPU |
-
-### Thread Management (0xB0-0xB7)
-
-| Opcode | Mnemonic | Description | Operands | Extension |
-|--------|----------|-------------|----------|-----------|
-| 0xB0   | THCRT    | Create thread | 2-3 | CPU |
-| 0xB1   | THJOIN   | Join thread | 1-2 | CPU |
-| 0xB2   | THDET    | Detach thread | 1 | CPU |
-| 0xB3   | THSUSP   | Suspend thread | 1 | CPU |
-| 0xB4   | THRES    | Resume thread | 1 | CPU |
-| 0xB5   | THLOCK   | Lock mutex | 1 | CPU |
-| 0xB6   | THULCK   | Unlock mutex | 1 | CPU |
-| 0xB7   | THID     | Get current thread ID | 1 | CPU |
-
-### Atomic Operations (0xB8-0xBF)
-
-| Opcode | Mnemonic | Description | Operands | Extension |
-|--------|----------|-------------|----------|-----------|
-| 0xB8   | ATOMLD   | Atomic load | 2 | CPU |
-| 0xB9   | ATOMST   | Atomic store | 2 | CPU |
-| 0xBA   | ATOMXCH  | Atomic exchange | 3 | CPU |
-| 0xBB   | ATOMCAS  | Atomic compare-and-swap | 4 | CPU |
-| 0xBC   | ATOMADD  | Atomic add | 3 | CPU |
-| 0xBD   | ATOMSUB  | Atomic subtract | 3 | CPU |
-| 0xBE   | ATOMAND  | Atomic AND | 3 | CPU |
-| 0xBF   | ATOMOR   | Atomic OR | 3 | CPU |
+| 0xA8   | CPUID    | Get CPU identification | 1-2 | CPU |
+| 0xA9   | RDTSC    | Read time-stamp counter | 1 | CPU |
+| 0xAA   | NOP2     | Multi-byte NOP | 0-1 | CPU |
+| 0xAB   | EHTRY    | Exception handler try block | 1 | CPU |
+| 0xAC   | EHCAT    | Exception handler catch block | 2 | CPU |
+| 0xAD   | EHFIN    | Exception handler finally block | 1 | CPU |
+| 0xAE   | EHEND    | End exception handler | 0 | CPU |
+| 0xAF   | CPUMODE  | Query/set CPU mode | 1-2 | CPU |
 
 ## Architecture-Specific Instructions (0xC0-0xCF)
 
-These instructions are available only on specific CPU architectures as indicated.
-
-### x86/x64 Architecture (0xC0-0xC3)
+### x86/x64 Architecture (0xC0-0xC7)
 
 | Opcode | Mnemonic | Description | Operands | Extension |
 |--------|----------|-------------|----------|-----------|
-| 0xC0   | X86SPEC  | x86 special instruction | 1-3 | CPU.x86 |
-| 0xC1   | RDMSR    | Read model-specific register | 2 | CPU.x86 |
-| 0xC2   | WRMSR    | Write model-specific register | 2 | CPU.x86 |
-| 0xC3   | CPUID2   | Extended CPU identification | 2-3 | CPU.x86 |
+| 0xC0   | RDMSR    | Read model-specific register | 2 | CPU.x86 |
+| 0xC1   | WRMSR    | Write model-specific register | 2 | CPU.x86 |
+| 0xC2   | CPUID2   | Extended CPU identification | 2-3 | CPU.x86 |
+| 0xC3   | RDPMC    | Read performance monitoring counter | 2 | CPU.x86 |
+| 0xC4   | LGDT     | Load global descriptor table | 1 | CPU.x86 |
+| 0xC5   | SGDT     | Store global descriptor table | 1 | CPU.x86 |
+| 0xC6   | LIDT     | Load interrupt descriptor table | 1 | CPU.x86 |
+| 0xC7   | SIDT     | Store interrupt descriptor table | 1 | CPU.x86 |
 
-### ARM Architecture (0xC4-0xC7)
-
-| Opcode | Mnemonic | Description | Operands | Extension |
-|--------|----------|-------------|----------|-----------|
-| 0xC4   | ARMSPEC  | ARM special instruction | 1-3 | CPU.ARM |
-| 0xC5   | BARRIER  | Data memory barrier | 1 | CPU.ARM |
-| 0xC6   | WFIEVENT | Wait for event | 0 | CPU.ARM |
-| 0xC7   | SEVEVENT | Send event | 0 | CPU.ARM |
-
-### RISC-V Architecture (0xC8-0xCB)
+### ARM Architecture (0xC8-0xCF)
 
 | Opcode | Mnemonic | Description | Operands | Extension |
 |--------|----------|-------------|----------|-----------|
-| 0xC8   | RVSPEC   | RISC-V special instruction | 1-3 | CPU.RISC-V |
-| 0xC9   | FENCE.I  | Instruction fence | 0 | CPU.RISC-V |
-| 0xCA   | FENCE.TSO| Total store ordering fence | 0 | CPU.RISC-V |
-| 0xCB   | LR       | Load-reserved | 2 | CPU.RISC-V |
-
-### Reserved/Other Architectures (0xCC-0xCF)
-
-| Opcode | Mnemonic | Description | Operands | Extension |
-|--------|----------|-------------|----------|-----------|
-| 0xCC   | MIPSSPEC | MIPS special instruction | 1-3 | CPU.MIPS |
-| 0xCD   | PWRSPEC  | PowerPC special instruction | 1-3 | CPU.PowerPC |
-| 0xCE   | ARCHRSVD1| Reserved for future architectures | 1-3 | Reserved |
-| 0xCF   | ARCHRSVD2| Reserved for future architectures | 1-3 | Reserved |
+| 0xC8   | BARRIER  | Data memory barrier | 1 | CPU.ARM |
+| 0xC9   | WFIEVENT | Wait for event | 0 | CPU.ARM |
+| 0xCA   | SEVEVENT | Send event | 0 | CPU.ARM |
+| 0xCB   | MRS      | Move from system register | 2 | CPU.ARM |
+| 0xCC   | MSR      | Move to system register | 2 | CPU.ARM |
+| 0xCD   | ISB      | Instruction synchronization barrier | 0-1 | CPU.ARM |
+| 0xCE   | DSB      | Data synchronization barrier | 0-1 | CPU.ARM |
+| 0xCF   | DMB      | Data memory barrier | 0-1 | CPU.ARM |
 
 ## Mode-Specific Instructions (0xD0-0xDF)
-
-These instructions are available only in specific CPU modes.
 
 ### Privileged Mode Instructions (0xD0-0xD7)
 
@@ -116,12 +89,12 @@ These instructions are available only in specific CPU modes.
 |--------|----------|-------------|----------|-----------|
 | 0xD0   | SYSPG    | Change system page table | 2 | CPU.Privileged |
 | 0xD1   | SYSINT   | Configure interrupt controller | 2-3 | CPU.Privileged |
-| 0xD2   | IOCFG    | Configure I/O | 2-3 | CPU.Privileged |
-| 0xD3   | PRCFG    | Configure processor | 2-3 | CPU.Privileged |
-| 0xD4   | INITTBL  | Initialize interrupt table | 2 | CPU.Privileged |
-| 0xD5   | INITVM   | Initialize virtual memory | 2 | CPU.Privileged |
-| 0xD6   | IOTRAP   | Set I/O trap | 2-3 | CPU.Privileged |
-| 0xD7   | PRVMODE  | Change privilege mode | 1 | CPU.Privileged |
+| 0xD2   | INITTBL  | Initialize interrupt table | 2 | CPU.Privileged |
+| 0xD3   | INITVM   | Initialize virtual memory | 2 | CPU.Privileged |
+| 0xD4   | PRVMODE  | Change privilege mode | 1 | CPU.Privileged |
+| 0xD5   | IOCFG    | Configure I/O | 2-3 | CPU.Privileged |
+| 0xD6   | IOMAP    | Map I/O space | 3 | CPU.Privileged |
+| 0xD7   | IOPORT   | Direct I/O port access | 2-3 | CPU.Privileged |
 
 ### Virtual Machine Instructions (0xD8-0xDF)
 
@@ -133,8 +106,8 @@ These instructions are available only in specific CPU modes.
 | 0xDB   | VMCFG    | Configure VM | 2-3 | CPU.VM |
 | 0xDC   | VMIOMMU  | Configure I/O MMU | 2-3 | CPU.VM |
 | 0xDD   | VMINTR   | Virtual interrupt | 1-2 | CPU.VM |
-| 0xDE   | VMRSVD1  | Reserved for future VM instructions | 1-3 | Reserved |
-| 0xDF   | VMRSVD2  | Reserved for future VM instructions | 1-3 | Reserved |
+| 0xDE   | VMREAD   | Read VM control structure | 2 | CPU.VM |
+| 0xDF   | VMWRITE  | Write VM control structure | 2 | CPU.VM |
 
 ## Detailed Instruction Behaviors
 
@@ -146,42 +119,55 @@ These instructions are available only in specific CPU modes.
 - Transfers control to the appropriate interrupt handler
 - Flag effects: None (preserved for handler)
 
-#### IRET (0xA2)
+#### IRET (0xA1)
 - Returns from an interrupt handler
 - Restores flags and other context from stack
 - Pops return address and transfers control back
 - Flag effects: All flags restored from stack
 
-### Atomic Operations
+### x86-Specific Instructions
 
-#### ATOMCAS (0xBB)
-- Atomically compares and swaps memory values
-- Compares the value at address with the expected value
-- If equal, stores the new value at address
-- Returns the original value
-- Flag effects: Z set if exchange occurred
+#### RDMSR (0xC0)
+- Reads the Model-Specific Register specified by ECX
+- Places the result in EDX:EAX (high:low)
+- Privileged instruction, requires ring 0
+- Only available on x86/x64 architectures
+
+#### WRMSR (0xC1)
+- Writes EDX:EAX (high:low) to the Model-Specific Register specified by ECX
+- Privileged instruction, requires ring 0
+- Only available on x86/x64 architectures
+
+## Directive-Based Targeting
+
+To target specific CPU features in code, use the preprocessor directives:
+
+```
+!if defined(PU_CPU)
+  !target CPU
+  ; CPU-specific code here
+!endif
+```
+
+This approach allows for:
+1. Multiple processing unit targets in a single module
+2. Conditional compilation based on target capabilities
+3. Clean separation of architecture-specific code
 
 ## Implementation Requirements
 
 CPU implementations must adhere to these guidelines:
 
 1. **Instruction Support**:
-   - All Processing Unit Instructions (0xA0-0xBF) must be implemented
-   - Architecture-Specific Instructions (0xC0-0xCF) are implemented only for supported architectures
+   - Processing Unit Instructions (0xA0-0xBF) must be implemented by all CPU targets
+   - Architecture-Specific Instructions (0xC0-0xCF) are implemented only for the respective architecture
    - Mode-Specific Instructions (0xD0-0xDF) are implemented only for supported modes
 
-2. **Interrupt Behavior**:
-   - Software interrupts must follow the platform's interrupt vector table
-   - Hardware interrupts must be properly prioritized and handled
+2. **Bare Metal Support**:
+   - All instructions must work in bare metal environments
+   - No OS dependencies in core instructions
+   - OS-specific functionality is provided by the standard library, not CPU instructions
 
-3. **Atomic Operations**:
-   - Must provide strong atomicity guarantees
-   - Must be compatible with the memory model
-
-4. **Thread Management**:
-   - Must map to the platform's native threading model
-   - Must preserve semantics across implementations# CPU Instruction Set Architecture (0xA0-0xDF)
-
-Describe the CPU COIL Instruction Set.
-
-
+3. **Mode Handling**:
+   - Implementations must correctly detect and handle the current architecture mode
+   - Invalid instructions for the current mode must generate appropriate exceptions
