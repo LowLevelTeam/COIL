@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Composite Types Extension enhances COIL's type system with complex data structures, including structures, unions, and type aliases. This extension enables organization of related data into cohesive units, facilitating more intuitive and maintainable code.
+The Composite Types Extension enhances COIL's type system with structures, unions, and type aliases. This extension enables organization of related data into cohesive units, facilitating more intuitive and maintainable code.
 
 ## Extension Information
 
@@ -21,12 +21,6 @@ Structures represent collections of named fields with fixed offsets:
 [0xA0][type_extension][member_count: uint16_t][[member_offset: uint16_t][member_type]...]
 ```
 
-Where:
-- `type_extension`: Type modifier flags
-- `member_count`: Number of fields in the structure
-- `member_offset`: Byte offset from structure start
-- `member_type`: Type of the member field
-
 Example: Structure with INT32 at offset 0 and FP32 at offset 4
 ```
 [0xA0][0x00][0x0002][0x0000][0x04][0x00][0x0004][0x10][0x00]
@@ -34,7 +28,7 @@ Example: Structure with INT32 at offset 0 and FP32 at offset 4
 
 ### Packed Structure Type (0xA1)
 
-Packed structures are similar to regular structures but eliminate padding:
+Packed structures eliminate padding:
 
 ```
 [0xA1][type_extension][member_count: uint16_t][[member_offset: uint16_t][member_type]...]
@@ -53,10 +47,6 @@ Unions represent overlapping fields sharing the same memory:
 [0xA2][type_extension][member_count: uint16_t][[member_id: uint16_t][member_type]...]
 ```
 
-Where:
-- `member_id`: Unique identifier for the union member
-- Other fields are as in structure types
-
 Example: Union with INT32 and FP32 alternatives
 ```
 [0xA2][0x00][0x0002][0x0000][0x04][0x00][0x0001][0x10][0x00]
@@ -69,9 +59,6 @@ Type aliases create named references to existing types:
 ```
 [0xA3][type_extension][aliased_type]
 ```
-
-Where:
-- `aliased_type`: The underlying type being aliased
 
 Example: Alias for INT32
 ```
@@ -106,15 +93,6 @@ Packed structures minimize space by eliminating padding:
 2. **Alignment**: Structure has alignment of 1 byte
 3. **Access**: May require unaligned memory access on some architectures
 
-Example:
-```
-packed struct Example {
-    int8_t  a;    // Offset 0, size 1
-    int16_t b;    // Offset 1, size 2 (potentially unaligned)
-    int32_t c;    // Offset 3, size 4 (potentially unaligned)
-}; // Total size: 7 bytes
-```
-
 ### Union Layout
 
 Unions overlay all members at the same address:
@@ -123,30 +101,17 @@ Unions overlay all members at the same address:
 2. **Alignment**: Maximum alignment of any member
 3. **Access**: Only one member should be accessed at a time
 
-Example:
-```
-union Example {
-    int32_t i;    // Offset 0, size 4
-    float   f;    // Offset 0, size 4
-    int8_t  b[4]; // Offset 0, size 4
-}; // Total size: 4 bytes
-```
-
 ## Field Access Instructions
 
 ### Member Access (0xE5-0xE7)
 
-| Opcode | Mnemonic | Description | Operands | Extension |
-|--------|----------|-------------|----------|-----------|
-| 0xE5   | MEMGET   | Get structure member | 3 | Composite |
-| 0xE6   | MEMSET   | Set structure member | 3 | Composite |
-| 0xE7   | MEMADDR  | Get member address | 3 | Composite |
-
-## Detailed Instruction Behaviors
+| Opcode | Mnemonic | Description | Operands |
+|--------|----------|-------------|----------|
+| 0xE5   | MEMGET   | Get structure member | 3 |
+| 0xE6   | MEMSET   | Set structure member | 3 |
+| 0xE7   | MEMADDR  | Get member address | 3 |
 
 ### MEMGET (0xE5)
-
-The member get instruction retrieves a value from a structure or union member:
 
 ```
 MEMGET destination, structure, member_id
@@ -156,15 +121,7 @@ MEMGET destination, structure, member_id
 - `structure`: Source structure or union
 - `member_id`: Member identifier (uint16_t)
 
-Behavior:
-1. Computes the address of the specified member
-2. Loads the value from that address
-3. Stores the value in the destination
-4. No flags are affected
-
 ### MEMSET (0xE6)
-
-The member set instruction stores a value into a structure or union member:
 
 ```
 MEMSET structure, member_id, value
@@ -174,14 +131,7 @@ MEMSET structure, member_id, value
 - `member_id`: Member identifier (uint16_t)
 - `value`: Value to store
 
-Behavior:
-1. Computes the address of the specified member
-2. Stores the value at that address
-3. No flags are affected
-
 ### MEMADDR (0xE7)
-
-The member address instruction computes the address of a structure or union member:
 
 ```
 MEMADDR destination, structure, member_id
@@ -191,24 +141,15 @@ MEMADDR destination, structure, member_id
 - `structure`: Source structure or union
 - `member_id`: Member identifier (uint16_t)
 
-Behavior:
-1. Computes the address of the specified member
-2. Stores the address in the destination
-3. No flags are affected
-
 ## Type Definition Instructions
 
-### Type Operations (0xE8-0xEA)
-
-| Opcode | Mnemonic | Description | Operands | Extension |
-|--------|----------|-------------|----------|-----------|
-| 0xE8   | STRDEF   | Define structure type | 2+ | Composite |
-| 0xE9   | UNIDEF   | Define union type | 2+ | Composite |
-| 0xEA   | TYPEAL   | Define type alias | 2 | Composite |
+| Opcode | Mnemonic | Description | Operands |
+|--------|----------|-------------|----------|
+| 0xE8   | STRDEF   | Define structure type | 2+ |
+| 0xE9   | UNIDEF   | Define union type | 2+ |
+| 0xEA   | TYPEAL   | Define type alias | 2 |
 
 ## Type Compatibility Rules
-
-Composite types follow these compatibility rules:
 
 1. **Structure Assignment**:
    - Structures are compatible for assignment if they have the same members in the same order with compatible types
@@ -222,28 +163,45 @@ Composite types follow these compatibility rules:
    - A type alias is compatible with its underlying type
    - Type aliases are compatible if their underlying types are compatible
 
-## Implementation Requirements
+## Usage Examples
 
-Implementations of the Composite Types Extension must:
+### Structure Example
 
-1. **Type Support**:
-   - Support all structure, union, and alias types
-   - Handle all type extensions on these types
+```
+; Define a point structure
+STRDEF point_t, 2, i32, i32
 
-2. **Memory Layout**:
-   - Correctly implement structure and union memory layouts
-   - Respect alignment requirements
-   - Handle packed structures appropriately
+; Create and initialize a point
+VAR p, point_t
+MEMSET p, 0, 10      ; p.x = 10
+MEMSET p, 1, 20      ; p.y = 20
 
-3. **Access Instructions**:
-   - Implement all member access instructions
-   - Handle misaligned access if required by the target architecture
+; Access structure members
+i32 x
+MEMGET x, p, 0       ; x = p.x
+```
 
-4. **Type Definition**:
-   - Support dynamic type definition
-   - Validate type definitions for correctness
-   - Handle nested composite types
+### Union Example
 
-5. **Performance**:
-   - Optimize access patterns for the target architecture
-   - Minimize overhead for member access
+```
+; Define a value union
+UNIDEF value_t, 3, i32, f32, i64
+
+; Create a union and set as integer
+VAR v, value_t
+MEMSET v, 0, 42      ; v.i = 42
+
+; Access as float (reinterprets the bits)
+f32 f
+MEMGET f, v, 1       ; f = v.f (bit reinterpretation of 42)
+```
+
+### Type Alias Example
+
+```
+; Define a type alias for a complex structure
+TYPEAL point3d_t, STRUCT<i32, i32, i32>
+
+; Use the alias
+VAR p3d, point3d_t
+```

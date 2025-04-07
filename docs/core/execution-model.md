@@ -21,7 +21,6 @@ Every executable COIL program has a single entry point:
 
 - Specified in the object file header (`entry_point` field)
 - First instruction executed when the program starts
-- Implementation may add platform-specific setup before calling entry point
 
 ### Execution Flow
 
@@ -74,7 +73,6 @@ Conditional execution relies on the flag register:
 
 1. **Flag Setting**: Instructions set flags based on their results
 2. **Conditional Jump**: BR and CALL can be conditional based on flag state
-3. **Predication**: Some extended instruction sets may support predicated execution
 
 ### Function Calls
 
@@ -134,16 +132,6 @@ Built-in synchronization mechanisms include:
 1. **Atomic Operations**: Instructions with ATOMIC flag
 2. **Memory Barriers**: Full, acquire, and release barriers
 3. **Lock Operations**: Compare-and-swap, load-linked/store-conditional
-
-## Implementation Requirements
-
-A conforming implementation must:
-
-1. **Precise Execution**: Execute instructions with the specified semantics
-2. **Flag Behavior**: Correctly implement flag setting/testing
-3. **Exception Model**: Support the defined exception model
-4. **Atomicity**: Honor atomicity guarantees
-5. **Concurrency**: Implement the required concurrency model
 
 ## Processing Unit Variations
 

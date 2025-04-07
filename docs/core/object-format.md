@@ -2,7 +2,7 @@
 
 ## Overview
 
-The COIL Object Format defines the structure and layout of COIL binary objects, providing a consistent representation for compiled COIL programs, libraries, and modules. This format enables linking, loading, and execution across different platforms.
+The COIL Object Format defines the structure and layout of COIL binary objects, providing a consistent representation for compiled COIL programs, libraries, and modules.
 
 ## File Structure
 
@@ -25,8 +25,6 @@ COIL object files have the following structure:
 ```
 
 ## File Header
-
-The file header identifies the file as a COIL object and provides essential metadata:
 
 ```c
 struct CoilObjectHeader {
@@ -51,8 +49,6 @@ struct CoilObjectHeader {
 
 ### Flag Values
 
-File flags define key object characteristics:
-
 | Flag    | Value  | Description |
 |---------|--------|-------------|
 | EXEC    | 0x0001 | Executable file |
@@ -61,24 +57,13 @@ File flags define key object characteristics:
 | DEBUG   | 0x0008 | Contains debug information |
 | RELOC   | 0x0010 | Relocatable object |
 
-Flags can be combined with bitwise OR.
-
 ### Processing Unit, Architecture, and Mode
 
-These fields identify the target environment:
-
-- **Target PU**: Identifies the primary processing unit (0x01 for CPU, 0x02 for GPU, etc.)
-- **Target Architecture**: Identifies the specific architecture (0x01 for x86, 0x02 for ARM, etc.)
-- **Target Mode**: Identifies architecture mode:
-  - For x86: 0x01 (16-bit), 0x02 (protected 32-bit), 0x03 (long 64-bit)
-  - For ARM: 0x01 (A32), 0x02 (T32/Thumb), 0x03 (A64)
-  - Virtual modes use 0x80 bit flag (e.g., 0x81 for v16, 0x82 for v32, 0x83 for v64)
-
-Note: Additional processing units are specified within the code using directives rather than header flags. The header only indicates the primary target.
+- **Target PU**: Identifies primary processing unit (0x01 for CPU, 0x02 for GPU, etc.)
+- **Target Architecture**: Identifies specific architecture (0x01 for x86, 0x02 for ARM, etc.)
+- **Target Mode**: Identifies architecture mode (x86: 0x01-0x03, ARM: 0x01-0x03, etc.)
 
 ## Section Table
-
-The section table defines the file sections:
 
 ```c
 struct SectionEntry {
@@ -107,11 +92,6 @@ struct SectionEntry {
 | 0x06       | STRTAB   | String table (.strtab) |
 | 0x07       | REL      | Relocation entries (.rel) |
 | 0x08       | RELA     | Relocation entries with addend (.rela) |
-| 0x09       | INIT     | Initialization code (.init) |
-| 0x0A       | FINI     | Finalization code (.fini) |
-| 0x0B       | DYNAMIC  | Dynamic linking information (.dynamic) |
-| 0x0C       | DEBUG    | Debugging information (.debug) |
-| 0x0D       | COMMENT  | Comments (.comment) |
 
 ### Section Flags
 
@@ -122,17 +102,8 @@ struct SectionEntry {
 | 0x0004     | EXEC      | Section contains executable instructions |
 | 0x0008     | MERGE     | Section may be merged |
 | 0x0010     | STRINGS   | Section contains null-terminated strings |
-| 0x0020     | INFO      | Section does not contribute to the image |
-| 0x0040     | LINK      | Section contains link order information |
-| 0x0080     | OS_SPEC   | OS-specific processing required |
-| 0x0100     | GROUP     | Section is member of a group |
-| 0x0200     | TLS       | Section contains thread-local storage |
-
-Flags can be combined with bitwise OR.
 
 ## Symbol Table
-
-The symbol table defines symbols and their attributes:
 
 ```c
 struct SymbolEntry {
@@ -157,7 +128,6 @@ struct SymbolEntry {
 | 0x03       | SECTION  | Section |
 | 0x04       | FILE     | Source file |
 | 0x05       | COMMON   | Common data object |
-| 0x06       | TLS      | Thread-local storage object |
 
 ### Symbol Binding
 
@@ -168,26 +138,11 @@ struct SymbolEntry {
 | 0x02       | WEAK     | Like global, but with lower precedence |
 | 0x03       | UNIQUE   | Global with guaranteed unique definition |
 
-### Symbol Visibility
-
-| Visibility Value | Name     | Description |
-|------------------|----------|-------------|
-| 0x00             | DEFAULT  | Default visibility rules apply |
-| 0x01             | HIDDEN   | Symbol not visible outside the object |
-| 0x02             | PROTECTED| Symbol visible but not preemptable |
-| 0x03             | INTERNAL | Symbol visible but with implementation-specific meaning |
-
 ## String Table
 
-The string table stores null-terminated strings referenced by other tables:
-
-- Simple list of null-terminated strings
-- First byte is always null (index 0 = empty string)
-- Other tables reference strings by offset into this table
+The string table stores null-terminated strings referenced by other tables.
 
 ## Relocation Table
-
-The relocation table defines how references should be updated during linking:
 
 ```c
 struct RelocationEntry {
@@ -207,40 +162,23 @@ struct RelocationEntry {
 | 0x02       | REL      | PC-relative reference | S + A - P |
 | 0x03       | GOT      | Global offset table | G + A |
 | 0x04       | PLT      | Procedure linkage table | L + A |
-| 0x05       | COPY     | Copy symbol at runtime | - |
-| 0x06       | GLOB_DAT | Set GOT entry to address | S |
-| 0x07       | JMP_SLOT | Set PLT entry to address | S |
 
 Where:
 - S = Symbol value
 - A = Addend value
-- P = Position (offset) being modified
+- P = Position being modified
 - G = GOT offset of symbol
 - L = PLT offset of symbol
 
 ## Data Alignment and Padding
 
-COIL object files follow specific alignment requirements:
-
-1. **Section Alignment**: Each section is aligned according to its `align` field
-2. **Header Alignment**: The file header is aligned to 8 bytes
-3. **Table Alignment**: All tables are aligned to 8 bytes
-4. **Padding Bytes**: All padding bytes must be set to 0
+- **Section Alignment**: Each section aligned according to its `align` field
+- **Header Alignment**: The file header is aligned to 8 bytes
+- **Table Alignment**: All tables are aligned to 8 bytes
+- **Padding Bytes**: All padding bytes must be set to 0
 
 ## Version Compatibility
 
-Version compatibility follows these rules:
-
-1. **Major Version**: Incompatible changes, requires updated tools
-2. **Minor Version**: New features, backward compatible
-3. **Patch Version**: Bug fixes, fully compatible
-
-## Implementation Requirements
-
-A compliant COIL object format implementation must:
-
-1. **Validation**: Verify the integrity and correctness of object files
-2. **Endianness Handling**: Correctly handle both little and big endian formats
-3. **Version Check**: Verify compatibility with supported versions
-4. **Error Detection**: Report clear errors for malformed object files
-5. **Section Processing**: Process all required sections according to specification
+- **Major Version**: Incompatible changes, requires updated tools
+- **Minor Version**: New features, backward compatible
+- **Patch Version**: Bug fixes, fully compatible

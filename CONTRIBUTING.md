@@ -1,4 +1,4 @@
-# Contributing to COIL Specification
+# Contributing to COIL
 
 Thank you for your interest in contributing to the COIL (Computer Oriented Intermediate Language) specification. This document outlines the process for contributing to the documentation and evolution of the COIL standard.
 

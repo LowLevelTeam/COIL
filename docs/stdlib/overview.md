@@ -9,7 +9,7 @@ The COIL Standard Library provides operating system abstractions, utility functi
 The standard library adheres to these principles:
 
 1. **Core/Library Separation**: Clear separation between core COIL (OS-independent) and library (OS-interfacing)
-2. **Device Abstraction**: Provide consistent interfaces for device interactions across platforms
+2. **Device Abstraction**: Consistent interfaces for device interactions across platforms
 3. **Heterogeneous Computing Support**: Enable code execution across multiple processing units
 4. **Minimal Overhead**: Minimize performance impact of OS abstractions
 5. **Optional Usage**: Programs can choose not to use the standard library for bare-metal environments
@@ -60,25 +60,6 @@ The standard library adheres to these principles:
    - Assertions
    - Tracing
    - Profiling
-
-## Heterogeneous Computing Model
-
-The standard library enables heterogeneous computing through:
-
-1. **Runtime Device Selection**
-   - Detect available processing units
-   - Select optimal device based on workload
-   - Fall back gracefully when preferred device unavailable
-
-2. **COIL Byte Code (CBC) Support**
-   - Load and JIT-compile CBC for specific devices
-   - Manage CBC lifecycle
-   - Provide debugging tools for CBC execution
-
-3. **Device Communication**
-   - Transfer data between processing units
-   - Synchronize operations
-   - Map memory between different address spaces
 
 ## Usage Patterns
 

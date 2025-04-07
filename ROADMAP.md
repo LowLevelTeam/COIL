@@ -6,7 +6,7 @@ This roadmap outlines the planned development trajectory for the COIL specificat
 
 ## Current Status
 
-The COIL specification is currently in development with the following components:
+The COIL specification is currently in development with the following progress:
 
 - **Core Specification**: ~80% complete
   - Type system, memory model, and instruction set largely defined
@@ -22,7 +22,7 @@ The COIL specification is currently in development with the following components
   - CPU instruction set partially defined
   - GPU, NPU, and DSP instruction sets in early planning
   
-- **CASM/CBC**: ~20% complete
+- **Tools**: ~20% complete
   - Basic concepts defined
   - Detailed syntax and semantics in progress
 
@@ -64,11 +64,6 @@ The COIL specification is currently in development with the following components
    - Develop CASM language reference
    - Write implementation guide for compiler developers
 
-2. **Examples**
-   - Develop sample programs showcasing COIL features
-   - Create architecture-specific examples
-   - Build cross-platform demonstration projects
-
 ## Medium-Term Goals (1-2 Years)
 
 ### Specification Expansion
@@ -95,27 +90,10 @@ The COIL specification is currently in development with the following components
    - Create JIT compilation framework
    - Build efficient runtime systems
 
-2. **Advanced Tools**
-   - Develop integrated development environment
-   - Create advanced debugging tools
-   - Build performance profiling systems
-
-3. **Ecosystem**
+2. **Ecosystem**
    - Develop standard library implementations
    - Create package management system
    - Build community repository for COIL modules
-
-### Adoption
-
-1. **Language Support**
-   - Develop COIL backends for major compilers
-   - Create language-specific COIL bindings
-   - Build transpilers from existing IRs to COIL
-
-2. **Platform Support**
-   - Ensure compatibility with major operating systems
-   - Develop embedded system support
-   - Create specialized hardware acceleration
 
 ## Long-Term Vision (3-5 Years)
 
@@ -135,23 +113,6 @@ The COIL specification is currently in development with the following components
    - Create COIL-aware hardware accelerators
    - Develop COIL-native processor designs
    - Build integrated heterogeneous computing platforms
-
-### Ecosystem Maturity
-
-1. **Comprehensive Tools**
-   - Develop enterprise-grade development environments
-   - Create advanced analysis and verification tools
-   - Build automated porting systems
-
-2. **Education**
-   - Develop educational materials and courses
-   - Create certification programs
-   - Build academic research programs
-
-3. **Standardization**
-   - Achieve formal standardization through appropriate bodies
-   - Establish compatibility certification process
-   - Create industry adoption frameworks
 
 ## Priority Areas for Contribution
 
@@ -176,22 +137,3 @@ Current high-priority areas for contribution include:
    - Identifying key application areas
    - Creating proof-of-concept implementations
    - Documenting performance characteristics
-
-## Getting Involved
-
-To contribute to the COIL specification and implementation:
-
-1. Review the [CONTRIBUTING.md](/CONTRIBUTING.md) document
-2. Join the community discussion forums
-3. Pick an area of interest from the priority list
-4. Submit pull requests or issue reports
-
-## Progress Tracking
-
-Progress on the COIL specification is tracked through:
-
-1. GitHub repository milestones and issues
-2. Quarterly roadmap updates
-3. Regular community status reports
-
-This roadmap is a living document and will be updated as the project evolves.

@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Application Binary Interface (ABI) Extension defines standardized calling conventions, data layout rules, and system interaction methods for COIL programs. This extension ensures binary compatibility between different COIL implementations and enables interoperability with other languages and systems.
+The Application Binary Interface (ABI) Extension defines standardized calling conventions, data layout rules, and system interaction methods for COIL programs. This ensures binary compatibility between different COIL implementations and enables interoperability with other languages and systems.
 
 ## Extension Information
 
@@ -22,10 +22,7 @@ Each ABI has a unique identifier:
 | 0x03   | Win32 | Windows x86 (32-bit) ABI |
 | 0x04   | AAPCS | ARM Procedure Call Standard |
 | 0x05   | AAPCS64 | ARM64 Procedure Call Standard |
-| 0x06   | WebAssembly | WebAssembly ABI |
-| 0x07   | RISC-V | RISC-V Calling Convention |
 | 0x08   | COIL_Standard | COIL Default ABI |
-| 0xFE   | Custom | User-defined ABI |
 | 0xFF   | Native | Use target platform's native ABI |
 
 ## Calling Conventions
@@ -63,9 +60,9 @@ Each ABI defines specific parameter passing rules:
 
 ### Stack Frame Layout
 
-Each ABI defines a specific stack frame structure:
+Each ABI defines a specific stack frame structure.
 
-#### System V AMD64 ABI Example
+Example for System V AMD64 ABI:
 ```
 Higher Address │ Previous Frame  │
                ├────────────────┤
@@ -79,7 +76,6 @@ Higher Address │ Previous Frame  │
                │ Local Variables│
                ├────────────────┤
 Lower Address  │ Stack Arguments│
-               └────────────────┘
 ```
 
 ## Data Type Representations
@@ -129,11 +125,6 @@ Structure and union layout rules:
 
 Format: `_COIL_<name>_<parameters>_<attributes>`
 
-Where:
-- `<name>`: Original function name
-- `<parameters>`: Encoded parameter types
-- `<attributes>`: Additional attributes (calling convention, etc.)
-
 Example: `_COIL_add_i32_i32_i32_StdCC`
 
 ## Exception Handling
@@ -144,7 +135,6 @@ Example: `_COIL_add_i32_i32_i32_StdCC`
 |----------|------|-------------|
 | 0x01 | Zero-cost | Itanium/GCC/LLVM zero-cost exception model |
 | 0x02 | SEH | Windows Structured Exception Handling |
-| 0x03 | Setjmp/Longjmp | Setjmp/Longjmp-based exceptions |
 | 0x04 | COIL | COIL native exception model |
 
 ### COIL Exception Model (0x04)
@@ -157,21 +147,17 @@ Stack unwinding mechanism:
 
 ## ABI Instruction Set
 
-| Opcode | Mnemonic | Description | Operands | Extension |
-|--------|----------|-------------|----------|-----------|
-| 0xF0   | ABICALL  | Call with specific ABI | 2+ | ABI |
-| 0xF1   | ABIRET   | Return with specific ABI | 0-1 | ABI |
-| 0xF2   | ABISEL   | Select active ABI | 1 | ABI |
-| 0xF3   | ABISTORE | Store current ABI | 1 | ABI |
-| 0xF4   | ABIINFO  | Get ABI information | 2 | ABI |
-| 0xF5   | EHTHROW  | Throw exception | 1-2 | ABI |
-| 0xF6   | EHRETHROW| Rethrow current exception | 0 | ABI |
+| Opcode | Mnemonic | Description | Operands |
+|--------|----------|-------------|----------|
+| 0xF0   | ABICALL  | Call with specific ABI | 2+ |
+| 0xF1   | ABIRET   | Return with specific ABI | 0-1 |
+| 0xF2   | ABISEL   | Select active ABI | 1 |
+| 0xF5   | EHTHROW  | Throw exception | 1-2 |
+| 0xF6   | EHRETHROW| Rethrow current exception | 0 |
 
 ## Detailed Instruction Behaviors
 
 ### ABICALL (0xF0)
-
-The ABI call instruction invokes a function using a specific ABI:
 
 ```
 ABICALL abi_id, target, arg1, arg2, ...
@@ -189,8 +175,6 @@ Behavior:
 
 ### ABIRET (0xF1)
 
-The ABI return instruction returns from a function using a specific ABI:
-
 ```
 ABIRET [return_value]
 ```
@@ -204,8 +188,6 @@ Behavior:
 4. Returns control to caller
 
 ### EHTHROW (0xF5)
-
-The throw instruction raises an exception:
 
 ```
 EHTHROW exception_object [, additional_info]
@@ -230,11 +212,6 @@ The ABI extension defines mechanisms for calling non-COIL functions:
 EXTFUNC function_name, abi_id, return_type, param_type1, param_type2, ...
 ```
 
-- `function_name`: Symbol name of external function
-- `abi_id`: ABI to use for the call
-- `return_type`: Function return type
-- `param_typeN`: Parameter types
-
 ### Dynamic Library Loading
 
 ```
@@ -243,28 +220,41 @@ DLSYM handle, symbol_name, function_dest
 DLCLOSE handle
 ```
 
-## Implementation Requirements
+## Usage Examples
 
-Implementations of the ABI Extension must:
+### Calling C Functions
 
-1. **Calling Conventions**:
-   - Support all standard ABIs for the target platform
-   - Correctly implement parameter passing rules
-   - Properly handle return values
-   - Preserve all required registers
+```
+; Call C function with SystemV ABI
+EXTFUNC printf, SystemV_x64, i32, ptr, varargs
 
-2. **Exception Handling**:
-   - Implement the required exception models
-   - Correctly unwind the stack during exceptions
-   - Support finally blocks and cleanup
-   - Interoperate with platform exception mechanisms
+; Format string
+.section data
+format_str:
+    .string "Value: %d\n"
 
-3. **Name Mangling**:
-   - Support all standard mangling schemes
-   - Correctly encode and decode mangled names
-   - Handle interoperability with platform linkers
+; Function call
+ABICALL SystemV_x64, printf, format_str, 42
+```
 
-4. **Foreign Function Interface**:
-   - Support calling external functions
-   - Handle dynamic library loading
-   - Manage ABI transitions correctly
+### Exception Handling
+
+```
+; Try-catch block
+EHTRY try_block
+    ; Code that might throw
+    ; ...
+    
+    ; Explicitly throw an exception
+    EHTHROW exception_type, exception_data
+    
+EHCAT exception_type, catch_block
+    ; Handle exception
+    ; ...
+    
+EHFIN finally_block
+    ; Cleanup code always executed
+    ; ...
+    
+EHEND
+```

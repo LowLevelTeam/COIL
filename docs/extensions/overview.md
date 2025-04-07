@@ -2,7 +2,7 @@
 
 ## Overview
 
-The COIL Extensions Framework provides a standardized mechanism for extending COIL functionality beyond the core specification. Extensions enable specialized capabilities without complicating the base language, allowing COIL to adapt to diverse processing environments while maintaining portability.
+The COIL Extensions Framework provides a standardized mechanism for extending COIL functionality beyond the core specification. Extensions enable specialized capabilities without complicating the base language.
 
 ## Extension Categories
 
@@ -12,18 +12,18 @@ COIL extensions are organized into the following categories:
 
 Extensions that enhance the fundamental capabilities of COIL:
 
-- **Multi-Dimensional Types**: Vectors, matrices, and tensors with associated operations
+- **Multi-Dimensional Types**: Vectors, matrices, and tensors
 - **Composite Types**: Structures, unions, and complex data types
-- **Preprocessor**: Conditional compilation, definitions, and compile-time evaluation
+- **ABI**: Application Binary Interface specifications
+- **Preprocessor**: Conditional compilation and compile-time features
 
 ### 2. Processing Unit Extensions
 
 Extensions specific to particular processing units:
 
-- **CPU Extensions**: Traditional CPU-specific instructions and features
+- **CPU Extensions**: Traditional CPU-specific instructions
 - **GPU Extensions**: Graphics and parallel processing capabilities
 - **NPU Extensions**: Neural network accelerator instructions
-- **DSP Extensions**: Digital signal processing optimizations
 
 ### 3. Architecture Extensions
 
@@ -38,7 +38,6 @@ Extensions targeting specific hardware architectures:
 Extensions that add domain-specific functionality:
 
 - **Cryptography**: Cryptographic algorithms and operations
-- **Compression**: Data compression/decompression algorithms
 - **Graphics**: Advanced graphics processing operations
 - **Networking**: Network protocol operations
 
@@ -56,19 +55,14 @@ Extensions are integrated into COIL through several mechanisms:
 
 ### Instruction Space Allocation
 
-- **Extended Operations (0xA0-0xDF)**: Reserved for processing unit and architecture extensions
-- **Compiler Operations (0xF0-0xFE)**: Used by preprocessor and other compile-time extensions
+- **Extended Operations (0xA0-0xDF)**: For processing unit and architecture extensions
+- **Compiler Operations (0xF0-0xFE)**: For preprocessor and compile-time extensions
 - **Vendor-Specific (0xFF)**: Used with extended opcode for vendor extensions
 
 ### Type System Integration
 
-- **Type Extensions (Type Opcode Ranges)**: Specific type opcode ranges reserved for extensions
+- **Type Extensions**: Specific type opcode ranges reserved for extensions
 - **Type Modifiers**: Additional type modifiers defined by extensions
-
-### Binary Format Extensions
-
-- **Extension Headers**: Additional headers in the object format
-- **Extension Sections**: Specialized sections in object files
 
 ## Compatibility Rules
 
@@ -85,64 +79,30 @@ Extensions follow strict compatibility rules:
 
 Provides support for vectors, matrices, and tensors:
 
+- **Extension ID**: 0x01
 - **Type Opcodes**: 0x33-0x38 (CVEC, MAT, SQMAT, etc.)
 - **Instruction Opcodes**: 0x82-0x8E (DOT, CROSS, NORM, etc.)
-- **Features**:
-  - Vector operations (dot product, cross product, normalization)
-  - Matrix operations (transpose, inverse, determinant)
-  - Tensor operations (contraction, product, etc.)
 
 ### Composite Types Extension
 
 Extends the type system with complex data structures:
 
+- **Extension ID**: 0x02
 - **Type Opcodes**: 0xA0-0xA3 (STRUCT, PACK, UNION, ALIAS)
-- **Features**:
-  - Structure definitions with named fields
-  - Packed structures for memory optimization
-  - Unions for memory-overlapping fields
-  - Type aliases for code clarity
 
 ### ABI Extension
 
 Defines standardized Application Binary Interfaces:
 
-- **Features**:
-  - Calling conventions (parameter passing, return values)
-  - Register allocation rules
-  - Stack frame layout
-  - Exception handling mechanisms
+- **Extension ID**: 0x03
+- **Features**: Calling conventions, register allocation, exception handling
 
 ### Preprocessor Extension
 
 Provides compile-time code manipulation:
 
+- **Extension ID**: 0x04
 - **Instruction Opcodes**: 0xF0-0xF9
-- **Features**:
-  - Conditional compilation
-  - Macro definitions and expansion
-  - Compile-time constants
-  - Include directives
-
-## Extension Development
-
-To develop a new COIL extension:
-
-1. **Specification Creation**:
-   - Define extension purpose and functionality
-   - Allocate opcodes from appropriate ranges
-   - Define binary format additions
-   - Document compatibility requirements
-
-2. **Implementation**:
-   - Create reference implementation
-   - Develop test suite for validation
-   - Ensure graceful degradation when not available
-
-3. **Registration**:
-   - Register extension with the COIL community
-   - Assign official extension ID
-   - Document in the extensions registry
 
 ## Extension Registry
 
@@ -156,10 +116,7 @@ The COIL Extension Registry maintains the official list of extensions:
 | 0x04 | Preproc  | 1.0.0   | Core     | Preprocessor functionality |
 | 0x10 | CPU.x86  | 1.0.0   | PU       | x86/x64 CPU extensions |
 | 0x11 | CPU.ARM  | 1.0.0   | PU       | ARM CPU extensions |
-| 0x12 | CPU.RISCV| 1.0.0   | PU       | RISC-V CPU extensions |
 | 0x20 | GPU.Core | 1.0.0   | PU       | Core GPU functionality |
-| 0x30 | Crypto   | 1.0.0   | Function | Cryptographic operations |
-| 0x31 | Compress | 1.0.0   | Function | Compression algorithms |
 
 ## Implementation Requirements
 
