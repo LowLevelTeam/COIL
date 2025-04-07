@@ -8,15 +8,15 @@ This document defines the behavior of condition flags in the COIL architecture. 
 
 The COIL condition flag register contains the following flags:
 
-| Flag | Symbol | Bit Position | Description |
-|------|--------|--------------|-------------|
-| Zero | Z | 0 | Set when result is zero |
-| Sign | S | 1 | Set when result is negative |
-| Carry | C | 2 | Set when operation produces a carry |
-| Overflow | V | 3 | Set when operation produces an overflow |
-| Divide-by-Zero | D | 4 | Set when division by zero occurs |
-| NaN | N | 5 | Set when operation produces Not-a-Number |
-| Parity | P | 6 | Set when result has even parity |
+| Flag | Symbol | Bit Position | Description | Extension |
+|------|--------|--------------|-------------|-----------|
+| Zero | Z | 0 | Set when result is zero | Core |
+| Sign | S | 1 | Set when result is negative | Core |
+| Carry | C | 2 | Set when operation produces a carry | Core |
+| Overflow | V | 3 | Set when operation produces an overflow | Core |
+| Divide-by-Zero | D | 4 | Set when division by zero occurs | Core |
+| NaN | N | 5 | Set when operation produces Not-a-Number | Core |
+| Parity | P | 6 | Set when result has even parity | Core |
 
 ## Flag Behavior Definitions
 
@@ -110,9 +110,6 @@ This section defines which flags are affected by each instruction and how they a
 | NEG | ✓ | ✓ | ✓ | ✓ | - | ✓ | ✓ | Z: set if result is zero<br>S: set if result is negative<br>C: set if operand is non-zero<br>V: set if operand is minimum value<br>N: set if floating-point NaN<br>P: set if even parity |
 | ABS | ✓ | 0 | - | ✓ | - | ✓ | ✓ | Z: set if result is zero<br>S: always cleared (result ≥ 0)<br>V: set if operand is minimum value<br>N: set if floating-point NaN<br>P: set if even parity |
 | SQRT | ✓ | 0 | - | - | - | ✓ | ✓ | Z: set if result is zero<br>S: always cleared (result ≥ 0)<br>N: set if operand < 0<br>P: set if even parity |
-| CEIL | ✓ | ✓ | - | - | - | ✓ | ✓ | Z: set if result is zero<br>S: set if result is negative<br>N: set if floating-point NaN<br>P: set if even parity |
-| FLOR | ✓ | ✓ | - | - | - | ✓ | ✓ | Z: set if result is zero<br>S: set if result is negative<br>N: set if floating-point NaN<br>P: set if even parity |
-| ROND | ✓ | ✓ | - | - | - | ✓ | ✓ | Z: set if result is zero<br>S: set if result is negative<br>N: set if floating-point NaN<br>P: set if even parity |
 
 ### Bit Manipulation Operations
 
@@ -129,33 +126,45 @@ This section defines which flags are affected by each instruction and how they a
 
 ### Vector Operations
 
-| Instruction | Z | S | C | V | D | N | P | Description |
-|-------------|---|---|---|---|---|---|---|-------------|
-| GETE | ✓ | ✓ | - | - | - | ✓ | - | Z: set if extracted element is zero<br>S: set if extracted element is negative<br>N: set if extracted element is NaN |
-| SETE | - | - | - | - | - | - | - | No flags affected |
-| DOT | ✓ | ✓ | - | ✓ | - | ✓ | - | Z: set if dot product is zero<br>S: set if dot product is negative<br>V: set if dot product overflows<br>N: set if result is NaN |
-| CROSS | ✓ | - | - | - | - | - | - | Z: set if result is zero vector |
-| NORM | ✓ | - | - | - | ✓ | ✓ | - | Z: set if input is zero vector<br>D: set if normalization by zero attempted<br>N: set if result contains NaN |
-| LEN | ✓ | 0 | - | - | - | - | - | Z: set if input is zero vector<br>S: always cleared (result ≥ 0) |
-| SHUF | - | - | - | - | - | - | - | No flags affected |
-| EXTRACT | - | - | - | - | - | - | - | No flags affected |
-| INSERT | - | - | - | - | - | - | - | No flags affected |
-| TRANS | - | - | - | - | - | - | - | No flags affected |
-| INV | ✓ | - | - | - | ✓ | - | - | Z: set if determinant is zero<br>D: set if matrix is singular |
-| DET | ✓ | ✓ | - | - | - | - | - | Z: set if determinant is zero<br>S: set if determinant is negative |
-| ROW | - | - | - | - | - | - | - | No flags affected |
-| COL | - | - | - | - | - | - | - | No flags affected |
-| DIAG | - | - | - | - | - | - | - | No flags affected |
+| Instruction | Z | S | C | V | D | N | P | Description | Extension |
+|-------------|---|---|---|---|---|---|---|-------------|-----------|
+| GETE | ✓ | ✓ | - | - | - | ✓ | - | Z: set if extracted element is zero<br>S: set if extracted element is negative<br>N: set if extracted element is NaN | Core |
+| SETE | - | - | - | - | - | - | - | No flags affected | Core |
+| DOT | ✓ | ✓ | - | ✓ | - | ✓ | - | Z: set if dot product is zero<br>S: set if dot product is negative<br>V: set if dot product overflows<br>N: set if result is NaN | MultiDim |
+| CROSS | ✓ | - | - | - | - | - | - | Z: set if result is zero vector | MultiDim |
+| NORM | ✓ | - | - | - | ✓ | ✓ | - | Z: set if input is zero vector<br>D: set if normalization by zero attempted<br>N: set if result contains NaN | MultiDim |
+| LEN | ✓ | 0 | - | - | - | - | - | Z: set if input is zero vector<br>S: always cleared (result ≥ 0) | MultiDim |
 
-### Special Operations
+## Conditional Execution
 
-| Instruction | Z | S | C | V | D | N | P | Description |
-|-------------|---|---|---|---|---|---|---|-------------|
-| RNG | - | - | - | - | - | - | - | No flags affected |
-| HASH | - | - | - | - | - | - | - | No flags affected |
-| ENCRYPT | - | - | - | - | - | - | - | No flags affected |
-| DECRYPT | - | - | - | - | - | - | - | No flags affected |
-| VERIFY | ✓ | - | - | - | - | - | - | Z: set if verification fails |
+Flags enable conditional execution through the BR, CALL, and RET instructions with condition codes:
+
+| Condition Code | Mnemonic | Description | Flag Expression | Extension |
+|----------------|----------|-------------|-----------------|-----------|
+| 0x00 | EQ | Equal (Zero) | Z = 1 | Core |
+| 0x01 | NEQ | Not Equal (Not Zero) | Z = 0 | Core |
+| 0x02 | GT | Greater Than | Z = 0 & S = V | Core |
+| 0x03 | GTE | Greater Than or Equal | Z = 1 or S = V | Core |
+| 0x04 | LT | Less Than | S ≠ V | Core |
+| 0x05 | LTE | Less Than or Equal | Z = 1 or S ≠ V | Core |
+| 0x06 | O | Overflow | V = 1 | Core |
+| 0x07 | NO | No Overflow | V = 0 | Core |
+| 0x08 | S | Sign (Negative) | S = 1 | Core |
+| 0x09 | NS | Not Sign (Not Negative) | S = 0 | Core |
+| 0x0A | Z | Zero | Z = 1 | Core |
+| 0x0B | NZ | Not Zero | Z = 0 | Core |
+| 0x0C | C | Carry | C = 1 | Core |
+| 0x0D | NC | No Carry | C = 0 | Core |
+| 0x0E | D | Divide by Zero | D = 1 | Core |
+| 0x0F | ND | No Divide by Zero | D = 0 | Core |
+| 0x10 | N | NaN Result | N = 1 | Core |
+| 0x11 | NN | Not NaN Result | N = 0 | Core |
+| 0x12 | P | Even Parity | P = 1 | Core |
+| 0x13 | NP | Odd Parity | P = 0 | Core |
+
+## Flag Preservation
+
+Instructions that do not affect specific flags must preserve their previous values. Implementations must not reset flag values unless explicitly specified in the instruction behavior.
 
 ## Type-Dependent Flag Behavior
 
@@ -186,62 +195,3 @@ Flag behavior varies based on operand types:
 - **Carry/Overflow Flags (C/V)**: Reflect element-wise operations
 - **NaN Flag (N)**: Set if any element is NaN
 - **Parity Flag (P)**: Not typically affected
-
-## Conditional Execution
-
-Flags enable conditional execution through the BR, CALL, and RET instructions with condition codes:
-
-| Condition Code | Mnemonic | Description | Flag Expression |
-|----------------|----------|-------------|-----------------|
-| 0x00 | EQ | Equal (Zero) | Z = 1 |
-| 0x01 | NEQ | Not Equal (Not Zero) | Z = 0 |
-| 0x02 | GT | Greater Than | Z = 0 & S = V |
-| 0x03 | GTE | Greater Than or Equal | Z = 1 or S = V |
-| 0x04 | LT | Less Than | S ≠ V |
-| 0x05 | LTE | Less Than or Equal | Z = 1 or S ≠ V |
-| 0x06 | O | Overflow | V = 1 |
-| 0x07 | NO | No Overflow | V = 0 |
-| 0x08 | S | Sign (Negative) | S = 1 |
-| 0x09 | NS | Not Sign (Not Negative) | S = 0 |
-| 0x0A | Z | Zero | Z = 1 |
-| 0x0B | NZ | Not Zero | Z = 0 |
-| 0x0C | C | Carry | C = 1 |
-| 0x0D | NC | No Carry | C = 0 |
-| 0x0E | D | Divide by Zero | D = 1 |
-| 0x0F | ND | No Divide by Zero | D = 0 |
-| 0x10 | N | NaN Result | N = 1 |
-| 0x11 | NN | Not NaN Result | N = 0 |
-| 0x12 | P | Even Parity | P = 1 |
-| 0x13 | NP | Odd Parity | P = 0 |
-
-## Flag Preservation
-
-Instructions that do not affect specific flags must preserve their previous values. Implementations must not reset flag values unless explicitly specified in the instruction behavior.
-
-## Flag Edge Cases
-
-This section clarifies how flags behave in special circumstances:
-
-### Zero-value Operations
-- `NEG 0` sets Z=1, S=0, C=0, V=0
-- `ABS 0` sets Z=1, S=0, V=0
-- `NOT 0` sets Z=0, S depends on data type width
-
-### Minimum Signed Value Operations
-- `NEG INT32_MIN (-2147483648)` sets Z=0, S=1, C=1, V=1
-- `ABS INT32_MIN (-2147483648)` sets Z=0, S=0, V=1 (result still negative in 2's complement)
-
-### Floating-Point Special Values
-- Operations with NaN set N=1 and generally leave other flags unmodified
-- Operations with ±Infinity follow IEEE-754 rules and set flags accordingly
-- Comparisons with NaN generally set Z=0, S=0, N=1
-
-### Vector/Matrix Dimensions
-- Operations on empty vectors (length 0) set Z=1
-- Operations on empty matrices (any dimension is 0) set Z=1
-
-## Related Components
-
-- [Control Flow](../isa-u/control-flow.md) - Instructions that use flags for conditional execution
-- [Arithmetic Operations](../isa-u/arithmetic-operations.md) - Operations that set flags
-- [Binary Format](../format/binary-format.md) - Binary encoding of instructions

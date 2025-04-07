@@ -73,14 +73,6 @@ Sections from different object files are merged according to these specific algo
    - `.data` sections: Merged in order, variable boundaries preserved
    - `.bss` sections: Sizes summed (no data copied, zero-initialized at runtime)
    - `.rodata` sections: Merged in order, constant boundaries preserved
-   - Debug sections: Either preserved intact or stripped based on options
-
-4. **Section Layout Algorithm**:
-   - Text sections placed first (lowest addresses)
-   - Read-only data sections placed next
-   - Writable data sections placed next
-   - BSS sections placed last (highest addresses)
-   - Each section aligned according to its requirements
 
 ### 4. Relocation Processing
 
@@ -101,11 +93,6 @@ For each relocation entry:
    - Compute the final value
    - Verify the value fits in the target field size
    - Patch the reference with the calculated value
-
-4. **Relocation Table Generation**:
-   - For shared objects, some relocations may need to be applied at load time
-   - Generate a dynamic relocation table for these entries
-   - Include necessary symbol information
 
 #### Relocation Formulas
 
@@ -139,35 +126,112 @@ Specialized formulas for different types:
    ```
    Where G is the GOT offset of the symbol
 
-4. **Size (R_SIZE)**:
-   ```
-   V = Z + A
-   ```
-   Where Z is the size of the symbol
+## Object Format
 
-### 5. Output Generation
+COIL object files have the following structure:
 
-Generate the final linked output:
+```
+[File Header]
+[Section Table]
+[Symbol Table]
+[String Table]
+[Relocation Table]
+[Sections...]
+```
 
-1. **Header Creation**:
-   - Generate appropriate file header
-   - Set entry point if executable
-   - Include necessary metadata
+### File Header
 
-2. **Section Layout**:
-   - Organize sections according to layout rules
-   - Apply alignment requirements to each section
-   - Compute final addresses (virtual and file offsets)
+The file header identifies the file as a COIL object and provides essential metadata:
 
-3. **Symbol Table**:
-   - Generate final symbol table for debugging or dynamic linking
-   - Update symbol values to reference final addresses
-   - Strip local symbols if requested
+```c
+struct CoilObjectHeader {
+    char     magic[4];         // "COIL"
+    uint32_t version;          // Version in format 0xMMmmpp (Major, minor, patch)
+    uint32_t flags;            // File flags
+    uint32_t target_pu;        // Target processing unit
+    uint32_t target_arch;      // Target architecture
+    uint32_t target_mode;      // Target mode
+    uint64_t entry_point;      // Entry point (or 0 if not executable)
+    uint32_t section_count;    // Number of sections
+    uint32_t symbol_count;     // Number of symbols
+    uint32_t reloc_count;      // Number of relocations
+    uint64_t section_offset;   // Offset to section table
+    uint64_t symbol_offset;    // Offset to symbol table
+    uint64_t string_offset;    // Offset to string table
+    uint64_t reloc_offset;     // Offset to relocation table
+    uint8_t  endianness;       // 0 = little-endian, 1 = big-endian
+    uint8_t  padding[7];       // Reserved for future use, must be 0
+}
+```
 
-4. **Relocation Info**:
-   - Keep or discard relocation info based on output type
-   - For executables: Apply all relocations, discard table
-   - For shared objects: Keep dynamic relocations
+File flags:
+- `0x0001`: Executable
+- `0x0002`: Shared object
+- `0x0004`: Position independent
+- `0x0008`: Debug information included
+- `0x0010`: Relocatable object
+- `0x0020`: Contains CPU-specific code
+- `0x0040`: Contains GPU-specific code
+- `0x0080`: Contains NPU-specific code
+- `0x0100`: Contains DSP-specific code
+
+### Section Table
+
+The section table maps the various sections within the file:
+
+```c
+struct SectionEntry {
+    uint32_t type;       // Section type
+    uint32_t flags;      // Section flags
+    uint64_t offset;     // Offset from file start
+    uint64_t size;       // Section size in bytes
+    uint64_t addr;       // Virtual address (if applicable)
+    uint64_t align;      // Section alignment
+    uint32_t name_idx;   // Index into string table
+    uint32_t link;       // Related section (depends on type)
+    uint32_t info;       // Additional information
+}
+```
+
+Section types:
+- `0x01`: Code section (.text)
+- `0x02`: Data section (.data)
+- `0x03`: Read-only data (.rodata)
+- `0x04`: BSS (uninitialized data, .bss)
+- `0x05`: Symbol table (.symtab)
+- `0x06`: String table (.strtab)
+- `0x07`: Relocation table (.rel)
+
+### Symbol Table
+
+The symbol table defines global symbols and their attributes:
+
+```c
+struct SymbolEntry {
+    uint32_t name_idx;   // Index into string table
+    uint32_t section_idx; // Section containing the symbol (0=undefined)
+    uint64_t value;      // Symbol value (offset or address)
+    uint64_t size;       // Symbol size in bytes
+    uint16_t type;       // Symbol type
+    uint16_t bind;       // Symbol binding
+    uint16_t visibility; // Symbol visibility
+    uint16_t reserved;   // Reserved for future use, must be 0
+}
+```
+
+Symbol types:
+- `0x00`: No type
+- `0x01`: Function
+- `0x02`: Data object
+- `0x03`: Section
+- `0x04`: File
+- `0x05`: Common block
+
+Symbol binding:
+- `0x00`: Local (not visible outside the object file)
+- `0x01`: Global (visible to all objects being combined)
+- `0x02`: Weak (visible to all objects but with lower precedence)
+- `0x03`: Unique (merged with same-named symbols)
 
 ## Dynamic Linking
 
@@ -187,17 +251,10 @@ Shared objects have special linking requirements:
    - Explicit control over exported symbols
    - Default: Export all global symbols
    - Hidden/Protected: Control symbol visibility granularly
-   - Version scripts can further refine exports
 
-3. **Version Information**:
-   - Optional versioning of symbols
-   - Multiple versions of same symbol
-   - Compatible with symbol versioning schemes
-
-4. **Initialization**:
+3. **Initialization**:
    - Entry points for loading and unloading
    - Constructor/destructor functions
-   - TLS (Thread Local Storage) setup
 
 ### Dynamic Loading
 
@@ -220,33 +277,8 @@ The dynamic loading process follows these steps:
 
 4. **Initialization**:
    - Execute module initialization code
-   - Set up TLS data
+   - Set up data
    - Call constructor functions
-
-## Symbol Namespaces
-
-COIL organizes symbols into distinct namespaces:
-
-1. **Global Namespace**:
-   - Default for all global and weak symbols
-   - Flat namespace shared across all objects
-   - Potential for naming conflicts
-
-2. **Module Namespace**:
-   - Symbols internal to a module (hidden/internal visibility)
-   - Protected from external conflicts
-   - Not exposed in dynamic linking
-
-3. **Function Namespace**:
-   - Local labels within a function
-   - Not visible outside function scope
-   - Not exported in symbol table
-
-Symbol visibility specifies scope:
-- **Default**: Globally visible, can be overridden
-- **Protected**: Visible but not overridable
-- **Hidden**: Visible only within the module
-- **Internal**: Same as hidden but may be optimized more aggressively
 
 ## Name Mangling
 
@@ -273,101 +305,10 @@ Mangling schemes:
    - More precise than C++ mangling
    - Used for COIL-to-COIL linking
 
-## Executable Loading Process
+## Implementation Requirements
 
-When a COIL executable is loaded:
-
-1. **Memory Mapping**:
-   - Map sections to appropriate memory regions
-   - Apply permissions (read, write, execute)
-   - Align sections according to requirements
-
-2. **Relocation**:
-   - Apply any remaining dynamic relocations
-   - Resolve external symbols
-
-3. **Initialization**:
-   - Setup runtime environment
-   - Stack initialization (size, location)
-   - Heap initialization
-   - Environment variable setup
-   - TLS initialization
-
-4. **Execution**:
-   - Transfer control to the entry point
-   - Call main function with appropriate arguments
-
-## Platform Integration
-
-COIL supports integration with different platform binary formats:
-
-- **ELF**: Standard on Linux, BSD, and many Unix-like systems
-- **PE/COFF**: Standard on Windows
-- **Mach-O**: Standard on macOS and iOS
-- **Raw Binary**: For embedded systems without an OS
-
-Each format:
-- Has a translation layer to/from COIL format
-- Preserves all necessary COIL semantics
-- Maps COIL constructs to native equivalents
-
-## Linking Directives
-
-Linking behavior can be controlled with compiler directives:
-
-- **SECT**: Define sections and their attributes
-  ```
-  SECT ".text.init", EXEC | READ  // Executable read-only section
-  ```
-
-- **DEF**: Define symbols for the linker
-  ```
-  DEF VERSION, "1.0.0"  // Define VERSION symbol
-  ```
-
-- **ABI**: Specify Application Binary Interface
-  ```
-  ABI SystemV  // Use SystemV calling convention
-  ```
-
-## Complete Linking Example
-
-Consider two object files:
-
-**main.o:**
-- Sections: .text, .data, .bss
-- Symbols: main (defined), printf (undefined)
-
-**utils.o:**
-- Sections: .text, .rodata
-- Symbols: print_message (defined), message (defined)
-
-Linking process:
-
-1. **Symbol Resolution**:
-   - main: Defined in main.o
-   - printf: Undefined, must be provided by external library
-   - print_message: Defined in utils.o
-   - message: Defined in utils.o (rodata)
-
-2. **Section Merging**:
-   - .text: main.o.text + utils.o.text
-   - .data: main.o.data
-   - .rodata: utils.o.rodata
-   - .bss: main.o.bss
-
-3. **Relocation**:
-   - Update calls from main to print_message
-   - Update references to message
-   - Keep printf as dynamic relocation
-
-4. **Output**:
-   - Executable with entry point at main
-   - Dynamic linkage for printf
-
-## Related Components
-
-- [Object Format](../format/object-format.md) - COIL object file specification
-- [Binary Format](../format/binary-format.md) - COIL binary encoding
-- [Code Organization](../isa-c/code-organization.md) - Section management directives
-- [Memory Model](./memory-model.md) - Memory organization
+1. **Symbol Resolution**: Correctly implement symbol binding precedence rules
+2. **Section Merging**: Follow the precise section merging algorithm
+3. **Relocation Processing**: Handle all relocation types for the target architecture
+4. **Object Format**: Support the standard COIL object format
+5. **Error Handling**: Report clear errors for undefined symbols, conflicting definitions, etc.
