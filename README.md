@@ -15,113 +15,90 @@ The COIL project aims to:
 
 ## Architecture
 
-COIL follows a multi-stage compilation process:
+COIL follows a streamlined, cross-platform compilation process:
 
 ```
-Source Code (.c, etc.) → COIL C Compiler (ccc) → COIL Files (.coil) → COIL Object Processor (COP) → COIL Objects (.coilo) → COIL Latent Linker (cll) → Executable
+Source Code (.c, etc.) → COIL C Compiler (ccc) → COIL IR Files (.coil) → COIL Object Processor (COP) → COIL Native Objects (.coilo) → COIL Latent Linker (cll) → Executable
 ```
 
-Alternatively, COIL can generate native object files:
+In this architecture:
+1. Front-end compilers like CCC translate source code to the COIL intermediate representation
+2. COP processes COIL IR into native machine code, but preserves it in the cross-platform COIL Object format (.coilo)
+3. CLL handles the final transformation to platform-specific executable formats, managing all native object format complexities
 
-```
-COIL Files (.coil) → COIL Object Processor (COP) → Native Objects (.o) → OS Linker → Executable
-```
-
-The second approach (using CLL) provides greater control over the compilation process and better support for cross-platform development and optimization.
+This approach provides several key advantages:
+- Maintains a consistent cross-platform representation until the final linking stage
+- Concentrates platform-specific complexity in the CLL component
+- Simplifies COP implementations by removing the need to output different native formats
+- Enables more sophisticated cross-platform optimization opportunities
 
 ## Components
 
 ### Libraries
 
 - **libcoilt**: Core toolchain utilities that replace standard C library functions with safe, optimized alternatives.
-- **libcoil**: Library for reading, writing, and manipulating COIL files.
-- **libnof**: Library for working with native object file formats across different platforms.
+- **libcoil**: Library for reading, writing, and manipulating COIL files and objects.
 - **libcop**: API for the COIL Object Processor functionality.
-- **libcll**: API for the COIL Latent Linker functionality.
+- **libcll**: API for the COIL Latent Linker functionality, handling native object formats internally.
 
 ### Tools
 
-- **ccc (COIL C Compiler)**: Front-end compiler that translates C code to COIL representation.
-- **cop (COIL Object Processor)**: Processes COIL files into either native object files or COIL objects with machine code (.coilo uses the same format).
-- **cll (COIL Latent Linker)**: Links COIL object files and native binaries into executable formats.
+- **ccc (COIL C Compiler)**: Front-end compiler that translates C code to COIL intermediate representation.
+- **cop (COIL Object Processor)**: Processes COIL IR files into COIL objects containing native machine code (.coilo).
+- **cll (COIL Latent Linker)**: Transforms COIL objects into platform-specific executables, handling all native format requirements.
 
 ## File Formats
 
 - **.coil**: The COIL intermediate representation file format
-- **.coilo**: COIL object file format that contains compiled COIL code ready for linking
+- **.coilo**: COIL object file format that contains native machine code while maintaining cross-platform compatibility
 
 ## Getting Started
 
 ### Prerequisites
 
-- CMake 3.15+
-- C11 compatible compiler
+- make
+- C99 compatible compiler
 - Git
 
-### Building from Source
-
-```bash
-# Clone the repository
-git clone https://github.com/yourusername/coil-project.git
-cd coil-project
-
-# Create build directory
-mkdir build && cd build
-
-# Configure and build
-cmake ..
-make
-
-# Run tests
-make test
-
-# Install
-make install
-```
 
 ### Example Usage
 
-Basic compilation of a C file to executable:
+Compilation of a C file to executable:
 
 ```bash
-# Compile C to COIL
+# Compile C to COIL IR
 ccc -o program.coil program.c
 
-# Process COIL to COIL object
+# Process COIL IR to COIL object with native code
 cop -o program.coilo program.coil
 
-# Link to executable
+# Link to executable for the current platform
 cll -o program program.coilo
-```
 
-Direct compilation to native object:
-
-```bash
-# Compile C to COIL
-ccc -o program.coil program.c
-
-# Process COIL to native object
-cop --native -o program.o program.coil
-
-# Link with native linker
-gcc -o program program.o
+# Or link to executable for a different platform
+cll -o program.exe --format=PE --pu=CPU --arch=x86-32 program.coilo
 ```
 
 ## Development Status
 
 The COIL project is currently in active development:
 
-- ✅ libcoilt-dev: Basic utilities and memory management implemented
-- ✅ libcoil-dev: COIL file format reading and writing support
-- 🔄 libnof-dev: Native object format support under development
+- ✅ libcoilt: Basic utilities and memory management implemented
+- ✅ libcoil: COIL file format reading and writing support
 - 🔄 COP: Initial implementation in progress
-- 🔄 CLL: Design phase
+- 🔄 CLL: Design phase with native object format support integrated
 
 ```
-                  [libcoilt-dev]
-      [libcoil-dev]         [libnof-dev]
-[CCC,etc...]   ->    [COP]       ->      [CLL]
+                  [libcoilt]
+                     ↓
+                  [libcoil]
+                     ↓
+[CCC,etc...] → [COP] → [CLL] → Native Executables
 ```
+
+## Future Considerations
+
+While the current architecture embeds native code in the COIL object format, future versions may explore a dedicated cross-platform native object format that provides additional optimization opportunities across different target platforms.
 
 ## License
 
