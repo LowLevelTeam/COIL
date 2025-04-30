@@ -1,24 +1,24 @@
-# COIL Project
+# COIL - Computer Oriented Intermediate Language
 
-**C**omputer **O**riented **I**ntermediate **L**anguage (COIL) - A modern toolchain for compilation, optimization, and cross-platform development.
+COIL (Computer Oriented Intermediate Language) is a modern toolchain for compilation, optimization, and cross-platform development. It provides a unified approach to generating machine code for diverse hardware targets while maintaining portability.
 
 ## Overview
 
 COIL is a comprehensive toolchain that provides a platform-independent intermediate representation for code compilation and optimization. Similar to LLVM's approach, COIL defines a binary machine language that serves as a common format between front-end compilers and back-end machine code generators.
 
-The COIL project aims to:
-- Provide a well-defined intermediate representation for compiled code
-- Enable cross-platform compilation and optimization
-- Support the creation of language-specific front-ends
-- Facilitate architecture-specific back-ends
-- Offer a complete toolchain from source code to executable binaries
+The COIL project's key features include:
+- A well-defined intermediate representation for compiled code
+- Cross-platform compilation and optimization
+- Support for multiple processing units (CPU, GPU, etc.) and architectures
+- Embedding of native machine code with metadata for specific targets
+- A complete toolchain from source code to executable binaries
 
 ## Architecture
 
 COIL follows a streamlined, cross-platform compilation process:
 
 ```
-Source Code (.c, etc.) → COIL C Compiler (ccc) → COIL IR Files (.coil) → COIL Object Processor (COP) → COIL Native Objects (.coilo) → COIL Latent Linker (cll) → Executable
+Source Code → COIL C Compiler (ccc) → COIL IR Files (.coil) → COIL Object Processor (COP) → COIL Native Objects (.coilo) → COIL Latent Linker (cll) → Executable
 ```
 
 In this architecture:
@@ -26,31 +26,73 @@ In this architecture:
 2. COP processes COIL IR into native machine code, but preserves it in the cross-platform COIL Object format (.coilo)
 3. CLL handles the final transformation to platform-specific executable formats, managing all native object format complexities
 
-This approach provides several key advantages:
-- Maintains a consistent cross-platform representation until the final linking stage
-- Concentrates platform-specific complexity in the CLL component
-- Simplifies COP implementations by removing the need to output different native formats
-- Enables more sophisticated cross-platform optimization opportunities
+## Native Code Support
+
+COIL introduces a powerful approach to handling native code across multiple platforms:
+
+### Double Value Architecture Specification
+
+COIL uses a dual-level specification for target architectures:
+1. **Processing Unit (PU)**: The type of processor (CPU, GPU, TPU, etc.)
+2. **Architecture**: The specific architecture within that PU category (x86-64, ARM64, NVIDIA PTX, etc.)
+
+This approach allows COIL to:
+- Support a wide range of hardware targets
+- Clearly separate platform-specific code
+- Enable cross-compilation between different architectures
+- Expand to new processing units as they emerge
+
+### Native Code in COIL Objects
+
+COIL object files can contain native machine code alongside the IR:
+- Each section can have associated metadata specifying its target PU and architecture
+- Multiple native code sections can exist for different targets
+- Feature flags allow fine-grained control over architecture-specific optimizations
+
+The `.coilo` extension is used for COIL object files that contain native code, though the underlying format is the same as regular COIL files with additional metadata.
 
 ## Components
 
 ### Libraries
 
-- **libcoilt**: Core toolchain utilities that replace standard C library functions with safe, optimized alternatives.
-- **libcoil**: Library for reading, writing, and manipulating COIL files and objects.
-- **libcop**: API for the COIL Object Processor functionality.
+- **libcoil**: Core library for reading, writing, and manipulating COIL files and objects with native code support.
+- **libcop**: API for the COIL Object Processor functionality, translating COIL IR to native code.
 - **libcll**: API for the COIL Latent Linker functionality, handling native object formats internally.
 
 ### Tools
 
 - **ccc (COIL C Compiler)**: Front-end compiler that translates C code to COIL intermediate representation.
 - **cop (COIL Object Processor)**: Processes COIL IR files into COIL objects containing native machine code (.coilo).
-- **cll (COIL Latent Linker)**: Transforms COIL objects into platform-specific executables, handling all native format requirements.
+- **cll (COIL Latent Linker)**: Transforms COIL objects into platform-specific executables for various targets.
 
 ## File Formats
 
 - **.coil**: The COIL intermediate representation file format
-- **.coilo**: COIL object file format that contains native machine code while maintaining cross-platform compatibility
+- **.coilo**: COIL object file format that contains native machine code with architecture metadata
+
+## Supported Platforms
+
+### Processing Units
+- CPU (Central Processing Unit)
+- GPU (Graphics Processing Unit)
+- TPU (Tensor Processing Unit)
+- NPU (Neural Processing Unit)
+- DSP (Digital Signal Processor)
+- FPGA (Field-Programmable Gate Array)
+
+### CPU Architectures
+- x86 (16 bit, 32-bit and 64-bit)
+- ARM (thumb, 32-bit and 64-bit)
+- RISC-V (32-bit, 64-bit adn 128-bit)
+- PowerPC (32-bit and 64-bit)
+- MIPS (32-bit and 64-bit)
+- WebAssembly (32-bit and 64-bit)
+
+### GPU Architectures
+(More work is being done as most GPU code will utilize a new COIL Byte Code (CBC) ISA for runtime JIT so GPU device code will almost never be stored in objects)
+- NVIDIA (SASS)
+- AMD (GCN, RDNA)
+- Intel (Gen9, Xe)
 
 ## Getting Started
 
@@ -60,10 +102,19 @@ This approach provides several key advantages:
 - C99 compatible compiler
 - Git
 
+### Build
+
+```bash
+git clone https://github.com/coil-project/coil.git
+cd coil
+mkdir build && cd build
+cmake ..
+make
+```
 
 ### Example Usage
 
-Compilation of a C file to executable:
+#### Basic Compilation
 
 ```bash
 # Compile C to COIL IR
@@ -74,31 +125,53 @@ cop -o program.coilo program.coil
 
 # Link to executable for the current platform
 cll -o program program.coilo
+```
 
-# Or link to executable for a different platform
+#### Cross-Platform Compilation
+
+```bash
+# Compile for a specific target
+cop --pu=CPU --arch=x86-64 -o program_x86_64.coilo program.coil
+
+# Compile for multiple targets in a single object
+cop --pu=CPU --arch=x86-64 --pu=CPU --arch=ARM64 -o program_multi.coilo program.coil
+
+# Link to executable for Windows x86-32
 cll -o program.exe --format=PE --pu=CPU --arch=x86-32 program.coilo
+```
+
+## Advanced Features
+
+### Per-Section Architecture Targeting
+
+COIL allows different sections of code to target different architectures:
+
+```bash
+# Create a COIL object with mixed architecture sections
+cop --section=.text --pu=CPU --arch=x86-64 \
+    --section=.gpu_code --pu=GPU --arch=NV_CUDA \
+    -o mixed_program.coilo program.coil
+```
+
+### Feature-Specific Optimizations
+
+Enable specific architecture features for optimized code:
+
+```bash
+# Generate code optimized for AVX2
+cop --pu=CPU --arch=x86-64 --features=AVX2 -o program_avx2.coilo program.coil
+
+# Generate code for ARM with NEON SIMD
+cop --pu=CPU --arch=ARM64 --features=NEON -o program_neon.coilo program.coil
 ```
 
 ## Development Status
 
 The COIL project is currently in active development:
 
-- ✅ libcoilt: Basic utilities and memory management implemented
-- ✅ libcoil: COIL file format reading and writing support
-- 🔄 COP: Initial implementation in progress
+- ✅ libcoil: COIL file format reading and writing support with native code capabilities
+- 🔄 COP: Implementation with multiple target architecture support
 - 🔄 CLL: Design phase with native object format support integrated
-
-```
-                  [libcoilt]
-                     ↓
-                  [libcoil]
-                     ↓
-[CCC,etc...] → [COP] → [CLL] → Native Executables
-```
-
-## Future Considerations
-
-While the current architecture embeds native code in the COIL object format, future versions may explore a dedicated cross-platform native object format that provides additional optimization opportunities across different target platforms.
 
 ## License
 
