@@ -1,6 +1,6 @@
 # CBCG.1
 
-Specification for sub section one of COIL Byte Code for GPU (CBCG)
+Specification for sub section one of COIL Byte Code for GPU
 
 ## Overview
 ...

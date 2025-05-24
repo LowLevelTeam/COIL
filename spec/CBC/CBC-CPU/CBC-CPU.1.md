@@ -1,6 +1,6 @@
 # CBCC.1
 
-Specification for sub section one of COIL Byte Code for CPU (CBCC)
+Specification for sub section one of COIL Byte Code for CPU
 
 ## Overview
 Support for Integers and Basic Instructions

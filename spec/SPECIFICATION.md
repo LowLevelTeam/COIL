@@ -32,39 +32,39 @@ Complex Types
 
 ## Output/Native Specifications
 
-### CBCC
+### CBC-CPU
 COIL Byte Code Central Processing Unit Specification
 
 A COIL Byte Code processor can then specify its current capability in development using this specification.
 
-In practice a CBC-CPU/CBCC Processor could specify for each architecture a level of support for compiling using the instruction set.
-i.e. CBCC.x86.1, CBCC.x86_32.2, CBCC.x86_64.4, CBCC.armthumb.1 CBCC.arm32.1 CBCC.arm64.1 CBCC.riscv32.0 CBCC.riscv64.0 CBCC.riscv128.0
+In practice a CBC-CPU Processor could specify for each architecture a level of support for compiling using the instruction set.
+i.e. CBC-CPU.x86.1, CBC-CPU.x86_32.2, CBC-CPU.x86_64.4, CBC-CPU.armthumb.1 CBC-CPU.arm32.1 CBC-CPU.arm64.1 CBC-CPU.riscv32.0 CBC-CPU.riscv64.0 CBC-CPU.riscv128.0
 An easy way for contributors to know what needs work to become functional.
 
-#### CBCC.1
+#### CBC-CPU.1
 Support for Integers and Basic Instructions
 
-#### CBCC.2
+#### CBC-CPU.2
 Support for more sophisticated compound instructions.
 
-#### CBCC.3
+#### CBC-CPU.3
 Support for floating points and advanced arithmetic instructions
 
-#### CBCC.4
+#### CBC-CPU.4
 Support for vectors and vector specific instructions.
 
-#### CBCC.5
+#### CBC-CPU.5
 Support for processing unit and architecture specific instructions.
 
-### CBCG
+### CBC-GPU
 COIL Byte Code Graphics Processing Unit Specification
 
-**Working on CBCC first.**
+**Working on CBC-CPU first.**
 
 ## Linker Specifications
 
 ### FMT.1
-Support for Binary Format (No Format)
+Support for COIL Objects, Binary Format (No Format)
 
 ### FMT.2
 Support for major formats (ELF64, MACH-O, PE)
