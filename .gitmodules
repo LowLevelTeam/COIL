@@ -1,3 +1,0 @@
-[submodule "lib/libcoil-dev"]
-	path = lib/libcoil-dev
-	url = git@github.com:LowLevelTeam/libcoil-dev.git

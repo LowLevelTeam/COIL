@@ -18,7 +18,7 @@ The COIL project's key features include:
 COIL follows a streamlined, cross-platform compilation process:
 
 ```
-Source Code → COIL C Compiler (ccc) → COIL IR Files (.coil) → COIL Object Processor (COP) → COIL CBC Objects (.coilbc) → COIL Object Code Generator (COCG) → COIL Native Objects (.coilo) → COIL Latent Linker (cll) → Executable
+Source Code → COIL C Compiler (ccc) → COIL IR Files (.coil) → COIL Object Processor (COP) → COIL Byte Code Objects (.coilbc) → COIL Object Code Generator (COCG) → COIL Native Objects (.coilo) → COIL Latent Linker (cll) → Executable,Library,Binary,etc...
 ```
 
 In this architecture:
