@@ -1,147 +1,56 @@
-# COIL - Computer Oriented Intermediate Language
-
-COIL (Computer Oriented Intermediate Language) is a modern toolchain for compilation, optimization, and cross-platform development. It provides a unified approach to generating machine code for diverse hardware targets while maintaining portability.
+# COIL
 
 ## Overview
 
-COIL is a comprehensive toolchain that provides a platform-independent intermediate representation for code compilation and optimization. Similar to LLVM's approach, COIL defines a binary machine language that serves as a common format between front-end compilers and back-end machine code generators.
+COIL (Computer Oriented Intermediate Language) is a modern toolchain for compilation, optimization, and cross-platform development.
 
-The COIL project's key features include:
-- A well-defined intermediate representation for compiled code
-- Cross-platform compilation and optimization
-- Support for multiple processing units (CPU, GPU, etc.) and architectures
-- Embedding of native machine code with metadata for specific targets
-- A complete toolchain from source code to executable binaries
-
-## Architecture
-
-COIL follows a streamlined, cross-platform compilation process:
+The five stages of a coil toolcain.
 
 ```
-Source Code → COIL C Compiler (ccc) → COIL IR Files (.coil) → COIL Object Processor (COP) → COIL Byte Code Objects (.coilbc) → COIL Object Code Generator (COCG) → COIL Native Objects (.coilo) → COIL Latent Linker (cll) → Executable,Library,Binary,etc...
+Source Language (.c,.cpp,etc...) -> CCC (COIL C Compiler) -> COIL -> COIL Processor -> CBC -> COIL Specifier -> CBC-Specific -> COIL-Specific Processor -> Native -> Linker -> (executable,shared library,static library,object)
 ```
 
-In this architecture:
-1. Front-end compilers like CCC translate source code to the COIL intermediate representation
-2. COP processes COIL IR into CBC
-3. COCG process CBC into Native Mahine Code
-4. CLL handles the final transformation to platform-specific executable formats, managing all native object format complexities
+## Encoding Specifics
 
-## COIL and CBC: Complementary Internal Representations
+### Object Format
 
-COIL utilizes a two-tier representation approach within its processing pipeline:
+### COIL
+COIL is made as a type based high level intermediate language.
 
-### COIL IR: Type-Determined Representation
-- High-level, type-determined language where operations are determined by operand types
-- Supports advanced features like multi-dimensional vectors, composite types, and complex expressions
-- Focuses on platform-independent code representation and optimization
-- Provides rich type information and semantics for analysis and transformation
+Similar to a higher level LLVM IR.
 
-### CBC (COIL Byte Code): Instruction-Determined Representation
-- An internal lower-level, instruction-determined representation similar to native assembly
-- Each CBC instruction contains all necessary information for direct code generation
-- Facilitates:
-  - Fast JIT compilation and interpretation
-  - Simplified native code generation process with less repeated logic
+### CBC
+CBC is a fast optimizable intermediate language
 
-## Native Code Support
+Similar to a slightly higher level and more expansive WASM
 
-COIL introduces a powerful approach to handling native code across multiple platforms:
+### CBC-*
+CBC-* or CBC-Specific is not made for JIT but rather an easy way to write machine code with a similar frontend regardless of target.
+Built for each CPU and with extras for each Architecture it would be similar to CBC-CPU-MAJOR CBC-CPU-RISCV. CBC-CPU-MAJOR would be for x86 and ARM targets as they are really similar but because architectures like RISCV and other CPU architectures have intrinsics like RISCV doesn't have typical flags etc..
 
-### Double Value Architecture Specification
+## Toolchain Specifics
 
-COIL uses a dual-level specification for target architectures:
-1. **Processing Unit (PU)**: The type of processor (CPU, GPU, TPU, etc.)
-2. **Architecture**: The specific architecture within that PU category (x86-64, ARM64, NVIDIA PTX, etc.)
+The Toolchain is built to supported all three types of execution like Interpreter, JIT and AOT
 
-This approach allows COIL to:
-- Support a wide range of hardware targets
-- Clearly separate platform-specific code
-- Enable cross-compilation between different architectures
-- Expand to new processing units as they emerge
-
-### Native Code in COIL Objects
-
-COIL object files can contain native machine code alongside the IR:
-- Each section can have associated metadata specifying its target PU and architecture
-- Multiple native code sections can exist for different targets
-- Feature flags allow fine-grained control over architecture-specific optimizations
-
-The `.coilo` extension is used for COIL object files that contain native code, though the underlying format is the same as regular COIL files with additional metadata.
-
-## Components
-
-### Libraries
-
-- **libcoil**: Core library for reading, writing, and manipulating COIL objects.
-- **libcop**: API for the COIL Object Processor functionality, translating CBC to native code.
-- **libcll**: API for the COIL Latent Linker functionality, handling native object formats internally.
-
-### Tools
-
-- **ccc (COIL C Compiler)**: Front-end compiler that translates C code to COIL intermediate representation.
-- **cop (COIL Object Processor)**: Processes COIL IR files into COIL objects containing CBC (.coilbc).
-- **cocg (CBC Code Generator)**: Transforms COIL Byte Code into COIL objects containing native machine code (.coilo).
-- **cll (COIL Latent Linker)**: Transforms COIL objects into platform-specific executables for various targets.
-
-## File Formats
-
-- **.coil**: COIL object file format that contains COIL IR code
-- **.coilbc**: COIL object file format that contains COIL Byte Code
-- **.coilo**: COIL object file format that contains native machine code
-
-## Supported Platforms
-
-### Processing Units
-- CPU (Central Processing Unit)
-- GPU (Graphics Processing Unit)
-- TPU (Tensor Processing Unit)
-- NPU (Neural Processing Unit)
-- DSP (Digital Signal Processor)
-- FPGA (Field-Programmable Gate Array)
-
-### CPU Architectures
-- x86 (16 bit, 32-bit and 64-bit)
-- ARM (thumb, 32-bit and 64-bit)
-- RISC-V (32-bit, 64-bit and 128-bit)
-- PowerPC (32-bit and 64-bit)
-- MIPS (32-bit and 64-bit)
-- WebAssembly (32-bit and 64-bit)
-
-### GPU Architectures
-- NVIDIA (SASS)
-- AMD (GCN, RDNA)
-- Intel (Gen9, Xe)
-
-Note: Most GPU code will utilize the COIL Byte Code (CBC) internal representation for runtime JIT, so GPU device code will almost never be stored directly in objects.
-
-## Getting Started
-
-### Prerequisites
-
-- make
-- C99 compatible compiler
-- Git
-
-### Build
-
-```bash
-git clone https://github.com/coil-project/coil.git
-cd coil
-mkdir build && cd build
-cmake ..
-make
+AOT
 ```
-## Development Status
+Source Language (.c,.cpp,etc...) -> CCC (COIL C Compiler) -> COIL -> COIL Processor -> CBC -> COIL Specifier -> CBC-Specific -> COIL-Specific Processor -> Native -> Linker -> (executable,shared library,static library,object)
+```
 
-The COIL project is currently in active development:
+JIT
+```
+CBC -> CBC Specifier -> CBC-Specific -> COIL-Specific Processor -> Native
+```
 
-- ✅ libcoil: COIL file format reading and writing support with native code capabilities
-- 🔄 COP: Implementation for transpiling COIL to CBC
-- 🔄 COCG: Implementing with multiple target architecture support
-- 🔄 CLL: Design phase with native object format support integrated
+Interpreter
+```
+Source Language (.py,.java,etc...) -> CPI (COIL Python Interpreter) -> CBC -> CBC Specifier -> CBC-Specific -> COIL-Specific Processor -> Native -> Linker -> Execute
+```
 
-## License
+Complex Hetregenous Computing
+```
+Host Code -> AOT -> Execute -> JIT (Device CBC) -> Device Execution
+Device Code -> COIL Compiler -> COIL -> COIL Processor -> CBC
+```
 
-This project is licensed under [LICENSE](LICENSE) - see the file for details.
 
