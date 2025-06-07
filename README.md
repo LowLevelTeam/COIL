@@ -1,56 +1,108 @@
-# COIL
+# TBD Toolchain
+
+> **Note**: This project is in early development. The name "TBD" is a placeholder while we decide on the final branding.
+
+A modern cross-platform toolchain for compilation, optimization, and development targeting multiple processor architectures with a unified approach to instruction set design.
 
 ## Overview
 
-COIL (Computer Oriented Intermediate Language) is a modern toolchain for compilation, optimization, and cross-platform development.
+TBD Toolchain introduces a novel approach to cross-platform development through a three-layer architecture:
 
-The five stages of a coil toolcain.
+- **Low-Level ISA**: Target-specific instruction sets optimized for different processor families
+- **High-Level ISA (TBD++)**: A unified intermediate representation for high-level language constructs
+- **Object Format**: A standardized object file format supporting mixed native and intermediate code
 
-```
-Source Language (.c,.cpp,etc...) -> CCC (COIL C Compiler) -> COIL -> COIL Processor -> CBC -> COIL Specifier -> CBC-Specific -> COIL-Specific Processor -> Native -> Linker -> (executable,shared library,static library,object)
-```
+## Architecture
 
-## Encoding Specifics
+### Low-Level ISA
 
-### Object Format
+The Low-Level ISA consists of multiple target-specific instruction sets, each optimized for different processor families and their execution models.
 
-### COIL
-COIL is made as a type based high level intermediate language.
+#### CPU-Default (Flag-Based Architecture)
 
-Similar to a higher level LLVM IR.
+Designed for processors that use condition flags for branching and comparisons, including:
 
-### CBC
-CBC is a fast optimizable intermediate language
+- **x86 family**: 16-bit, 32-bit, and 64-bit variants
+- **ARM family**: Thumb, 32-bit, and 64-bit variants
+- **Other compatible architectures**
 
-Similar to a slightly higher level and more expansive WASM
+**Key Characteristics:**
+- Flag-based conditional execution and branching
+- Unified support for 64-bit operations (with appropriate performance considerations on legacy hardware)
+- Optional features: MMU, interrupts, atomics, vector operations
+- Backwards compatibility with 16-bit systems (with performance trade-offs)
 
-### CBC-*
-CBC-* or CBC-Specific is not made for JIT but rather an easy way to write machine code with a similar frontend regardless of target.
-Built for each CPU and with extras for each Architecture it would be similar to CBC-CPU-MAJOR CBC-CPU-RISCV. CBC-CPU-MAJOR would be for x86 and ARM targets as they are really similar but because architectures like RISCV and other CPU architectures have intrinsics like RISCV doesn't have typical flags etc..
+**Design Rationale:**
+Traditional RISC architectures like RISC-V use immediate comparisons for branching (e.g., `bnez rs1, .L_loop`), while established architectures like x86 and ARM rely heavily on condition flags. This creates a fundamental incompatibility that prevents unified toolchain development. CPU-Default bridges this gap by standardizing around the flag-based model used by the majority of deployed processors.
 
-## Toolchain Specifics
+#### CPU-NoFlags
 
-The Toolchain is built to supported all three types of execution like Interpreter, JIT and AOT
+*Documentation in progress*
 
-AOT
-```
-Source Language (.c,.cpp,etc...) -> CCC (COIL C Compiler) -> COIL -> COIL Processor -> CBC -> COIL Specifier -> CBC-Specific -> COIL-Specific Processor -> Native -> Linker -> (executable,shared library,static library,object)
-```
+Target group for processors that use immediate comparison branching without condition flags.
 
-JIT
-```
-CBC -> CBC Specifier -> CBC-Specific -> COIL-Specific Processor -> Native
-```
+### High-Level ISA (TBD++)
 
-Interpreter
-```
-Source Language (.py,.java,etc...) -> CPI (COIL Python Interpreter) -> CBC -> CBC Specifier -> CBC-Specific -> COIL-Specific Processor -> Native -> Linker -> Execute
-```
+TBD++ serves as an intermediate representation that abstracts common high-level language constructs, making it easier for compiler developers to target multiple architectures without dealing with low-level architectural differences.
 
-Complex Hetregenous Computing
-```
-Host Code -> AOT -> Execute -> JIT (Device CBC) -> Device Execution
-Device Code -> COIL Compiler -> COIL -> COIL Processor -> CBC
-```
+**Features:**
+- Standardized instruction set for common programming constructs
+- Direct mapping to high-level language features (C/C++ and similar)
+- Architecture-agnostic design
+- Seamless integration with target-specific Low-Level ISA code
 
+## Object Format
 
+TBD Objects support mixed-mode compilation, containing both TBD++ intermediate code, TDB ISA and native machine code for optimal performance and flexibility.
+
+## Toolchain Components
+
+### Processor
+
+The TBD Processor handles the translation pipeline:
+
+1. **TBD++ Processing**: Parses and optimizes high-level intermediate code
+2. **Target Translation**: Converts TBD++ to target-specific TBD
+3. **Final translation**: Convert TBD target group tailored instruction sets into machine code 
+
+### Development Tools
+
+#### Compiler Integration
+- **For Compiler Developers**: Target TBD++ to leverage automatic cross-platform support
+- **Focus on Syntax**: Let the toolchain handle architecture-specific optimizations
+
+#### Assembler Support
+- **Direct Low-Level ISA**: Full access to target-specific features
+- **Direct Assembly**: Target TBD for native instructions
+
+#### Object Tools
+- **objdump**: Specialized disassembly handling for mixed TBD++/native objects
+- **Linker**: Support for TBD Objects and native formats (ELF64, PE, MACH-O, ...)
+
+## Getting Started
+
+*Documentation in progress*
+
+## Roadmap
+
+### Current Focus
+- Complete CPU-Default ISA specification
+- Implement core TBD++ instruction set
+- Develop reference processor implementation
+
+### Future Expansion
+- **GPU Support**: Async execution models and specialized instruction sets
+- **FPGA Integration**: Hardware-specific optimizations
+- **Accelerator Processors**: Support for specialized compute units
+
+## Contributing
+
+*Guidelines coming soon*
+
+## License
+
+*To be determined*
+
+---
+
+**Status**: Early Development | **Latest Update**: June 2025
