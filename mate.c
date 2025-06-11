@@ -116,7 +116,7 @@ i32 main(int argc, const char *argv[]) {
       }
     }
   }
-  
+
   StartBuild();
   {
     // libcoil-dev
@@ -134,7 +134,6 @@ i32 main(int argc, const char *argv[]) {
 
     Executable libcoil_tests = CreateExecutable((ExecutableOptions){
       .output = "libcoil-test",
-      // .flags = "./build/libcoil-dev.a",
       .std = stdlevel,
       .debug = FLAG_DEBUG,
       .warnings = FLAG_WARNINGS_VERBOSE,
@@ -145,14 +144,11 @@ i32 main(int argc, const char *argv[]) {
     AddFile(libcoil_tests, "./toolchain/libcoil-dev/tests/*.c");
     AddLibraryPaths(libcoil_tests, "./build");
     LinkSystemLibraries(libcoil_tests, "coil-dev");
+    if (isLinux()) {
+      LinkSystemLibraries(libcoil_tests, "m"); // Add math only if on linux since MSVC includes this on STD
+    }
     InstallExecutable(libcoil_tests);
     RunCommand(libcoil_tests.outputPath);
-    
-
-    // other toolchain componenets in the future...
-    // if (isLinux()) {
-    //   LinkSystemLibraries({toolchain_executable}, "m"); // Add math only if on linux since MSVC includes this on STD
-    // }
   }
   EndBuild();
 }
