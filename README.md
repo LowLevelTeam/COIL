@@ -1,15 +1,15 @@
-# TBD Toolchain
+# Orion Toolchain
 
-> **Note**: This project is in early development. The name "TBD" is a placeholder while we decide on the final branding.
+> **Note**: This project is in early development. The name "Orion" is a placeholder while we decide on the final branding.
 
 A modern cross-platform toolchain for compilation, optimization, and development targeting multiple processor architectures with a unified approach to instruction set design.
 
 ## Overview
 
-TBD Toolchain introduces a novel approach to cross-platform development through a three-layer architecture:
+Orion Toolchain introduces a novel approach to cross-platform development through a three-layer architecture:
 
 - **Low-Level ISA**: Target-specific instruction sets optimized for different processor families
-- **High-Level ISA (TBD++)**: A unified intermediate representation for high-level language constructs
+- **High-Level ISA (Orion++)**: A unified intermediate representation for high-level language constructs
 - **Object Format**: A standardized object file format supporting mixed native and intermediate code
 
 ## Architecture
@@ -41,9 +41,9 @@ Traditional RISC architectures like RISC-V use immediate comparisons for branchi
 
 Target group for processors that use immediate comparison branching without condition flags.
 
-### High-Level ISA (TBD++)
+### High-Level ISA (Orion++)
 
-TBD++ serves as an intermediate representation that abstracts common high-level language constructs, making it easier for compiler developers to target multiple architectures without dealing with low-level architectural differences.
+Orion++ serves as an intermediate representation that abstracts common high-level language constructs, making it easier for compiler developers to target multiple architectures without dealing with low-level architectural differences.
 
 **Features:**
 - Standardized instruction set for common programming constructs
@@ -53,31 +53,31 @@ TBD++ serves as an intermediate representation that abstracts common high-level 
 
 ## Object Format
 
-TBD Objects support mixed-mode compilation, containing both TBD++ intermediate code, TDB ISA and native machine code for optimal performance and flexibility.
+Orion Objects support mixed-mode compilation, containing both Orion++ intermediate code, TDB ISA and native machine code for optimal performance and flexibility.
 
 ## Toolchain Components
 
 ### Processor
 
-The TBD Processor handles the translation pipeline:
+The Orion Processor handles the translation pipeline:
 
-1. **TBD++ Processing**: Parses and optimizes high-level intermediate code
-2. **Target Translation**: Converts TBD++ to target-specific TBD
-3. **Final translation**: Convert TBD target group tailored instruction sets into machine code 
+1. **Orion++ Processing**: Parses and optimizes high-level intermediate code
+2. **Target Translation**: Converts Orion++ to target-specific Orion
+3. **Final translation**: Convert Orion target group tailored instruction sets into machine code 
 
 ### Development Tools
 
 #### Compiler Integration
-- **For Compiler Developers**: Target TBD++ to leverage automatic cross-platform support
+- **For Compiler Developers**: Target Orion++ to leverage automatic cross-platform support
 - **Focus on Syntax**: Let the toolchain handle architecture-specific optimizations
 
 #### Assembler Support
 - **Direct Low-Level ISA**: Full access to target-specific features
-- **Direct Assembly**: Target TBD for native instructions
+- **Direct Assembly**: Target Orion for native instructions
 
 #### Object Tools
-- **objdump**: Specialized disassembly handling for mixed TBD++/native objects
-- **Linker**: Support for TBD Objects and native formats (ELF64, PE, MACH-O, ...)
+- **objdump**: Specialized disassembly handling for mixed Orion++/native objects
+- **Linker**: Support for Orion Objects and native formats (ELF64, PE, MACH-O, ...)
 
 ## Getting Started
 
@@ -87,7 +87,7 @@ The TBD Processor handles the translation pipeline:
 
 ### Current Focus
 - Complete CPU-Default ISA specification
-- Implement core TBD++ instruction set
+- Implement core Orion++ instruction set
 - Develop reference processor implementation
 
 ### Future Expansion

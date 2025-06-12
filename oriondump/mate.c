@@ -1,0 +1,35 @@
+#define MATE_IMPLEMENTATION
+#include "../mate.h"
+#include "../matearg.h"
+
+i32 main(int argc, const char *argv[]) {
+  Arguments args;
+  if (argparse(argc, argv, &args) == 1) {
+    return 1;
+  }
+
+  StartBuild();
+  {
+    Executable orion_compiler = CreateExecutable((ExecutableOptions){
+      .output = "oriondump",
+      .std = args.stdlevel,
+      .debug = args.debuglevel,
+      .warnings = args.warninglevel,
+      .error = args.errorfmt,
+      .optimization = args.optlevel
+    });
+    AddIncludePaths(orion_compiler, "./include");
+    AddFile(orion_compiler, "./src/*.c");
+    if (isLinux()) {
+      LinkSystemLibraries(orion_compiler, "m"); // Add math only if on linux since MSVC includes this on STD
+    }
+    InstallExecutable(orion_compiler);
+
+    if (args.execute_commands) {
+      // dump both orion objects and native objects
+      RunCommand("oriondump ./build/arith.orion ./build/arith.native");
+      RunCommand("oriondump ./build/cf.orion ./build/cf.native");
+    }
+  }
+  EndBuild();
+}

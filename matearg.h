@@ -5,6 +5,7 @@ struct Arguments {
   WarningsFlag warninglevel;
   ErrorFormatFlag errorfmt;
   OptimizationFlag optlevel;
+  int execute_commands;
 };
 
 void argreset(Arguments *args) {
@@ -13,6 +14,7 @@ void argreset(Arguments *args) {
   args->warninglevel = FLAG_WARNINGS_VERBOSE;
   args->errorfmt = FLAG_ERROR;
   args->optlevel = FLAG_OPTIMIZATION;
+  args->execute_commands = 0;
 }
 
 
@@ -81,6 +83,9 @@ int argparse(int argc, char **argv, Arguments *args) {
           return 1;
         }
       }
+      break;
+    case 'e':
+      args->execute_commands = 1;
       break;
     default:
       LogError("Invalid argument %s\n", argv[arg]);
