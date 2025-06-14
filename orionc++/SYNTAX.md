@@ -73,13 +73,7 @@ High-Level Language → Orion++ Human (.hopp) → Orion++ Binary (.orion) → Ta
 The intermediate representation is designed to compile efficiently to various target architectures while maintaining semantic correctness:
 
 #### Supported Targets:
-- **x86/x86_64**: Intel/AMD processors with SSE/AVX support
-- **ARM/AArch64**: ARM processors with NEON support  
-- **RISC-V**: Open-source RISC instruction set
-- **WebAssembly**: Browser and server-side execution
-- **GPU**: CUDA, OpenCL, and compute shaders
-- **FPGA**: Hardware description language generation
-- **Custom**: Domain-specific processors and accelerators
+Targets every orion language variant. The human orion++ compiles first to binary orion++ then to the orion-variant like orion-cpu_flag or orion-gpu_nvidia
 
 #### Cross-Platform Features:
 - **Endianness Handling**: Automatic byte order conversion
@@ -147,7 +141,7 @@ i8        // 8-bit signed integer (-128 to 127)
 i16       // 16-bit signed integer (-32,768 to 32,767)
 i32       // 32-bit signed integer (-2^31 to 2^31-1)
 i64       // 64-bit signed integer (-2^63 to 2^63-1)
-i128      // 128-bit signed integer
+i128      // 128-bit signed integer (-2^127 to 2^127-1)
 isize     // Pointer-sized signed integer (platform dependent)
 
 // Unsigned integers
@@ -155,7 +149,7 @@ u8        // 8-bit unsigned integer (0 to 255)
 u16       // 16-bit unsigned integer (0 to 65,535)
 u32       // 32-bit unsigned integer (0 to 2^32-1)
 u64       // 64-bit unsigned integer (0 to 2^64-1)
-u128      // 128-bit unsigned integer
+u128      // 128-bit unsigned integer (0 to 2^128-1)
 usize     // Pointer-sized unsigned integer (platform dependent)
 
 // Arbitrary precision static integers
