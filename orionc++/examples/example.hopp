@@ -1,0 +1,42 @@
+// ORION++ Optional Features
+FEATURES {
+  ABICC,
+  
+  INT, // Integer type definitions
+  FLOAT, // Float type definitions
+  STRUCT,
+  UNION,
+  CLASS,
+
+  
+}
+
+SECTION .text
+
+
+// Standard types
+//  word - machine sized integer
+
+
+// Define a function symbol
+FUNCTION hello
+  (name abicc(c) *i8) // parameters
+  () // return
+  () // constants
+  (return_value: i32) // variables
+  (printf: i32(*i8, ...)) // external functions
+  (function_hello_say_name_str: cstr) // external data
+
+  { // stack scope start
+    SETARG abicc(c) 0, function_hello_say_name_str
+    SETARG abicc(c) 1, name
+    CALL abicc(c) printf
+  } // end stack scope
+  RET // jump back to callers address
+ENDFUNCTION // end function definition
+
+
+// quick insert into string table section
+DATA .strtab function_hello_say_name_str, "Hello %s\n"; // "" inserts null character, '' no null character.
+
+
