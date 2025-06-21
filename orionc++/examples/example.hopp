@@ -1,95 +1,267 @@
-// ORION++ Optional Features
-FEATURES {
-  ABICC, // Calling Conventions (defines no standard abi, they can either be defined manually in custom setups or through features like LINUX, C, WINDOWS, etc...)
-  ISA, // Orion++ common instruction set
-  OBJ, // Section, Symbols and object layout creation
-  C, // C helpers (exposes C types for the system and the C abi definition)
+// ORION++ Simplified Instruction Set Architecture (ISA)
+// For basic C integer applications only
+
+// =============================================================================
+// CORE STACK AND SCOPE MANAGEMENT 
+// =============================================================================
+
+isa.enter           // Enter new scope/stack frame
+isa.leave           // Leave current scope/stack frame  
+isa.RET             // Return from function
+
+// =============================================================================
+// VARIABLE OPERATIONS
+// =============================================================================
+
+isa.let var, value      // Declare and initialize variable 
+isa.const var, value    // Declare constant 
+isa.mov dest, src       // Move/copy value
+
+// =============================================================================
+// BASIC ARITHMETIC
+// =============================================================================
+
+isa.add dest, src1, src2    // Addition
+isa.sub dest, src1, src2    // Subtraction  
+isa.mul dest, src1, src2    // Multiplication
+isa.div dest, src1, src2    // Division
+isa.mod dest, src1, src2    // Modulo
+
+// Unary operations
+isa.neg dest, src           // Arithmetic negation (-src)
+
+// =============================================================================
+// BITWISE OPERATIONS
+// =============================================================================
+
+isa.and dest, src1, src2    // Bitwise AND
+isa.or dest, src1, src2     // Bitwise OR
+isa.xor dest, src1, src2    // Bitwise XOR
+isa.not dest, src           // Bitwise NOT (~src)
+isa.shl dest, src, count    // Shift left
+isa.shr dest, src, count    // Shift right
+
+// =============================================================================
+// CONTROL FLOW - C-STYLE IF STATEMENTS
+// =============================================================================
+
+// Direct comparison branches (no flags)
+isa.beq src1, src2, label   // Branch if src1 == src2
+isa.bne src1, src2, label   // Branch if src1 != src2
+isa.blt src1, src2, label   // Branch if src1 < src2
+isa.ble src1, src2, label   // Branch if src1 <= src2
+isa.bgt src1, src2, label   // Branch if src1 > src2
+isa.bge src1, src2, label   // Branch if src1 >= src2
+
+// Single operand branches
+isa.beqz src, label         // Branch if src == 0
+isa.bnez src, label         // Branch if src != 0
+
+// Unconditional
+isa.jmp label               // Unconditional jump
+isa.call label              // Function call 
+
+// =============================================================================
+// OBJECT AND SYMBOL MANAGEMENT
+// =============================================================================
+
+obj.section [EXEC] .text               // Define executable section
+obj.section [DATA] .data               // Define data section
+obj.section [BSS] .bss                 // Define uninitialized data section
+
+obj.sym[visibility,type] name          // Define symbol with attributes
+// Visibility: LOCAL, GLOBAL, WEAK
+// Type: FUNC, OBJECT, NULL
+
+obj.label name                         // Define local label
+
+// Examples:
+// obj.sym[global,func] main           // Global function
+// obj.sym[local,object] my_var        // Local data object
+// obj.sym[weak,func] optional_func    // Weak function symbol
+
+// =============================================================================
+// EXAMPLE: SIMPLE C PROGRAM TRANSLATION
+// =============================================================================
+
+/*
+C Code:
+int main() {
+  int a = 10;
+  int b = 20;
+  if (a < b) {
+    return 1;
+  } else {
+    return 0;
+  }
 }
+*/
 
-// SECTION [{ATTRIBUTE}...] {ident}
-SECTION [EXEC] .text
-
-// {VISIBILITY} {ATTRIBUTE} {ident}:
-
-// Visibility
-//  LOCAL (symbol is local to the current module)
-//  GLOBAL (symbol is global to the execcution unit)
-//  WEAK (symbol is global but can be ignored if a global symbol of the same name exists)
-
-// Attributes
-//  NULL (symbol has no type)
-//  OBJECT (symbol is associated with a data object)
-//  FUNC (symbol is associated with a function
-
-
-LOCAL FUNC foo:
-  .hint-abi(c) // utilize the c calling convention
-  .hint-args(null) // doesn't accept arguments
-  .hint-rets(null) // doesn't return anything
-
-  // of the abi optional feature in usage with .hint-abi(c) will utilize the c abi calling convention
-  abi.callee.enter // perform the callee actions like saving registers etc...
-
-  // enter stack scope
-  isa.enter // {
-    // type systems are standard in most languages but not in assembly
-    // a type system may be implemented in the future but for now there is essentially one type
-    // word - a machine width sized integer store essentially meaning a register
-    isa.let x, 10
-    isa.const y, 15 // defining this as const can help with optimizations
-    isa.add x, y
-    
-    // if the use of x is trivial then it may be optimized to a compile time expression
-
-  // leave stack scope (not guarnteed to be the x86 leave instruction on x86 devices because its slow)
-  // think more of these as creating a scope with isa.enter being { and the isa.leave being }
-  isa.leave // }
-
-  abi.callee.leave
-
-  // use return instruction of the instruction set architecture.
-  // this instruction jumps to the callers address
-  isa.RET
-
-// functions are not ended in default assembly but optional function ends can help with optimizations and safety
-// a RET instruction does work for this but in cases where the function ends with the exit system call the compiler could struggle
-// using the endfunc hint will help this function be considered for more optimizations
-.hint-endfunc()
-
-
-// Hello World Example
-GLOBAL FUNC sayhello:
+obj.section [EXEC] .text
+obj.sym[global,func] main:
   .hint-abi(c)
   .hint-args(null)
-  .hint-rets(null)
-  
+  .hint-rets(i32)
+
   abi.callee.enter
 
   isa.enter // {
-    // abi.caller could explicitly put abi with abi.caller(c).setup but because the abi is the same as the callee convention its fine
-    abi.caller.setup
-    abi.caller.arg0 |sayhello_str|
-    abi.caller.arg1 10.int
-    isa.call |sayhello_str|
-    abi.caller.cleanup
+    isa.let a, 10
+    isa.let b, 20
+    
+    // if (a < b)
+    isa.bge a, b, .else_branch    // if a >= b, go to else
+    
+    // return 1;
+    isa.const retval, 1
+    isa.jmp .end
+    
+    obj.label .else_branch:
+    // return 0;
+    isa.const retval, 0
+    
+    obj.label .end:
+    abi.callee.setret.0 retval
   isa.leave // }
 
   abi.callee.leave
-  
   isa.RET
 
-SECTION .data
-LOCAL OBJ sayhello_str, "Hello, How are you doing today? Here is a number %d\n"
+.hint-endfunc()
 
+// =============================================================================
+// DATA OBJECTS EXAMPLE
+// =============================================================================
 
+obj.section [DATA] .data
+obj.sym[global,object] hello_msg, "Hello World!\n"
+obj.sym[local,object] counter, 0
 
+obj.section [BSS] .bss  
+obj.sym[local,object] buffer, 256       // 256 bytes uninitialized
 
+// =============================================================================
+// ADDITIONAL EXAMPLES
+// =============================================================================
 
+/*
+C Code:
+int sum(int x, int y) {
+  return x + y;
+}
+*/
 
+obj.sym[global,func] sum:
+  .hint-abi(c)
+  .hint-args(i32, i32)
+  .hint-rets(i32)
 
+  abi.callee.enter
 
+  isa.enter // {
+    isa.let x, abi.callee.getarg.0
+    isa.let y, abi.callee.getarg.1
+    isa.add result, x, y
+    abi.callee.setret.0 result
+  isa.leave // }
 
+  abi.callee.leave
+  isa.RET
 
+.hint-endfunc()
 
+/*
+C Code:
+int factorial(int n) {
+  if (n <= 1) {
+    return 1;
+  }
+  return n * factorial(n - 1);
+}
+*/
 
+obj.sym[global,func] factorial:
+  .hint-abi(c)
+  .hint-args(i32)
+  .hint-rets(i32)
 
+  abi.callee.enter
+
+  isa.enter // {
+    isa.let n, abi.callee.getarg.0
+    isa.const one, 1
+    
+    // if (n <= 1)
+    isa.bgt n, one, .recursive_case
+    
+    // return 1;
+    abi.callee.setret.0 one
+    isa.jmp .end
+    
+    obj.label .recursive_case:
+    // factorial(n - 1)
+    abi.caller.setup
+    isa.sub n_minus_1, n, one
+    abi.caller.setarg.0 n_minus_1
+    isa.call factorial
+    isa.let fac_result, abi.caller.getret.0
+    abi.caller.cleanup
+    
+    // return n * factorial(n - 1)
+    isa.mul result, n, fac_result
+    abi.callee.setret.0 result
+    
+    obj.label .end:
+  isa.leave // }
+
+  abi.callee.leave
+  isa.RET
+
+.hint-endfunc()
+
+/*
+C Code:
+int main() {
+  int i = 0;
+  int sum = 0;
+  while (i < 10) {
+    sum = sum + i;
+    i = i + 1;
+  }
+  return sum;
+}
+*/
+
+obj.sym[global,func] main:
+  .hint-abi(c)
+  .hint-args(null)
+  .hint-rets(i32)
+
+  abi.callee.enter
+
+  isa.enter // {
+    isa.let i, 0
+    isa.let sum, 0
+    isa.const ten, 10
+    isa.const one, 1
+    
+    obj.label .while_start:
+    // while (i < 10)
+    isa.bge i, ten, .while_end
+    
+    // sum = sum + i
+    isa.add sum, sum, i
+    
+    // i = i + 1
+    isa.add i, i, one
+    
+    isa.jmp .while_start
+    
+    obj.label .while_end:
+    abi.callee.setret.0 sum
+  isa.leave // }
+
+  abi.callee.leave
+  isa.RET
+
+.hint-endfunc()
