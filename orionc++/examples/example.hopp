@@ -1,42 +1,95 @@
 // ORION++ Optional Features
 FEATURES {
-  ABICC,
-  
-  INT, // Integer type definitions
-  FLOAT, // Float type definitions
-  STRUCT,
-  UNION,
-  CLASS,
-
-  
+  ABICC, // Calling Conventions (defines no standard abi, they can either be defined manually in custom setups or through features like LINUX, C, WINDOWS, etc...)
+  ISA, // Orion++ common instruction set
+  OBJ, // Section, Symbols and object layout creation
+  C, // C helpers (exposes C types for the system and the C abi definition)
 }
 
-SECTION .text
+// SECTION [{ATTRIBUTE}...] {ident}
+SECTION [EXEC] .text
+
+// {VISIBILITY} {ATTRIBUTE} {ident}:
+
+// Visibility
+//  LOCAL (symbol is local to the current module)
+//  GLOBAL (symbol is global to the execcution unit)
+//  WEAK (symbol is global but can be ignored if a global symbol of the same name exists)
+
+// Attributes
+//  NULL (symbol has no type)
+//  OBJECT (symbol is associated with a data object)
+//  FUNC (symbol is associated with a function
 
 
-// Standard types
-//  word - machine sized integer
+LOCAL FUNC foo:
+  .hint-abi(c) // utilize the c calling convention
+  .hint-args(null) // doesn't accept arguments
+  .hint-rets(null) // doesn't return anything
+
+  // of the abi optional feature in usage with .hint-abi(c) will utilize the c abi calling convention
+  abi.callee.enter // perform the callee actions like saving registers etc...
+
+  // enter stack scope
+  isa.enter // {
+    // type systems are standard in most languages but not in assembly
+    // a type system may be implemented in the future but for now there is essentially one type
+    // word - a machine width sized integer store essentially meaning a register
+    isa.let x, 10
+    isa.const y, 15 // defining this as const can help with optimizations
+    isa.add x, y
+    
+    // if the use of x is trivial then it may be optimized to a compile time expression
+
+  // leave stack scope (not guarnteed to be the x86 leave instruction on x86 devices because its slow)
+  // think more of these as creating a scope with isa.enter being { and the isa.leave being }
+  isa.leave // }
+
+  abi.callee.leave
+
+  // use return instruction of the instruction set architecture.
+  // this instruction jumps to the callers address
+  isa.RET
+
+// functions are not ended in default assembly but optional function ends can help with optimizations and safety
+// a RET instruction does work for this but in cases where the function ends with the exit system call the compiler could struggle
+// using the endfunc hint will help this function be considered for more optimizations
+.hint-endfunc()
 
 
-// Define a function symbol
-FUNCTION hello
-  (name abicc(c) *i8) // parameters
-  () // return
-  () // constants
-  (return_value: i32) // variables
-  (printf: i32(*i8, ...)) // external functions
-  (function_hello_say_name_str: cstr) // external data
+// Hello World Example
+GLOBAL FUNC sayhello:
+  .hint-abi(c)
+  .hint-args(null)
+  .hint-rets(null)
+  
+  abi.callee.enter
 
-  { // stack scope start
-    SETARG abicc(c) 0, function_hello_say_name_str
-    SETARG abicc(c) 1, name
-    CALL abicc(c) printf
-  } // end stack scope
-  RET // jump back to callers address
-ENDFUNCTION // end function definition
+  isa.enter // {
+    // abi.caller could explicitly put abi with abi.caller(c).setup but because the abi is the same as the callee convention its fine
+    abi.caller.setup
+    abi.caller.arg0 |sayhello_str|
+    abi.caller.arg1 10.int
+    isa.call |sayhello_str|
+    abi.caller.cleanup
+  isa.leave // }
+
+  abi.callee.leave
+  
+  isa.RET
+
+SECTION .data
+LOCAL OBJ sayhello_str, "Hello, How are you doing today? Here is a number %d\n"
 
 
-// quick insert into string table section
-DATA .strtab function_hello_say_name_str, "Hello %s\n"; // "" inserts null character, '' no null character.
+
+
+
+
+
+
+
+
+
 
 
