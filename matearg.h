@@ -6,6 +6,7 @@ struct Arguments {
   OptimizationFlag optlevel;
   int execute_commands;
 };
+typedef struct Arguments Arguments;
 
 void argreset(struct Arguments *args) {
   args->stdlevel = FLAG_STD_C2X;
