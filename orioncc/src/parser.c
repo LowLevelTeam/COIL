@@ -145,7 +145,7 @@ ASTNode *parser_parse_function_declaration(Parser *parser) {
     return NULL;
   }
   
-  // Parse function name
+  // Parse function name - FIX: Save name before advancing
   if (!parser_check(parser, TOK_IDENT)) {
     parser_error(parser, "Expected function name");
     return NULL;
@@ -192,18 +192,20 @@ ASTNode *parser_parse_parameter(Parser *parser) {
     return NULL;
   }
   
-  // Parse parameter name
+  // Parse parameter name - FIX: Save name before advancing
   if (!parser_check(parser, TOK_IDENT)) {
     parser_error(parser, "Expected parameter name");
     return NULL;
   }
   
   Token name_token = lexer_peek_token(parser->lexer);
+  char *param_name = string_duplicate(name_token.value);
+  lexer_next_token(parser->lexer);
+  
   ASTNode *param = ast_create_node(AST_PARAMETER, pos);
-  param->parameter.name = string_duplicate(name_token.value);
+  param->parameter.name = param_name;  // Transfer ownership
   param->parameter.param_type = param_type;
   
-  lexer_next_token(parser->lexer);
   return param;
 }
 
@@ -386,7 +388,7 @@ ASTNode *parser_parse_variable_declaration(Parser *parser) {
     return NULL;
   }
   
-  // Parse variable name
+  // Parse variable name - FIX: Save name before advancing
   if (!parser_check(parser, TOK_IDENT)) {
     parser_error(parser, "Expected variable name");
     return NULL;
@@ -617,12 +619,21 @@ ASTNode *parser_parse_postfix(Parser *parser) {
 ASTNode *parser_parse_primary(Parser *parser) {
   Token current = lexer_peek_token(parser->lexer);
   
-  if (parser_match(parser, TOK_INT_LITERAL)) {
-    return ast_create_integer_literal(current.data.int_value, current.pos);
+  // FIX: Save token data before advancing
+  if (current.type == TOK_INT_LITERAL) {
+    int value = current.data.int_value;
+    SourcePosition pos = current.pos;
+    parser_match(parser, TOK_INT_LITERAL);
+    return ast_create_integer_literal(value, pos);
   }
   
-  if (parser_match(parser, TOK_IDENT)) {
-    return ast_create_var_ref(current.value, current.pos);
+  if (current.type == TOK_IDENT) {
+    char *name = string_duplicate(current.value);
+    SourcePosition pos = current.pos;
+    parser_match(parser, TOK_IDENT);
+    ASTNode *node = ast_create_var_ref(name, pos);
+    free(name);
+    return node;
   }
   
   if (parser_match(parser, TOK_LPAREN)) {
