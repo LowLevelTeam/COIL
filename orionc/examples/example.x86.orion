@@ -1,0 +1,9 @@
+// orion.x86
+// x86 orion variation is essentially just an x86 assembly language but with one slight difference.
+// It is not focused on being a direct translation as such but more as an optimized intermediate representation made specifically for x86
+// Instructions are not guarnteed to be the direct translation like addq may be to addl for lower and higher on x86 32 bit machines
+// 
+//
+
+
+
