@@ -16,7 +16,7 @@ void argreset(struct Arguments *args) {
   args->execute_commands = 0;
 }
 
-int argparse(int argc, char **argv, struct Arguments *args) {
+int argparse(int argc, const char **argv, struct Arguments *args) {
   argreset(args);
 
   for (int arg = 1; arg < argc; ++arg) {

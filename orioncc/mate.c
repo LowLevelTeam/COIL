@@ -3,7 +3,7 @@
 #include "../matearg.h"
 
 i32 main(int argc, const char *argv[]) {
-  Arguments args;
+  struct Arguments args;
   if (argparse(argc, argv, &args) == 1) {
     return 1;
   }
