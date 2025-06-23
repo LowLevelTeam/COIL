@@ -1,0 +1,169 @@
+// Orion++ Simplified Syntax Examples
+// Demonstrates the streamlined language with word types
+
+// Simple addition function
+// word add(word a, word b) { return a + b; }
+obj.sym[global,func] @"add":
+  .hint-abi(c)
+  .hint-args(word, word)
+  .hint-rets(word)
+  
+  abi.callee.enter
+  isa.enter
+    isa.let $1, abi.callee.getarg.0    // a = first parameter
+    isa.let $2, abi.callee.getarg.1    // b = second parameter
+    isa.add $256, $1, $2               // result = a + b
+    abi.callee.setret.0 $256           // return result
+  isa.leave
+  abi.callee.leave
+  isa.RET
+.hint-endfunc()
+
+// Factorial with recursion
+// word factorial(word n) {
+//   if (n <= 1) return 1;
+//   return n * factorial(n - 1);
+// }
+obj.sym[global,func] @"factorial":
+  .hint-abi(c)
+  .hint-args(word)
+  .hint-rets(word)
+  
+  abi.callee.enter
+  isa.enter
+    isa.let $1, abi.callee.getarg.0    // n
+    isa.const $256, 1                  // constant 1
+    isa.bgt $1, $256, .L_recursive     // if n > 1, go recursive
+    
+    // Base case: return 1
+    abi.callee.setret.0 $256
+    isa.jmp .L_end
+    
+  obj.label .L_recursive:
+    // Recursive case
+    isa.sub $257, $1, $256             // n - 1
+    abi.caller.setup
+    abi.caller.setarg.0 $257
+    isa.call @"factorial"              // factorial(n-1)
+    abi.caller.getret.0 $258
+    abi.caller.cleanup
+    
+    isa.mul $259, $1, $258             // n * factorial(n-1)
+    abi.callee.setret.0 $259
+    
+  obj.label .L_end:
+  isa.leave
+  abi.callee.leave
+  isa.RET
+.hint-endfunc()
+
+// Main function demonstrating function calls
+obj.sym[global,func] @"main":
+  .hint-abi(c)
+  .hint-args(void)
+  .hint-rets(word)
+  
+  abi.callee.enter
+  isa.enter
+    // Call add(10, 5)
+    abi.caller.setup
+    isa.const $256, 10
+    isa.const $257, 5
+    abi.caller.setarg.0 $256
+    abi.caller.setarg.1 $257
+    isa.call @"add"
+    abi.caller.getret.0 $258           // result = 15
+    abi.caller.cleanup
+    
+    // Call factorial(5)
+    abi.caller.setup
+    isa.const $259, 5
+    abi.caller.setarg.0 $259
+    isa.call @"factorial"
+    abi.caller.getret.0 $260           // result = 120
+    abi.caller.cleanup
+    
+    // Return sum of both results
+    isa.add $261, $258, $260           // 15 + 120 = 135
+    abi.callee.setret.0 $261
+  isa.leave
+  abi.callee.leave
+  isa.RET
+.hint-endfunc()
+
+// Example with complex control flow
+// word abs_diff(word a, word b) {
+//   if (a > b) return a - b;
+//   return b - a;
+// }
+obj.sym[global,func] @"abs_diff":
+  .hint-abi(c)
+  .hint-args(word, word)
+  .hint-rets(word)
+  
+  abi.callee.enter
+  isa.enter
+    isa.let $1, abi.callee.getarg.0    // a
+    isa.let $2, abi.callee.getarg.1    // b
+    
+    isa.bgt $1, $2, .L_a_greater       // if a > b
+    
+    // b >= a case
+    isa.sub $256, $2, $1               // b - a
+    abi.callee.setret.0 $256
+    isa.jmp .L_end
+    
+  obj.label .L_a_greater:
+    // a > b case  
+    isa.sub $257, $1, $2               // a - b
+    abi.callee.setret.0 $257
+    
+  obj.label .L_end:
+  isa.leave
+  abi.callee.leave
+  isa.RET
+.hint-endfunc()
+
+// Example with no parameters
+// word get_constant() { return 42; }
+obj.sym[global,func] @"get_constant":
+  .hint-abi(c)
+  .hint-args(void)
+  .hint-rets(word)
+  
+  abi.callee.enter
+  isa.enter
+    isa.const $256, 42
+    abi.callee.setret.0 $256
+  isa.leave
+  abi.callee.leave
+  isa.RET
+.hint-endfunc()
+
+// Example with multiple local variables
+// word compute(word x) {
+//   word temp1 = x * 2;
+//   word temp2 = temp1 + 5;
+//   word result = temp2 * temp1;
+//   return result;
+// }
+obj.sym[global,func] @"compute":
+  .hint-abi(c)
+  .hint-args(word)
+  .hint-rets(word)
+  
+  abi.callee.enter
+  isa.enter
+    isa.let $1, abi.callee.getarg.0    // x
+    isa.const $256, 2                  // constant 2
+    isa.const $257, 5                  // constant 5
+    
+    isa.mul $258, $1, $256             // temp1 = x * 2
+    isa.add $259, $258, $257           // temp2 = temp1 + 5
+    isa.mul $260, $259, $258           // result = temp2 * temp1
+    
+    abi.callee.setret.0 $260
+  isa.leave
+  abi.callee.leave
+  isa.RET
+.hint-endfunc()
