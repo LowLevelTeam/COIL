@@ -1,110 +1,226 @@
 # Orion++ Binary Format Specification
 
-This document describes the binary file format (.orionpp) used by the Orion++ intermediate representation.
+This document defines the complete binary file format (.orionpp) used for production deployment and distribution of Orion++ intermediate representation.
 
-## Overview
+## Table of Contents
 
-The Orion++ binary format is designed for:
-- **Compact Size**: Efficient storage using numeric IDs and compressed structures
-- **Fast Loading**: Direct memory mapping and minimal parsing
-- **Multiple IR Support**: Can contain multiple intermediate representations
-- **Cross-Platform**: Consistent binary layout across architectures
+1. [Format Overview](#format-overview)
+2. [File Layout](#file-layout)
+3. [Header Structure](#header-structure)
+4. [Data Sections](#data-sections)
+5. [Instruction Encoding](#instruction-encoding)
+6. [Loading and Validation](#loading-and-validation)
+7. [Implementation Guidelines](#implementation-guidelines)
 
-## File Structure
+## Format Overview
+
+### Design Goals
+
+- **Compact Storage**: 60-80% smaller than human-readable format
+- **Fast Loading**: Memory-mappable with minimal parsing
+- **Random Access**: O(1) access to functions and symbols
+- **Platform Independent**: Consistent across architectures and operating systems
+- **Version Extensible**: Forward and backward compatibility support
+
+### File Characteristics
+
+- **Endianness**: Little-endian throughout
+- **Alignment**: All structures naturally aligned
+- **Magic Number**: `0x4F50504F` ("OPPO" in ASCII)
+- **Current Version**: 2
+- **Maximum File Size**: 4GB (32-bit offsets)
+
+## File Layout
 
 ```
-+----------------------------+
-| Header (64 bytes)          |
-+----------------------------+
-| String Table               |
-+----------------------------+
-| Symbol Table               |
-+----------------------------+
-| Function Table             |
-+----------------------------+
-| Variable Table             |
-+----------------------------+
-| Instruction Data           |
-+----------------------------+
+┌─────────────────────────────────────┐ Offset 0
+│ File Header (64 bytes)              │
+├─────────────────────────────────────┤
+│ String Table (variable)             │
+├─────────────────────────────────────┤
+│ Symbol Table (variable)             │
+├─────────────────────────────────────┤
+│ Function Table (variable)           │
+├─────────────────────────────────────┤
+│ Variable Table (variable)           │
+├─────────────────────────────────────┤
+│ Instruction Data (variable)         │
+└─────────────────────────────────────┘ EOF
 ```
 
-## Header Format
+### Section Ordering
+
+Sections must appear in the specified order to enable streaming processing and validation.
+
+## Header Structure
+
+### Header Layout
 
 ```c
-typedef struct {
+typedef struct OrionPPHeader {
   uint32_t magic;                   // 0x4F50504F ("OPPO")
-  uint16_t version;                 // Format version (currently 2)
+  uint16_t version;                 // Format version (2)
   uint16_t flags;                   // Format flags
   uint32_t string_table_offset;     // Offset to string table
-  uint32_t string_table_size;       // Size of string table in bytes
+  uint32_t string_table_size;       // Size in bytes
   uint32_t symbol_table_offset;     // Offset to symbol table
-  uint32_t symbol_table_size;       // Size of symbol table in bytes
+  uint32_t symbol_table_size;       // Size in bytes
   uint32_t function_table_offset;   // Offset to function table
-  uint32_t function_table_size;     // Size of function table in bytes
+  uint32_t function_table_size;     // Size in bytes
   uint32_t variable_table_offset;   // Offset to variable table
-  uint32_t variable_table_size;     // Size of variable table in bytes
+  uint32_t variable_table_size;     // Size in bytes
   uint32_t instruction_data_offset; // Offset to instruction data
-  uint32_t instruction_data_size;   // Size of instruction data in bytes
+  uint32_t instruction_data_size;   // Size in bytes
   uint32_t entry_point;             // Entry function index
   uint32_t next_var_id;             // Next available variable ID
   uint32_t reserved[2];             // Reserved for future use
-} OrionPPHeader;
+} __attribute__((packed)) OrionPPHeader;
 ```
 
 ### Header Fields
 
-- **magic**: Must be `0x4F50504F` ("OPPO" in ASCII)
-- **version**: Format version, currently `2`
-- **flags**: Bitfield for format options (currently unused)
-- **entry_point**: Index of the entry function (typically `main`)
-- **next_var_id**: Next variable ID to use when adding variables
+| Field | Type | Description |
+|-------|------|-------------|
+| `magic` | uint32_t | Must be `0x4F50504F` |
+| `version` | uint16_t | Format version (currently 2) |
+| `flags` | uint16_t | Format flags (see below) |
+| `*_offset` | uint32_t | Byte offset from file start |
+| `*_size` | uint32_t | Section size in bytes |
+| `entry_point` | uint32_t | Index of entry function |
+| `next_var_id` | uint32_t | Next variable ID to allocate |
+| `reserved` | uint32_t[2] | Must be zero |
 
-## String Table
+### Format Flags
 
-Contains null-terminated UTF-8 strings referenced by offset throughout the file.
+| Bit | Name | Description |
+|-----|------|-------------|
+| 0 | `COMPRESSED` | File uses compression |
+| 1 | `DEBUG_INFO` | Contains debug information |
+| 2 | `OPTIMIZED` | Has been optimized |
+| 3-15 | Reserved | Must be zero |
 
-### Format
-- Consecutive null-terminated strings
-- No padding between strings
-- First byte is always `\0` (null string at offset 0)
-
-### Example
-```
-Offset  Content
-0       \0
-1       "main\0"
-6       "add\0"
-10      "global_var\0"
-```
-
-## Symbol Table
+### Header Validation
 
 ```c
-typedef struct {
+bool validate_header(const OrionPPHeader* header) {
+  // Check magic number
+  if (header->magic != 0x4F50504F) return false;
+  
+  // Check version compatibility
+  if (header->version < 2 || header->version > 2) return false;
+  
+  // Validate reserved fields
+  if (header->reserved[0] != 0 || header->reserved[1] != 0) return false;
+  
+  // Check section ordering and bounds
+  uint32_t prev_end = sizeof(OrionPPHeader);
+  if (header->string_table_offset < prev_end) return false;
+  
+  prev_end = header->string_table_offset + header->string_table_size;
+  if (header->symbol_table_offset < prev_end) return false;
+  
+  // Continue validation for all sections...
+  return true;
+}
+```
+
+## Data Sections
+
+### String Table
+
+The string table contains all textual data referenced by offset throughout the file.
+
+#### String Table Layout
+
+```
+┌─────────────────────────────────────┐ Offset 0
+│ \0                                  │ (null string)
+├─────────────────────────────────────┤ Offset 1
+│ "main\0"                            │
+├─────────────────────────────────────┤ Offset 6
+│ "add\0"                             │
+├─────────────────────────────────────┤ Offset 10
+│ "global_variable\0"                 │
+└─────────────────────────────────────┘
+```
+
+#### String Table Properties
+
+- **Encoding**: UTF-8
+- **Termination**: Null-terminated strings
+- **Alignment**: No padding between strings
+- **First String**: Always null string at offset 0
+- **Deduplication**: Identical strings share same offset
+
+#### String Table Implementation
+
+```c
+typedef struct StringTable {
+  char* data;
+  uint32_t size;
+  uint32_t capacity;
+} StringTable;
+
+uint32_t string_table_add(StringTable* table, const char* str) {
+  // Check for existing string
+  for (uint32_t i = 0; i < table->size; ) {
+    if (strcmp(&table->data[i], str) == 0) {
+      return i;  // Return existing offset
+    }
+    i += strlen(&table->data[i]) + 1;
+  }
+  
+  // Add new string
+  uint32_t offset = table->size;
+  size_t len = strlen(str) + 1;
+  memcpy(&table->data[offset], str, len);
+  table->size += len;
+  return offset;
+}
+```
+
+### Symbol Table
+
+Contains symbol definitions with metadata for linking and debugging.
+
+#### Symbol Table Entry
+
+```c
+typedef struct OrionPPSymbol {
   uint32_t name_offset;     // Offset into string table
   uint8_t type;             // Symbol type
   uint8_t visibility;       // Symbol visibility
   uint16_t section;         // Section identifier
   uint32_t value;           // Symbol value/address
   uint32_t size;            // Symbol size in bytes
-} OrionPPSymbol;
+} __attribute__((packed)) OrionPPSymbol;
 ```
 
-### Symbol Types
-- `0x01`: Function
-- `0x02`: Object (data)
-- `0x03`: Section
+#### Symbol Types
 
-### Symbol Visibility
-- `0x00`: Local (file scope)
-- `0x01`: Global (external linkage)
-- `0x02`: Weak (can be overridden)
+| Value | Name | Description |
+|-------|------|-------------|
+| 0x01 | `FUNC` | Function symbol |
+| 0x02 | `OBJECT` | Data object |
+| 0x03 | `SECTION` | Section symbol |
 
-## Function Table
+#### Symbol Visibility
+
+| Value | Name | Description |
+|-------|------|-------------|
+| 0x00 | `LOCAL` | File scope only |
+| 0x01 | `GLOBAL` | External linkage |
+| 0x02 | `WEAK` | Weak linkage (can be overridden) |
+
+### Function Table
+
+Contains function metadata and instruction references.
+
+#### Function Table Entry
 
 ```c
-typedef struct {
-  uint32_t symbol_offset;       // Index into symbol table
+typedef struct OrionPPFunction {
+  uint32_t symbol_index;        // Index into symbol table
   uint16_t param_count;         // Number of parameters
   uint16_t local_count;         // Number of local variables
   uint32_t instruction_offset;  // Offset into instruction data
@@ -112,284 +228,296 @@ typedef struct {
   uint8_t abi_type;             // ABI type
   uint8_t return_type;          // Return type
   uint16_t flags;               // Function flags
-  uint32_t first_var_id;        // First variable ID in function
-  uint32_t last_var_id;         // Last variable ID in function
-} OrionPPFunction;
+  uint32_t first_var_id;        // First variable ID
+  uint32_t last_var_id;         // Last variable ID
+} __attribute__((packed)) OrionPPFunction;
 ```
 
-### ABI Types
-- `0x01`: C calling convention
-- `0x02`: Custom calling convention
+#### ABI Types
 
-### Return Types
-- `0x00`: void
-- `0x01`: i32
+| Value | Name | Description |
+|-------|------|-------------|
+| 0x01 | `C` | C calling convention |
+| 0x02 | `CUSTOM` | Custom calling convention |
 
-## Variable Table
+#### Data Types
+
+| Value | Name | Description |
+|-------|------|-------------|
+| 0x00 | `VOID` | No value |
+| 0x01 | `I32` | 32-bit signed integer |
+
+#### Function Flags
+
+| Bit | Name | Description |
+|-----|------|-------------|
+| 0 | `INLINE` | Inline function hint |
+| 1 | `PURE` | Pure function (no side effects) |
+| 2 | `LEAF` | Leaf function (no calls) |
+| 3-15 | Reserved | Must be zero |
+
+### Variable Table
+
+Contains variable metadata for debugging and optimization.
+
+#### Variable Table Entry
 
 ```c
-typedef struct {
+typedef struct OrionPPVariable {
   uint32_t id;              // Unique variable ID
   uint8_t type;             // Variable type
-  uint32_t name_offset;     // Offset into string table (debug info)
   uint8_t data_type;        // Data type
+  uint16_t flags;           // Variable flags
+  uint32_t name_offset;     // Debug name (string table offset)
   uint32_t scope_id;        // Scope identifier
-} OrionPPVariable;
+} __attribute__((packed)) OrionPPVariable;
 ```
 
-### Variable Types
-- `0x00`: Temporary variable
-- `0x01`: Local variable
-- `0x02`: Parameter
-- `0x03`: Global variable
+#### Variable Types
 
-### Data Types
-- `0x00`: void
-- `0x01`: i32
+| Value | Name | Description |
+|-------|------|-------------|
+| 0x00 | `TEMPORARY` | Compiler temporary |
+| 0x01 | `LOCAL` | Local variable |
+| 0x02 | `PARAMETER` | Function parameter |
+| 0x03 | `GLOBAL` | Global variable |
 
-## Instruction Data
-
-Variable-length instruction encoding with the following format:
-
-```
-+--------+--------+--------+--------+
-| Opcode | Flags  |    Operands     |
-+--------+--------+--------+--------+
-   8-bit   8-bit     Variable length
-```
+## Instruction Encoding
 
 ### Instruction Format
 
-Each instruction consists of:
-1. **Opcode** (8 bits): Instruction type
-2. **Flags** (8 bits): Instruction-specific flags (currently unused)
-3. **Operands** (variable): Zero or more operands
+Instructions use variable-length encoding for compactness:
+
+```
+┌─────────┬─────────┬─────────────────────────────┐
+│ Opcode  │ Flags   │ Operands (variable length)  │
+│ 8 bits  │ 8 bits  │ 0-N operands                │
+└─────────┴─────────┴─────────────────────────────┘
+```
 
 ### Operand Encoding
 
-Operands are encoded with a type byte followed by data:
+Each operand is encoded with a type prefix:
 
 ```c
-// Operand type in high 2 bits
-#define OPERAND_IMMEDIATE   0x00  // 00xxxxxx - immediate value follows
-#define OPERAND_VARIABLE    0x40  // 01xxxxxx - variable ID follows  
-#define OPERAND_LABEL       0x80  // 10xxxxxx - label offset follows
-#define OPERAND_SYMBOL      0xC0  // 11xxxxxx - string table offset follows
+#define OPERAND_IMMEDIATE   0x00  // 00xxxxxx - immediate value
+#define OPERAND_VARIABLE    0x40  // 01xxxxxx - variable ID
+#define OPERAND_LABEL       0x80  // 10xxxxxx - label offset
+#define OPERAND_SYMBOL      0xC0  // 11xxxxxx - symbol reference
 ```
 
-#### Immediate Operand
+#### Operand Formats
+
+**Immediate Operand (6 bytes)**
 ```
-+--------+--------+--------+--------+--------+
-| 0x00   |        32-bit immediate value      |
-+--------+--------+--------+--------+--------+
+┌─────────┬─────────────────────────────────────┐
+│ 0x00    │ 32-bit immediate value (little-endian) │
+└─────────┴─────────────────────────────────────┘
 ```
 
-#### Variable Operand
+**Variable Operand (5 bytes)**
 ```
-+--------+--------+--------+--------+--------+
-| 0x40   |        32-bit variable ID          |
-+--------+--------+--------+--------+--------+
-```
-
-#### Label Operand
-```
-+--------+--------+--------+--------+--------+
-| 0x80   |        32-bit offset               |
-+--------+--------+--------+--------+--------+
+┌─────────┬─────────────────────────────────────┐
+│ 0x40    │ 32-bit variable ID (little-endian)    │
+└─────────┴─────────────────────────────────────┘
 ```
 
-#### Symbol Operand
+**Label Operand (5 bytes)**
 ```
-+--------+--------+--------+--------+--------+
-| 0xC0   |        32-bit string offset       |
-+--------+--------+--------+--------+--------+
+┌─────────┬─────────────────────────────────────┐
+│ 0x80    │ 32-bit offset (little-endian)        │
+└─────────┴─────────────────────────────────────┘
 ```
 
-## Instruction Set
+**Symbol Operand (5 bytes)**
+```
+┌─────────┬─────────────────────────────────────┐
+│ 0xC0    │ 32-bit string table offset           │
+└─────────┴─────────────────────────────────────┘
+```
 
-### Core Instructions
+### Instruction Set
+
+#### Core Instructions
+
+| Opcode | Name | Operands | Description |
+|--------|------|----------|-------------|
+| 0x00 | `NOP` | None | No operation |
+| 0x01 | `ENTER` | None | Enter scope |
+| 0x02 | `LEAVE` | None | Exit scope |
+| 0x03 | `RET` | None | Return from function |
+
+#### Variable Operations
+
+| Opcode | Name | Operands | Description |
+|--------|------|----------|-------------|
+| 0x10 | `LET` | var, var | Variable assignment |
+| 0x11 | `CONST` | var, imm | Load constant |
+| 0x12 | `MOV` | var, var | Move variable |
+
+#### Arithmetic Operations
+
+| Opcode | Name | Operands | Description |
+|--------|------|----------|-------------|
+| 0x20 | `ADD` | var, var, var | Addition |
+| 0x21 | `SUB` | var, var, var | Subtraction |
+| 0x22 | `MUL` | var, var, var | Multiplication |
+| 0x23 | `DIV` | var, var, var | Division |
+| 0x24 | `MOD` | var, var, var | Modulo |
+| 0x25 | `NEG` | var, var | Negation |
+
+#### Control Flow
+
+| Opcode | Name | Operands | Description |
+|--------|------|----------|-------------|
+| 0x40 | `JMP` | label | Unconditional jump |
+| 0x41 | `CALL` | symbol | Function call |
+| 0x42 | `BEQ` | var, var, label | Branch if equal |
+| 0x43 | `BNE` | var, var, label | Branch if not equal |
+| 0x44 | `BLT` | var, var, label | Branch if less |
+| 0x45 | `BLE` | var, var, label | Branch if less/equal |
+| 0x46 | `BGT` | var, var, label | Branch if greater |
+| 0x47 | `BGE` | var, var, label | Branch if greater/equal |
+| 0x48 | `BEQZ` | var, label | Branch if zero |
+| 0x49 | `BNEZ` | var, label | Branch if not zero |
+
+### Instruction Examples
+
+#### Simple Assignment
+```
+Human: isa.const $1, 42
+Binary: 0x11 0x00 0x40 0x01 0x00 0x00 0x00 0x00 0x2A 0x00 0x00 0x00
+        │    │    │    └─ Variable ID 1
+        │    │    └────── Variable operand type
+        │    └─────────── Flags (unused)
+        └──────────────── CONST opcode
+                          └─ Immediate value 42
+```
+
+#### Function Call
+```
+Human: isa.call @"add"
+Binary: 0x41 0x00 0xC0 0x05 0x00 0x00 0x00
+        │    │    │    └─ String table offset 5
+        │    │    └────── Symbol operand type
+        │    └─────────── Flags (unused)
+        └──────────────── CALL opcode
+```
+
+## Loading and Validation
+
+### Loading Process
+
+1. **Memory Mapping**: Map file into memory for fast access
+2. **Header Validation**: Verify magic number, version, and structure
+3. **Section Validation**: Check section offsets and sizes
+4. **Symbol Resolution**: Build symbol lookup tables
+5. **Function Indexing**: Create function access structures
+
+### Memory Layout
+
 ```c
-#define OP_NOP          0x00
-#define OP_ENTER        0x01
-#define OP_LEAVE        0x02
-#define OP_RET          0x03
+typedef struct OrionContext {
+  void* file_data;                  // Memory-mapped file
+  size_t file_size;                 // File size in bytes
+  OrionPPHeader* header;            // Header pointer
+  char* string_table;               // String table pointer
+  OrionPPSymbol* symbol_table;      // Symbol table pointer
+  OrionPPFunction* function_table;  // Function table pointer
+  OrionPPVariable* variable_table;  // Variable table pointer
+  uint8_t* instruction_data;        // Instruction data pointer
+  
+  // Derived data structures
+  SymbolIndex* symbol_index;        // Fast symbol lookup
+  FunctionIndex* function_index;    // Fast function lookup
+} OrionContext;
 ```
 
-### Variable Operations
+### Validation Checklist
+
+- [ ] Magic number is correct (`0x4F50504F`)
+- [ ] Version is supported (currently 2)
+- [ ] File size matches content
+- [ ] All section offsets are valid
+- [ ] All section sizes are valid
+- [ ] String table is null-terminated
+- [ ] All string offsets are valid
+- [ ] All symbol references are valid
+- [ ] All variable IDs are within range
+- [ ] All instruction opcodes are valid
+- [ ] All operand types are valid
+
+### Error Handling
+
 ```c
-#define OP_LET          0x10  // let dest, src
-#define OP_CONST        0x11  // const dest, immediate
-#define OP_MOV          0x12  // mov dest, src
+typedef enum {
+  ORION_OK = 0,
+  ORION_ERROR_INVALID_MAGIC,
+  ORION_ERROR_UNSUPPORTED_VERSION,
+  ORION_ERROR_CORRUPTED_FILE,
+  ORION_ERROR_INVALID_OFFSET,
+  ORION_ERROR_INVALID_SIZE,
+  ORION_ERROR_INVALID_STRING,
+  ORION_ERROR_INVALID_SYMBOL,
+  ORION_ERROR_INVALID_INSTRUCTION,
+  ORION_ERROR_OUT_OF_MEMORY
+} OrionResult;
 ```
 
-### Arithmetic Operations
+## Implementation Guidelines
+
+### Memory Management
+
+- **File Mapping**: Use `mmap()` on Unix, `MapViewOfFile()` on Windows
+- **Read-Only Access**: Map files as read-only for safety
+- **Error Handling**: Gracefully handle mapping failures
+- **Resource Cleanup**: Properly unmap files when done
+
+### Performance Considerations
+
+- **Lazy Loading**: Load sections on demand for large files
+- **Caching**: Cache frequently accessed symbols and functions
+- **Alignment**: Ensure proper alignment for SIMD operations
+- **Prefetching**: Prefetch instruction data for sequential access
+
+### Platform Portability
+
+- **Endianness**: All data is little-endian regardless of platform
+- **Alignment**: Use packed structures to avoid alignment issues
+- **File I/O**: Use standard library functions for portability
+- **Memory Mapping**: Provide fallback for platforms without mmap
+
+### Example Implementation
+
 ```c
-#define OP_ADD          0x20  // add dest, src1, src2
-#define OP_SUB          0x21  // sub dest, src1, src2
-#define OP_MUL          0x22  // mul dest, src1, src2
-#define OP_DIV          0x23  // div dest, src1, src2
-#define OP_MOD          0x24  // mod dest, src1, src2
-#define OP_NEG          0x25  // neg dest, src
+OrionContext* orion_load_file(const char* filename) {
+  OrionContext* ctx = calloc(1, sizeof(OrionContext));
+  if (!ctx) return NULL;
+  
+  // Open and map file
+  int fd = open(filename, O_RDONLY);
+  if (fd < 0) goto error;
+  
+  struct stat st;
+  if (fstat(fd, &st) < 0) goto error;
+  ctx->file_size = st.st_size;
+  
+  ctx->file_data = mmap(NULL, ctx->file_size, PROT_READ, MAP_PRIVATE, fd, 0);
+  if (ctx->file_data == MAP_FAILED) goto error;
+  close(fd);
+  
+  // Validate and setup pointers
+  if (!setup_context_pointers(ctx)) goto error;
+  if (!validate_file_structure(ctx)) goto error;
+  if (!build_indices(ctx)) goto error;
+  
+  return ctx;
+  
+error:
+  if (fd >= 0) close(fd);
+  orion_free_context(ctx);
+  return NULL;
+}
 ```
 
-### Bitwise Operations
-```c
-#define OP_AND          0x30  // and dest, src1, src2
-#define OP_OR           0x31  // or dest, src1, src2
-#define OP_XOR          0x32  // xor dest, src1, src2
-#define OP_NOT          0x33  // not dest, src
-#define OP_SHL          0x34  // shl dest, src, count
-#define OP_SHR          0x35  // shr dest, src, count
-```
-
-### Control Flow
-```c
-#define OP_JMP          0x40  // jmp label
-#define OP_CALL         0x41  // call symbol
-#define OP_BEQ          0x42  // beq src1, src2, label
-#define OP_BNE          0x43  // bne src1, src2, label
-#define OP_BLT          0x44  // blt src1, src2, label
-#define OP_BLE          0x45  // ble src1, src2, label
-#define OP_BGT          0x46  // bgt src1, src2, label
-#define OP_BGE          0x47  // bge src1, src2, label
-#define OP_BEQZ         0x48  // beqz src, label
-#define OP_BNEZ         0x49  // bnez src, label
-```
-
-### ABI Operations
-```c
-#define OP_ABI_CALLEE_ENTER     0x50
-#define OP_ABI_CALLEE_LEAVE     0x51
-#define OP_ABI_CALLEE_GETARG    0x52  // getarg dest, index
-#define OP_ABI_CALLEE_SETRET    0x53  // setret index, src
-#define OP_ABI_CALLER_SETUP     0x54
-#define OP_ABI_CALLER_CLEANUP   0x55
-#define OP_ABI_CALLER_SETARG    0x56  // setarg index, src
-#define OP_ABI_CALLER_GETRET    0x57  // getret dest, index
-```
-
-## Example Binary Encoding
-
-### Simple Function
-
-Human format:
-```assembly
-obj.sym[global,func] @"add":
-  abi.callee.enter
-  isa.enter
-    isa.const $1, 10
-    isa.const $2, 20
-    isa.add $3, $1, $2
-    abi.callee.setret.0 $3
-  isa.leave
-  abi.callee.leave
-  isa.RET
-```
-
-Binary encoding:
-```
-Header:
-  magic: 0x4F50504F
-  version: 2
-  string_table_offset: 64
-  string_table_size: 5
-  symbol_table_offset: 69
-  symbol_table_size: 16
-  function_table_offset: 85
-  function_table_size: 24
-  variable_table_offset: 109
-  variable_table_size: 48
-  instruction_data_offset: 157
-  instruction_data_size: 43
-
-String Table (5 bytes):
-  0: \0
-  1: "add\0"
-
-Symbol Table (16 bytes):
-  Symbol 0:
-    name_offset: 1
-    type: 0x01 (function)
-    visibility: 0x01 (global)
-    section: 0
-    value: 0
-    size: 43
-
-Function Table (24 bytes):
-  Function 0:
-    symbol_offset: 0
-    param_count: 0
-    local_count: 3
-    instruction_offset: 0
-    instruction_count: 43
-    abi_type: 0x01 (C)
-    return_type: 0x01 (i32)
-    flags: 0
-    first_var_id: 1
-    last_var_id: 3
-
-Variable Table (48 bytes):
-  Variable 0: id=1, type=local, data_type=i32
-  Variable 1: id=2, type=local, data_type=i32
-  Variable 2: id=3, type=local, data_type=i32
-
-Instruction Data (43 bytes):
-  0x50, 0x00                          // abi.callee.enter
-  0x01, 0x00                          // isa.enter
-  0x11, 0x00, 0x40, 0x01,0x00,0x00,0x00, 0x00, 0x0A,0x00,0x00,0x00  // isa.const $1, 10
-  0x11, 0x00, 0x40, 0x02,0x00,0x00,0x00, 0x00, 0x14,0x00,0x00,0x00  // isa.const $2, 20
-  0x20, 0x00, 0x40, 0x03,0x00,0x00,0x00, 0x40, 0x01,0x00,0x00,0x00, 0x40, 0x02,0x00,0x00,0x00  // isa.add $3, $1, $2
-  0x53, 0x00, 0x00, 0x00,0x00,0x00,0x00, 0x40, 0x03,0x00,0x00,0x00  // abi.callee.setret.0 $3
-  0x02, 0x00                          // isa.leave
-  0x51, 0x00                          // abi.callee.leave
-  0x03, 0x00                          // isa.RET
-```
-
-## Advantages of Binary Format
-
-1. **Compact Size**: 
-   - Variable IDs use 4 bytes vs. variable-length strings
-   - String table deduplication
-   - No parsing overhead
-
-2. **Fast Loading**:
-   - Direct memory mapping possible
-   - Fixed-size structures
-   - No tokenization required
-
-3. **Efficient Processing**:
-   - Random access to functions and symbols
-   - Built-in validation via offsets and sizes
-   - Structured metadata
-
-## Version History
-
-- **Version 1**: Initial binary format
-- **Version 2**: Added variable table, updated variable ID system, symbol improvements
-
-## Tools
-
-- **liborionpp-dev**: Library for reading/writing binary format
-- **orionc++**: Compiler that generates binary format
-- **oriondump**: Disassembler for binary format inspection
-- **orionlink**: Linker that processes binary objects
-
-## Validation
-
-The binary format includes several validation mechanisms:
-
-1. **Magic Number**: Verify file type
-2. **Version Check**: Ensure compatibility
-3. **Offset Validation**: All offsets must be within file bounds
-4. **Size Validation**: Table sizes must be multiples of entry sizes
-5. **String Table**: All string offsets must be valid
-6. **Variable IDs**: All variable references must exist in variable table
-
-## Portability
-
-The binary format is designed to be portable across:
-- **Architectures**: Uses fixed-size integers with consistent endianness
-- **Operating Systems**: No OS-specific features
-- **Compilers**: Standard C data types with explicit sizes
-
-All multi-byte integers are stored in little-endian format for consistency.
+This specification provides complete implementation guidance for efficient Orion++ binary format processing.
