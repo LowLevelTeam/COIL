@@ -13,7 +13,7 @@ void print_version(void) {
 }
 
 void print_usage(const char *program_name) {
-  printf("Usage: %s [options] <input.c> [output.hopp]\n\n", program_name);
+  printf("Usage: %s [options] <input.c> [output]\n\n", program_name);
   printf("Options:\n");
   printf("  -h, --help         Show this help message\n");
   printf("  -v, --version      Show version information\n");
@@ -22,11 +22,17 @@ void print_usage(const char *program_name) {
   printf("  --dump-tokens      Dump lexer tokens to stderr\n");
   printf("  --dump-ast         Dump AST to stderr\n");
   printf("  -o, --output FILE  Specify output file\n");
+  printf("  -f, --format FMT   Output format: binary (default), human\n");
+  printf("\n");
+  printf("Output Formats:\n");
+  printf("  binary             Orion++ binary format (.orionpp)\n");
+  printf("  human              Human-readable Orion++ assembly (.hopp)\n");
   printf("\n");
   printf("Examples:\n");
-  printf("  %s program.c                # Compile to program.hopp\n", program_name);
-  printf("  %s -o output.hopp input.c   # Compile to specific output\n", program_name);
-  printf("  %s --dump-ast program.c     # Show AST structure\n", program_name);
+  printf("  %s program.c                    # Compile to program.orionpp (binary)\n", program_name);
+  printf("  %s -f human program.c           # Compile to program.hopp (human)\n", program_name);
+  printf("  %s -o output.orionpp input.c    # Compile to specific binary output\n", program_name);
+  printf("  %s --dump-ast program.c         # Show AST structure\n", program_name);
 }
 
 OrionError parse_arguments(int argc, char *argv[], CompilerOptions *options) {
@@ -37,6 +43,7 @@ OrionError parse_arguments(int argc, char *argv[], CompilerOptions *options) {
   options->verbose = false;
   options->dump_ast = false;
   options->dump_tokens = false;
+  options->output_format = OUTPUT_BINARY;  // Default to binary format
   
   struct option long_options[] = {
     {"help",        no_argument,       0, 'h'},
@@ -46,11 +53,12 @@ OrionError parse_arguments(int argc, char *argv[], CompilerOptions *options) {
     {"dump-tokens", no_argument,       0, 't'},
     {"dump-ast",    no_argument,       0, 'a'},
     {"output",      required_argument, 0, 'o'},
+    {"format",      required_argument, 0, 'f'},
     {0, 0, 0, 0}
   };
   
   int c;
-  while ((c = getopt_long(argc, argv, "hvdVo:", long_options, NULL)) != -1) {
+  while ((c = getopt_long(argc, argv, "hvdVo:f:", long_options, NULL)) != -1) {
     switch (c) {
       case 'h':
         print_usage(argv[0]);
@@ -81,6 +89,17 @@ OrionError parse_arguments(int argc, char *argv[], CompilerOptions *options) {
         options->output_file = optarg;
         break;
         
+      case 'f':
+        if (strcmp(optarg, "binary") == 0) {
+          options->output_format = OUTPUT_BINARY;
+        } else if (strcmp(optarg, "human") == 0) {
+          options->output_format = OUTPUT_HUMAN;
+        } else {
+          fprintf(stderr, "Error: Invalid format '%s'. Use 'binary' or 'human'\n", optarg);
+          return ORION_ERROR_INVALID_ARGUMENT;
+        }
+        break;
+        
       case '?':
         return ORION_ERROR_INVALID_ARGUMENT;
         
@@ -109,11 +128,13 @@ OrionError parse_arguments(int argc, char *argv[], CompilerOptions *options) {
     input_base = input_base ? input_base + 1 : options->input_file;
     
     const char *dot = strrchr(input_base, '.');
+    const char *extension = (options->output_format == OUTPUT_BINARY) ? ".orionpp" : ".hopp";
+    
     if (dot) {
       size_t base_len = dot - input_base;
-      snprintf(output_buffer, sizeof(output_buffer), "%.*s.hopp", (int)base_len, input_base);
+      snprintf(output_buffer, sizeof(output_buffer), "%.*s%s", (int)base_len, input_base, extension);
     } else {
-      snprintf(output_buffer, sizeof(output_buffer), "%s.hopp", input_base);
+      snprintf(output_buffer, sizeof(output_buffer), "%s%s", input_base, extension);
     }
     options->output_file = output_buffer;
   }
@@ -157,8 +178,10 @@ OrionError compile_file(CompilerOptions *options) {
   FILE *output_file = NULL;
   CodeGen codegen = {0};
   
+  const char *format_name = (options->output_format == OUTPUT_BINARY) ? "binary" : "human";
+  
   if (options->verbose) {
-    printf("Compiling %s -> %s\n", options->input_file, options->output_file);
+    printf("Compiling %s -> %s (%s format)\n", options->input_file, options->output_file, format_name);
   }
   
   // Read input file
@@ -213,8 +236,9 @@ OrionError compile_file(CompilerOptions *options) {
     printf("=== END AST DUMP ===\n");
   }
   
-  // Open output file
-  output_file = fopen(options->output_file, "w");
+  // Open output file with appropriate mode
+  const char *mode = (options->output_format == OUTPUT_BINARY) ? "wb" : "w";
+  output_file = fopen(options->output_file, mode);
   if (!output_file) {
     fprintf(stderr, "Error: Cannot create output file '%s': %s\n", 
             options->output_file, strerror(errno));
@@ -241,7 +265,8 @@ OrionError compile_file(CompilerOptions *options) {
     printf("Code generation completed successfully\n");
   }
   
-  printf("Compilation successful: %s -> %s\n", options->input_file, options->output_file);
+  printf("Compilation successful: %s -> %s (%s format)\n", 
+         options->input_file, options->output_file, format_name);
   
 cleanup:
   if (input_content) free(input_content);

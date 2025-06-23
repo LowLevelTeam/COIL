@@ -40,6 +40,12 @@ typedef struct {
   const char *filename;
 } SourcePosition;
 
+// Output format types
+typedef enum {
+  OUTPUT_BINARY,  // Orion++ binary format (.orionpp)
+  OUTPUT_HUMAN    // Human-readable assembly (.hopp)
+} OutputFormat;
+
 // Compiler options
 typedef struct {
   const char *input_file;
@@ -48,6 +54,7 @@ typedef struct {
   bool verbose;
   bool dump_ast;
   bool dump_tokens;
+  OutputFormat output_format;
 } CompilerOptions;
 
 // Utility functions
