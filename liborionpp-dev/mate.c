@@ -34,6 +34,8 @@ i32 main(int argc, const char *argv[]) {
     AddFile(orionpp_test, "./tests/test.c");
     AddLibraryPaths(orionpp_test, "./build");
     LinkSystemLibraries(orionpp_test, "orionpp-dev");
+    AddLibraryPaths(orionpp_test, "./../liborionobj-dev/build");
+    LinkSystemLibraries(orionpp_test, "orionobj-dev");
     InstallExecutable(orionpp_test);
     
     if (args.execute_commands) {
