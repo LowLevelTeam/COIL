@@ -222,10 +222,6 @@ orionpp_result_t orionpp_string_table_write_binary(orionpp_string_table_t* table
                                                     FILE* file) {
   if (!table || !file) return ORIONPP_ERROR(ORIONPP_ERROR_NULL_POINTER);
   
-  if (fwrite(&table->size, sizeof(uint32_t), 1, file) != 1) {
-    return ORIONPP_ERROR(ORIONPP_ERROR_IO_ERROR);
-  }
-  
   if (fwrite(table->data, 1, table->size, file) != table->size) {
     return ORIONPP_ERROR(ORIONPP_ERROR_IO_ERROR);
   }
