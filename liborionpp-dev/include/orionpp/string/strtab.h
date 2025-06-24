@@ -1,7 +1,10 @@
-#ifndef ORIONPP_STRING_TABLE_H
-#define ORIONPP_STRING_TABLE_H
+#ifndef ORIONPP_STRING_STRTAB_H
+#define ORIONPP_STRING_STRTAB_H
 
-#include "orionpp/types.h"
+#include "orionpp/core/types.h"
+#include "orionpp/core/result.h"
+#include "orionpp/core/allocator.h"
+#include <stdio.h>
 
 // String table for efficient string storage and deduplication
 struct orionpp_string_table {
@@ -52,6 +55,9 @@ uint32_t orionpp_string_table_get_length(const orionpp_string_table_t* table,
 bool orionpp_string_table_is_valid_offset(const orionpp_string_table_t* table,
                                            uint32_t offset);
 
+// String table properties
+uint32_t orionpp_string_table_get_size(const orionpp_string_table_t* table);
+
 // Serialize/deserialize for binary format
 orionpp_result_t orionpp_string_table_write_binary(orionpp_string_table_t* table,
                                                     FILE* file);
@@ -60,4 +66,4 @@ orionpp_result_t orionpp_string_table_read_binary(orionpp_string_table_t** table
                                                    uint32_t size,
                                                    const orionpp_allocator_t* allocator);
 
-#endif // ORIONPP_STRING_TABLE_H
+#endif // ORIONPP_STRING_STRTAB_H

@@ -1,6 +1,4 @@
-#include "orionpp/text.h"
-#include "orionpp/instr.h"
-#include "orionpp/value.h"
+#include "orionpp/output/text.h"
 #include <string.h>
 
 const orionpp_text_options_t orionpp_default_text_options = {
@@ -79,6 +77,84 @@ static void write_section_flags(FILE* file, orionpp_section_flags_t flags) {
   }
   
   fprintf(file, "]");
+}
+
+orionpp_result_t orionpp_value_write_text(const orionpp_value_t* value,
+                                           const orionpp_string_table_t* string_table,
+                                           FILE* file) {
+  if (!value || !file) return ORIONPP_ERROR(ORIONPP_ERROR_NULL_POINTER);
+  
+  switch (value->type) {
+    case ORIONPP_VALUE_VARIABLE:
+      fprintf(file, "$%u", value->variable_id);
+      break;
+      
+    case ORIONPP_VALUE_SYMBOL: {
+      const char* name = orionpp_string_table_get(string_table, value->symbol.name_offset);
+      if (name) {
+        fprintf(file, "@%s@", name);
+      } else {
+        fprintf(file, "@<invalid>@");
+      }
+      break;
+    }
+    
+    case ORIONPP_VALUE_NUMERIC: {
+      char base_char;
+      const char* format;
+      switch (value->numeric.base) {
+        case ORIONPP_BASE_BINARY:  base_char = 'b'; format = "%llx"; break;
+        case ORIONPP_BASE_OCTAL:   base_char = 'o'; format = "%llo"; break;
+        case ORIONPP_BASE_DECIMAL: base_char = 'd'; format = "%llu"; break;
+        case ORIONPP_BASE_HEX:     base_char = 'x'; format = "%llx"; break;
+        default: base_char = 'd'; format = "%llu"; break;
+      }
+      fprintf(file, "%%%c", base_char);
+      fprintf(file, format, value->numeric.value);
+      break;
+    }
+    
+    case ORIONPP_VALUE_LABEL: {
+      const char* name = orionpp_string_table_get(string_table, value->label.name_offset);
+      if (name) {
+        if (value->label.direction > 0) {
+          fprintf(file, "+.%s", name);
+        } else if (value->label.direction < 0) {
+          fprintf(file, "-.%s", name);
+        } else {
+          fprintf(file, ".%s", name);
+        }
+      } else {
+        fprintf(file, ".<invalid>");
+      }
+      break;
+    }
+    
+    case ORIONPP_VALUE_STRING: {
+      const char* str = orionpp_string_table_get(string_table, value->string.offset);
+      if (str) {
+        fprintf(file, "\"%s\"", str);
+      } else {
+        fprintf(file, "\"<invalid>\"");
+      }
+      break;
+    }
+    
+    case ORIONPP_VALUE_ARRAY:
+      fprintf(file, "[");
+      for (uint32_t i = 0; i < value->array.count; i++) {
+        if (i > 0) fprintf(file, ", ");
+        orionpp_value_write_text(&value->array.values[i], string_table, file);
+      }
+      fprintf(file, "]");
+      break;
+      
+    default:
+      fprintf(file, "<unknown_value>");
+      break;
+  }
+  
+  return ORIONPP_OK_INT(0);
 }
 
 orionpp_result_t orionpp_instruction_write_text(const orionpp_instruction_t* instruction,
@@ -181,6 +257,13 @@ orionpp_result_t orionpp_instruction_write_text(const orionpp_instruction_t* ins
           orionpp_value_write_text(&instruction->isa_binary_op.src1, string_table, file);
           fprintf(file, ", ");
           orionpp_value_write_text(&instruction->isa_binary_op.src2, string_table, file);
+          break;
+          
+        case ORIONPP_ISA_NOT:
+          fprintf(file, "%s ", orionpp_instruction_get_name(instruction->feature, instruction->opcode));
+          orionpp_value_write_text(&instruction->isa_unary_op.dest, string_table, file);
+          fprintf(file, ", ");
+          orionpp_value_write_text(&instruction->isa_unary_op.src, string_table, file);
           break;
           
         case ORIONPP_ISA_BR_EQ:
@@ -384,6 +467,11 @@ orionpp_result_t orionpp_module_write_text(const orionpp_module_t* module,
     // Write instruction
     orionpp_result_t result = orionpp_instruction_write_text(inst, module->strings, file);
     if (ORIONPP_IS_ERROR(result)) return result;
+    
+    // Add semicolon terminator for certain instructions
+    if (is_symbol_end) {
+      fprintf(file, ";");
+    }
     
     // Add newline
     fprintf(file, "\n");

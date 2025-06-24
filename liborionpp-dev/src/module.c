@@ -1,4 +1,4 @@
-#include "orionpp/module.h"
+#include "orionpp/module/module.h"
 #include <string.h>
 #include <stdlib.h>
 
@@ -114,13 +114,11 @@ static orionpp_result_t ensure_instruction_capacity(orionpp_module_t* module, ui
 }
 
 orionpp_result_t orionpp_module_add_instruction(orionpp_module_t* module,
-                                                 orionpp_feature_t feature,
-                                                 uint8_t opcode,
-                                                 orionpp_instruction_t** instruction) {
+                                                 orionpp_instruction_t* instruction) {
   if (!module || !instruction) return ORIONPP_ERROR(ORIONPP_ERROR_NULL_POINTER);
   
   // Check if feature is enabled
-  if (!orionpp_module_has_feature(module, feature)) {
+  if (!orionpp_module_has_feature(module, instruction->feature)) {
     return ORIONPP_ERROR(ORIONPP_ERROR_INVALID_FEATURE);
   }
   
@@ -128,40 +126,27 @@ orionpp_result_t orionpp_module_add_instruction(orionpp_module_t* module,
   orionpp_result_t capacity_result = ensure_instruction_capacity(module, module->instruction_count + 1);
   if (ORIONPP_IS_ERROR(capacity_result)) return capacity_result;
   
-  // Create instruction
-  orionpp_instruction_t* inst;
-  orionpp_result_t create_result = orionpp_instruction_create(&inst, feature, opcode, &module->allocator);
-  if (ORIONPP_IS_ERROR(create_result)) return create_result;
-  
   // Add to module
-  module->instructions[module->instruction_count] = inst;
+  module->instructions[module->instruction_count] = instruction;
   module->instruction_count++;
   
-  *instruction = inst;
-  return ORIONPP_OK_PTR(inst);
+  return ORIONPP_OK_INT(0);
 }
 
 orionpp_result_t orionpp_module_insert_instruction(orionpp_module_t* module,
                                                     uint32_t index,
-                                                    orionpp_feature_t feature,
-                                                    uint8_t opcode,
-                                                    orionpp_instruction_t** instruction) {
+                                                    orionpp_instruction_t* instruction) {
   if (!module || !instruction) return ORIONPP_ERROR(ORIONPP_ERROR_NULL_POINTER);
   if (index > module->instruction_count) return ORIONPP_ERROR(ORIONPP_ERROR_INVALID_INSTRUCTION);
   
   // Check if feature is enabled  
-  if (!orionpp_module_has_feature(module, feature)) {
+  if (!orionpp_module_has_feature(module, instruction->feature)) {
     return ORIONPP_ERROR(ORIONPP_ERROR_INVALID_FEATURE);
   }
   
   // Ensure capacity
   orionpp_result_t capacity_result = ensure_instruction_capacity(module, module->instruction_count + 1);
   if (ORIONPP_IS_ERROR(capacity_result)) return capacity_result;
-  
-  // Create instruction
-  orionpp_instruction_t* inst;
-  orionpp_result_t create_result = orionpp_instruction_create(&inst, feature, opcode, &module->allocator);
-  if (ORIONPP_IS_ERROR(create_result)) return create_result;
   
   // Shift existing instructions
   for (uint32_t i = module->instruction_count; i > index; i--) {
@@ -169,11 +154,10 @@ orionpp_result_t orionpp_module_insert_instruction(orionpp_module_t* module,
   }
   
   // Insert new instruction
-  module->instructions[index] = inst;
+  module->instructions[index] = instruction;
   module->instruction_count++;
   
-  *instruction = inst;
-  return ORIONPP_OK_PTR(inst);
+  return ORIONPP_OK_INT(0);
 }
 
 orionpp_result_t orionpp_module_remove_instruction(orionpp_module_t* module, uint32_t index) {
@@ -244,7 +228,7 @@ orionpp_result_t orionpp_module_get_stats(const orionpp_module_t* module,
   memset(stats, 0, sizeof(orionpp_module_stats_t));
   
   stats->total_instructions = module->instruction_count;
-  stats->string_table_size = module->strings->size;
+  stats->string_table_size = orionpp_string_table_get_size(module->strings);
   
   // Count instructions by feature
   for (uint32_t i = 0; i < module->instruction_count; i++) {
@@ -268,10 +252,9 @@ orionpp_result_t orionpp_module_get_stats(const orionpp_module_t* module,
   }
   
   // Estimate binary size (rough calculation)
-  stats->estimated_binary_size = sizeof(orionpp_binary_header_t) +
+  stats->estimated_binary_size = 64 + // Header
                                   stats->string_table_size +
-                                  (stats->total_instructions * sizeof(orionpp_binary_instruction_t)) +
-                                  (stats->total_instructions * 32); // Average instruction data size
+                                  (stats->total_instructions * 32); // Average instruction size
   
   return ORIONPP_OK_INT(0);
 }

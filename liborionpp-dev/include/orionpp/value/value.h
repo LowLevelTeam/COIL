@@ -1,8 +1,68 @@
-#ifndef ORIONPP_VALUE_H
-#define ORIONPP_VALUE_H
+#ifndef ORIONPP_VALUE_VALUE_H
+#define ORIONPP_VALUE_VALUE_H
 
-#include "orionpp/types.h"
-#include "orionpp/strtab.h"
+#include "orionpp/core/types.h"
+#include "orionpp/core/result.h"
+#include "orionpp/core/allocator.h"
+
+// Value types
+typedef enum {
+  ORIONPP_VALUE_NONE = 0,
+  ORIONPP_VALUE_VARIABLE = 1,    // $n
+  ORIONPP_VALUE_SYMBOL = 2,      // @symbol@
+  ORIONPP_VALUE_NUMERIC = 3,     // %base[digits]
+  ORIONPP_VALUE_ARRAY = 4,       // [values...]
+  ORIONPP_VALUE_LABEL = 5,       // .label / +.label / -.label
+  ORIONPP_VALUE_STRING = 6,      // "string"
+} orionpp_value_type_t;
+
+// Numeric base types
+typedef enum {
+  ORIONPP_BASE_BINARY = 2,
+  ORIONPP_BASE_OCTAL = 8,
+  ORIONPP_BASE_DECIMAL = 10,
+  ORIONPP_BASE_HEX = 16,
+} orionpp_numeric_base_t;
+
+// Value structure
+struct orionpp_value {
+  orionpp_value_type_t type;
+  union {
+    // Variable reference: $n
+    uint32_t variable_id;
+    
+    // Symbol reference: @symbol@
+    struct {
+      uint32_t name_offset;     // Offset into string table
+      uint32_t name_length;
+    } symbol;
+    
+    // Numeric literal: %base[digits]
+    struct {
+      orionpp_numeric_base_t base;
+      uint64_t value;
+    } numeric;
+    
+    // Array of values: [v1, v2, ...]
+    struct {
+      uint32_t count;
+      orionpp_value_t* values;
+    } array;
+    
+    // Label reference: .label, +.label, -.label
+    struct {
+      uint32_t name_offset;     // Offset into string table
+      uint32_t name_length;
+      int8_t direction;         // -1 = backward, 0 = local, +1 = forward
+    } label;
+    
+    // String literal: "string"
+    struct {
+      uint32_t offset;          // Offset into string table
+      uint32_t length;
+    } string;
+  };
+};
 
 // Value creation functions
 orionpp_value_t orionpp_value_variable(uint32_t variable_id);
@@ -33,37 +93,6 @@ uint32_t orionpp_value_get_variable_id(const orionpp_value_t* value);
 uint64_t orionpp_value_get_numeric_value(const orionpp_value_t* value);
 orionpp_numeric_base_t orionpp_value_get_numeric_base(const orionpp_value_t* value);
 
-// String table integration
-orionpp_result_t orionpp_value_symbol_from_string(orionpp_value_t* value,
-                                                   const char* symbol_name,
-                                                   orionpp_string_table_t* string_table);
-
-orionpp_result_t orionpp_value_label_from_string(orionpp_value_t* value,
-                                                  const char* label_name,
-                                                  int8_t direction,
-                                                  orionpp_string_table_t* string_table);
-
-orionpp_result_t orionpp_value_string_from_string(orionpp_value_t* value,
-                                                   const char* str,
-                                                   orionpp_string_table_t* string_table);
-
-// Value serialization
-orionpp_result_t orionpp_value_write_binary(const orionpp_value_t* value, FILE* file);
-orionpp_result_t orionpp_value_read_binary(orionpp_value_t* value, 
-                                           FILE* file,
-                                           const orionpp_allocator_t* allocator);
-
-// Text representation
-orionpp_result_t orionpp_value_write_text(const orionpp_value_t* value,
-                                           const orionpp_string_table_t* string_table,
-                                           FILE* file);
-
-// Value parsing from text
-orionpp_result_t orionpp_value_parse_from_text(orionpp_value_t* value,
-                                                const char* text,
-                                                orionpp_string_table_t* string_table,
-                                                const orionpp_allocator_t* allocator);
-
 // Value copying (deep copy for arrays)
 orionpp_result_t orionpp_value_copy(orionpp_value_t* dest,
                                      const orionpp_value_t* src,
@@ -71,4 +100,4 @@ orionpp_result_t orionpp_value_copy(orionpp_value_t* dest,
 
 void orionpp_value_free(orionpp_value_t* value, const orionpp_allocator_t* allocator);
 
-#endif // ORIONPP_VALUE_H
+#endif // ORIONPP_VALUE_VALUE_H

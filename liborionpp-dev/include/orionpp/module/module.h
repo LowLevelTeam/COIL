@@ -1,9 +1,11 @@
-#ifndef ORIONPP_MODULE_H
-#define ORIONPP_MODULE_H
+#ifndef ORIONPP_MODULE_MODULE_H
+#define ORIONPP_MODULE_MODULE_H
 
-#include "orionpp/types.h"
-#include "orionpp/strtab.h"
-#include "orionpp/instr.h"
+#include "orionpp/core/types.h"
+#include "orionpp/core/result.h"
+#include "orionpp/core/allocator.h"
+#include "orionpp/string/strtab.h"
+#include "orionpp/instr/instr.h"
 
 // Module structure
 struct orionpp_module {
@@ -38,15 +40,11 @@ orionpp_result_t orionpp_module_disable_feature(orionpp_module_t* module, orionp
 
 // Instruction management
 orionpp_result_t orionpp_module_add_instruction(orionpp_module_t* module,
-                                                 orionpp_feature_t feature,
-                                                 uint8_t opcode,
-                                                 orionpp_instruction_t** instruction);
+                                                 orionpp_instruction_t* instruction);
 
 orionpp_result_t orionpp_module_insert_instruction(orionpp_module_t* module,
                                                     uint32_t index,
-                                                    orionpp_feature_t feature,
-                                                    uint8_t opcode,
-                                                    orionpp_instruction_t** instruction);
+                                                    orionpp_instruction_t* instruction);
 
 orionpp_result_t orionpp_module_remove_instruction(orionpp_module_t* module, uint32_t index);
 
@@ -73,4 +71,4 @@ typedef struct {
 orionpp_result_t orionpp_module_get_stats(const orionpp_module_t* module,
                                            orionpp_module_stats_t* stats);
 
-#endif // ORIONPP_MODULE_H
+#endif // ORIONPP_MODULE_MODULE_H

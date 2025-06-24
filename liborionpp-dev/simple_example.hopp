@@ -1,0 +1,25 @@
+// OrionPP Module v1.0.0
+// Features: OBJ, ISA, ABI, HINT
+
+FEATURES {
+  OBJ
+  ISA
+  ABI
+  HINT
+}
+
+obj.section TEXT [ALLOC|EXEC] ".text"
+obj.sym GLOBAL FUNC "add"
+  abi.callee(system)
+  abi.args [$0, $1]
+  abi.rets [$2]
+  abi.setup
+  isa.scope_enter
+    isa.let $3
+    isa.mov $3, %d10
+    isa.add $2, $0, $1
+  isa.scope_leave
+  abi.cleanup
+  isa.ret
+hint.symend;
+

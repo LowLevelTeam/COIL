@@ -1,21 +1,10 @@
-#include "orionpp/strtab.h"
+#include "orionpp/string/strtab.h"
 #include <string.h>
 #include <stdlib.h>
 
 #define INITIAL_CAPACITY 1024
 #define INITIAL_HASH_SIZE 128
 #define LOAD_FACTOR_THRESHOLD 0.75
-
-// Default allocator implementation
-static void* default_malloc(size_t size) { return malloc(size); }
-static void* default_realloc(void* ptr, size_t size) { return realloc(ptr, size); }
-static void default_free(void* ptr) { free(ptr); }
-
-const orionpp_allocator_t orionpp_default_allocator = {
-  .malloc = default_malloc,
-  .realloc = default_realloc,
-  .free = default_free
-};
 
 // Simple hash function (FNV-1a)
 static uint32_t hash_string(const char* str, uint32_t length) {
@@ -141,7 +130,6 @@ orionpp_result_t orionpp_string_table_add_length(orionpp_string_table_t* table,
   uint32_t bucket = hash % table->hash_table_size;
   
   // Check for existing string (deduplication)
-  // Start from the first real entry (skip sentinel)
   struct string_hash_entry* entry = table->hash_table[bucket].next;
   while (entry) {
     if (entry->length == length && entry->hash == hash) {
@@ -224,6 +212,10 @@ bool orionpp_string_table_is_valid_offset(const orionpp_string_table_t* table,
   return table && offset < table->size;
 }
 
+uint32_t orionpp_string_table_get_size(const orionpp_string_table_t* table) {
+  return table ? table->size : 0;
+}
+
 orionpp_result_t orionpp_string_table_write_binary(orionpp_string_table_t* table,
                                                     FILE* file) {
   if (!table || !file) return ORIONPP_ERROR(ORIONPP_ERROR_NULL_POINTER);
@@ -265,9 +257,6 @@ orionpp_result_t orionpp_string_table_read_binary(orionpp_string_table_t** table
   }
   
   t->size = size;
-  
-  // Rebuild hash table for deduplication (optional optimization)
-  // For now, we'll skip this since it's mainly for write performance
   
   return ORIONPP_OK_PTR(t);
 }

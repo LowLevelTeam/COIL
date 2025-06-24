@@ -1,4 +1,4 @@
-#include "orionpp/instr.h"
+#include "orionpp/instr/instr.h"
 #include <string.h>
 #include <stdlib.h>
 
@@ -103,9 +103,66 @@ void orionpp_instruction_destroy(orionpp_instruction_t* instruction,
   if (instruction->feature == ORIONPP_FEATURE_ABI) {
     if (instruction->opcode == ORIONPP_ABI_ARGS || instruction->opcode == ORIONPP_ABI_RETS) {
       if (instruction->abi_args_rets.values) {
+        // Free individual values first
+        for (uint32_t i = 0; i < instruction->abi_args_rets.count; i++) {
+          orionpp_value_free(&instruction->abi_args_rets.values[i], allocator);
+        }
         allocator->free(instruction->abi_args_rets.values);
       }
     }
+  }
+  
+  // Free any values in other instruction types
+  switch (instruction->feature) {
+    case ORIONPP_FEATURE_OBJ:
+      if (instruction->opcode >= ORIONPP_OBJ_BYTE && instruction->opcode <= ORIONPP_OBJ_QWORD) {
+        orionpp_value_free(&instruction->obj_data.value, allocator);
+      }
+      break;
+    case ORIONPP_FEATURE_ISA:
+      switch (instruction->opcode) {
+        case ORIONPP_ISA_MOV:
+          orionpp_value_free(&instruction->isa_mov.dest, allocator);
+          orionpp_value_free(&instruction->isa_mov.src, allocator);
+          break;
+        case ORIONPP_ISA_ADD:
+        case ORIONPP_ISA_SUB:
+        case ORIONPP_ISA_MUL:
+        case ORIONPP_ISA_DIV:
+        case ORIONPP_ISA_AND:
+        case ORIONPP_ISA_OR:
+        case ORIONPP_ISA_XOR:
+        case ORIONPP_ISA_SHL:
+        case ORIONPP_ISA_SHR:
+          orionpp_value_free(&instruction->isa_binary_op.dest, allocator);
+          orionpp_value_free(&instruction->isa_binary_op.src1, allocator);
+          orionpp_value_free(&instruction->isa_binary_op.src2, allocator);
+          break;
+        case ORIONPP_ISA_NOT:
+          orionpp_value_free(&instruction->isa_unary_op.dest, allocator);
+          orionpp_value_free(&instruction->isa_unary_op.src, allocator);
+          break;
+        case ORIONPP_ISA_BR_EQ:
+        case ORIONPP_ISA_BR_NE:
+        case ORIONPP_ISA_BR_LT:
+        case ORIONPP_ISA_BR_LE:
+        case ORIONPP_ISA_BR_GT:
+        case ORIONPP_ISA_BR_GE:
+          orionpp_value_free(&instruction->isa_branch.label, allocator);
+          orionpp_value_free(&instruction->isa_branch.left, allocator);
+          orionpp_value_free(&instruction->isa_branch.right, allocator);
+          break;
+        case ORIONPP_ISA_JMP:
+          orionpp_value_free(&instruction->isa_jump.target, allocator);
+          break;
+        case ORIONPP_ISA_LABEL:
+          orionpp_value_free(&instruction->isa_label.label, allocator);
+          break;
+        case ORIONPP_ISA_CALL:
+          orionpp_value_free(&instruction->isa_call.target, allocator);
+          break;
+      }
+      break;
   }
   
   allocator->free(instruction);
@@ -114,7 +171,6 @@ void orionpp_instruction_destroy(orionpp_instruction_t* instruction,
 bool orionpp_instruction_feature_supports_opcode(orionpp_feature_t feature, uint8_t opcode) {
   switch (feature) {
     case ORIONPP_FEATURE_OBJ:
-      // Check specific valid OBJ opcodes
       switch (opcode) {
         case ORIONPP_OBJ_SECTION:
         case ORIONPP_OBJ_SYMBOL:
@@ -129,7 +185,6 @@ bool orionpp_instruction_feature_supports_opcode(orionpp_feature_t feature, uint
       }
       
     case ORIONPP_FEATURE_ISA:
-      // Check specific valid ISA opcodes
       switch (opcode) {
         case ORIONPP_ISA_SCOPE_ENTER:
         case ORIONPP_ISA_SCOPE_LEAVE:
@@ -164,7 +219,6 @@ bool orionpp_instruction_feature_supports_opcode(orionpp_feature_t feature, uint
       }
       
     case ORIONPP_FEATURE_ABI:
-      // Check specific valid ABI opcodes
       switch (opcode) {
         case ORIONPP_ABI_CALLEE:
         case ORIONPP_ABI_CALLER:
@@ -178,7 +232,6 @@ bool orionpp_instruction_feature_supports_opcode(orionpp_feature_t feature, uint
       }
       
     case ORIONPP_FEATURE_HINT:
-      // Check specific valid HINT opcodes
       switch (opcode) {
         case ORIONPP_HINT_SYMEND:
         case ORIONPP_HINT_OPTIMIZE:
@@ -198,140 +251,6 @@ bool orionpp_instruction_feature_supports_opcode(orionpp_feature_t feature, uint
 bool orionpp_instruction_is_valid(const orionpp_instruction_t* instruction) {
   if (!instruction) return false;
   return orionpp_instruction_feature_supports_opcode(instruction->feature, instruction->opcode);
-}
-
-orionpp_result_t orionpp_instruction_set_obj_section(orionpp_instruction_t* instruction,
-                                                      orionpp_section_type_t type,
-                                                      orionpp_section_flags_t flags,
-                                                      uint32_t name_offset) {
-  if (!instruction) return ORIONPP_ERROR(ORIONPP_ERROR_NULL_POINTER);
-  if (instruction->feature != ORIONPP_FEATURE_OBJ || instruction->opcode != ORIONPP_OBJ_SECTION) {
-    return ORIONPP_ERROR(ORIONPP_ERROR_INVALID_INSTRUCTION);
-  }
-  
-  instruction->obj_section.section_type = type;
-  instruction->obj_section.section_flags = flags;
-  instruction->obj_section.name_offset = name_offset;
-  
-  return ORIONPP_OK_INT(0);
-}
-
-orionpp_result_t orionpp_instruction_set_obj_symbol(orionpp_instruction_t* instruction,
-                                                     orionpp_symbol_binding_t binding,
-                                                     orionpp_symbol_type_t type,
-                                                     uint32_t name_offset) {
-  if (!instruction) return ORIONPP_ERROR(ORIONPP_ERROR_NULL_POINTER);
-  if (instruction->feature != ORIONPP_FEATURE_OBJ || instruction->opcode != ORIONPP_OBJ_SYMBOL) {
-    return ORIONPP_ERROR(ORIONPP_ERROR_INVALID_INSTRUCTION);
-  }
-  
-  instruction->obj_symbol.binding = binding;
-  instruction->obj_symbol.symbol_type = type;
-  instruction->obj_symbol.name_offset = name_offset;
-  
-  return ORIONPP_OK_INT(0);
-}
-
-orionpp_result_t orionpp_instruction_set_isa_let(orionpp_instruction_t* instruction,
-                                                  uint32_t variable_id) {
-  if (!instruction) return ORIONPP_ERROR(ORIONPP_ERROR_NULL_POINTER);
-  if (instruction->feature != ORIONPP_FEATURE_ISA || instruction->opcode != ORIONPP_ISA_LET) {
-    return ORIONPP_ERROR(ORIONPP_ERROR_INVALID_INSTRUCTION);
-  }
-  
-  instruction->isa_let.variable_id = variable_id;
-  return ORIONPP_OK_INT(0);
-}
-
-orionpp_result_t orionpp_instruction_set_isa_mov(orionpp_instruction_t* instruction,
-                                                  const orionpp_value_t* dest,
-                                                  const orionpp_value_t* src) {
-  if (!instruction || !dest || !src) return ORIONPP_ERROR(ORIONPP_ERROR_NULL_POINTER);
-  if (instruction->feature != ORIONPP_FEATURE_ISA || instruction->opcode != ORIONPP_ISA_MOV) {
-    return ORIONPP_ERROR(ORIONPP_ERROR_INVALID_INSTRUCTION);
-  }
-  
-  instruction->isa_mov.dest = *dest;
-  instruction->isa_mov.src = *src;
-  return ORIONPP_OK_INT(0);
-}
-
-orionpp_result_t orionpp_instruction_set_isa_binary_op(orionpp_instruction_t* instruction,
-                                                        const orionpp_value_t* dest,
-                                                        const orionpp_value_t* src1,
-                                                        const orionpp_value_t* src2) {
-  if (!instruction || !dest || !src1 || !src2) return ORIONPP_ERROR(ORIONPP_ERROR_NULL_POINTER);
-  if (instruction->feature != ORIONPP_FEATURE_ISA) return ORIONPP_ERROR(ORIONPP_ERROR_INVALID_INSTRUCTION);
-  
-  // Validate opcode is a binary operation
-  switch (instruction->opcode) {
-    case ORIONPP_ISA_ADD:
-    case ORIONPP_ISA_SUB:
-    case ORIONPP_ISA_MUL:
-    case ORIONPP_ISA_DIV:
-    case ORIONPP_ISA_AND:
-    case ORIONPP_ISA_OR:
-    case ORIONPP_ISA_XOR:
-    case ORIONPP_ISA_SHL:
-    case ORIONPP_ISA_SHR:
-      break;
-    default:
-      return ORIONPP_ERROR(ORIONPP_ERROR_INVALID_INSTRUCTION);
-  }
-  
-  instruction->isa_binary_op.dest = *dest;
-  instruction->isa_binary_op.src1 = *src1;
-  instruction->isa_binary_op.src2 = *src2;
-  return ORIONPP_OK_INT(0);
-}
-
-orionpp_result_t orionpp_instruction_set_abi_declaration(orionpp_instruction_t* instruction,
-                                                          orionpp_abi_type_t type,
-                                                          uint32_t abi_name_offset) {
-  if (!instruction) return ORIONPP_ERROR(ORIONPP_ERROR_NULL_POINTER);
-  if (instruction->feature != ORIONPP_FEATURE_ABI) return ORIONPP_ERROR(ORIONPP_ERROR_INVALID_INSTRUCTION);
-  if (instruction->opcode != ORIONPP_ABI_CALLEE && instruction->opcode != ORIONPP_ABI_CALLER) {
-    return ORIONPP_ERROR(ORIONPP_ERROR_INVALID_INSTRUCTION);
-  }
-  
-  instruction->abi_declaration.abi_type = type;
-  instruction->abi_declaration.abi_name_offset = abi_name_offset;
-  return ORIONPP_OK_INT(0);
-}
-
-orionpp_result_t orionpp_instruction_set_abi_args_rets(orionpp_instruction_t* instruction,
-                                                        orionpp_value_t* values,
-                                                        uint32_t count,
-                                                        const orionpp_allocator_t* allocator) {
-  if (!instruction || (!values && count > 0)) return ORIONPP_ERROR(ORIONPP_ERROR_NULL_POINTER);
-  if (!allocator) allocator = &orionpp_default_allocator;
-  
-  if (instruction->feature != ORIONPP_FEATURE_ABI) return ORIONPP_ERROR(ORIONPP_ERROR_INVALID_INSTRUCTION);
-  if (instruction->opcode != ORIONPP_ABI_ARGS && instruction->opcode != ORIONPP_ABI_RETS) {
-    return ORIONPP_ERROR(ORIONPP_ERROR_INVALID_INSTRUCTION);
-  }
-  
-  // Free existing values if any
-  if (instruction->abi_args_rets.values) {
-    allocator->free(instruction->abi_args_rets.values);
-  }
-  
-  if (count == 0) {
-    instruction->abi_args_rets.values = NULL;
-    instruction->abi_args_rets.count = 0;
-    return ORIONPP_OK_INT(0);
-  }
-  
-  // Allocate and copy values
-  orionpp_value_t* new_values = allocator->malloc(sizeof(orionpp_value_t) * count);
-  if (!new_values) return ORIONPP_ERROR(ORIONPP_ERROR_OUT_OF_MEMORY);
-  
-  memcpy(new_values, values, sizeof(orionpp_value_t) * count);
-  
-  instruction->abi_args_rets.values = new_values;
-  instruction->abi_args_rets.count = count;
-  
-  return ORIONPP_OK_INT(0);
 }
 
 const char* orionpp_instruction_get_name(orionpp_feature_t feature, uint8_t opcode) {

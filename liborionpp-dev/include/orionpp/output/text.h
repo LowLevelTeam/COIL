@@ -1,8 +1,12 @@
-#ifndef ORIONPP_TEXT_H
-#define ORIONPP_TEXT_H
+#ifndef ORIONPP_OUTPUT_TEXT_H
+#define ORIONPP_OUTPUT_TEXT_H
 
-#include "orionpp/types.h"
-#include "orionpp/module.h"
+#include "orionpp/core/types.h"
+#include "orionpp/core/result.h"
+#include "orionpp/module/module.h"
+#include "orionpp/instr/instr.h"
+#include "orionpp/value/value.h"
+#include <stdio.h>
 
 // Text format output options
 typedef struct {
@@ -25,8 +29,13 @@ orionpp_result_t orionpp_instruction_write_text(const orionpp_instruction_t* ins
                                                  const orionpp_string_table_t* string_table,
                                                  FILE* file);
 
+// Value text output
+orionpp_result_t orionpp_value_write_text(const orionpp_value_t* value,
+                                           const orionpp_string_table_t* string_table,
+                                           FILE* file);
+
 // Module statistics as text
 orionpp_result_t orionpp_module_write_stats(const orionpp_module_t* module,
                                              FILE* file);
 
-#endif // ORIONPP_TEXT_H
+#endif // ORIONPP_OUTPUT_TEXT_H
