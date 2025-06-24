@@ -10,7 +10,7 @@ i32 main(int argc, const char *argv[]) {
 
   StartBuild();
   {
-    StaticLib orion_obj_library = CreateStaticLib((StaticLibOptions){
+    StaticLib orionobj_library = CreateStaticLib((StaticLibOptions){
       .output = "liborionobj-dev.a",
       .std = args.stdlevel,
       .debug = args.debuglevel,
@@ -18,24 +18,27 @@ i32 main(int argc, const char *argv[]) {
       .error = args.errorfmt,
       .optimization = args.optlevel
     });
-    AddIncludePaths(orion_obj_library, "./include");
-    AddFile(orion_obj_library, "./src/*.c");
-    InstallStaticLib(orion_obj_library);
+    AddIncludePaths(orionobj_library, "./include");
+    AddFile(orionobj_library, "./src/*.c");
+    InstallStaticLib(orionobj_library);
 
-    Executable orion_obj_library_example = CreateExecutable((ExecutableOptions){
-      .output = "example",
+    Executable orionobj_test = CreateExecutable((ExecutableOptions){
+      .output = "test",
       .std = args.stdlevel,
       .debug = args.debuglevel,
       .warnings = args.warninglevel,
       .error = args.errorfmt,
       .optimization = args.optlevel
     });
-    AddIncludePaths(orion_obj_library_example, "./include");
-    AddFile(orion_obj_library_example, "./examples/examples.c");
-    AddLibraryPaths(orion_obj_library_example, "./build");
-    LinkSystemLibraries(orion_obj_library_example, "orionobj-dev");
-    InstallExecutable(orion_obj_library_example);    
-    RunCommand(orion_obj_library_example.outputPath);
+    AddIncludePaths(orionobj_test, "./include");
+    AddFile(orionobj_test, "./tests/test.c");
+    AddLibraryPaths(orionobj_test, "./build");
+    LinkSystemLibraries(orionobj_test, "orionobj-dev");
+    InstallExecutable(orionobj_test);
+    
+    if (args.execute_commands) {
+      RunCommand(orionobj_test.outputPath);
+    }
   }
   EndBuild();
 }
