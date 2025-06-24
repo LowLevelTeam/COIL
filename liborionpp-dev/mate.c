@@ -22,23 +22,23 @@ i32 main(int argc, const char *argv[]) {
     AddFile(orionpp_library, "./src/*.c");
     InstallStaticLib(orionpp_library);
 
-    Executable orionpp_example = CreateExecutable((ExecutableOptions){
-      .output = "example",
-      .std = args.stdlevel,
-      .debug = args.debuglevel,
-      .warnings = args.warninglevel,
-      .error = args.errorfmt,
-      .optimization = args.optlevel
-    });
-    AddIncludePaths(orionpp_example, "./include");
-    AddFile(orionpp_example, "./examples/example.c");
-    AddLibraryPaths(orionpp_example, "./build");
-    LinkSystemLibraries(orionpp_example, "orionpp-dev");
-    InstallExecutable(orionpp_example);
-    
-    if (args.execute_commands) {
-      RunCommand(orionpp_example.outputPath);
-    }
+    // Executable orionpp_example = CreateExecutable((ExecutableOptions){
+    //   .output = "example",
+    //   .std = args.stdlevel,
+    //   .debug = args.debuglevel,
+    //   .warnings = args.warninglevel,
+    //   .error = args.errorfmt,
+    //   .optimization = args.optlevel
+    // });
+    // AddIncludePaths(orionpp_example, "./include");
+    // AddFile(orionpp_example, "./examples/example.c");
+    // AddLibraryPaths(orionpp_example, "./build");
+    // LinkSystemLibraries(orionpp_example, "orionpp-dev");
+    // InstallExecutable(orionpp_example);
+    // 
+    // if (args.execute_commands) {
+    //   RunCommand(orionpp_example.outputPath);
+    // }
   }
   EndBuild();
 }

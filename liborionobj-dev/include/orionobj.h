@@ -21,16 +21,12 @@ typedef enum {
 
 // Section types
 typedef enum {
-  ORION_SEC_NULL = 0,           // Null section
-  ORION_SEC_ORIONPP_TEXT,       // Orion++ executable code
-  ORION_SEC_ORIONPP_DATA,       // Orion++ initialized data
-  ORION_SEC_ORIONPP_BSS,        // Orion++ uninitialized data
-  ORION_SEC_ORIONVAR_TEXT,      // Orion variant executable code
-  ORION_SEC_ORIONVAR_DATA,      // Orion variant initialized data
-  ORION_SEC_ORIONVAR_BSS,       // Orion variant uninitialized data
-  ORION_SEC_NATIVE_TEXT,        // Native machine code
-  ORION_SEC_NATIVE_DATA,        // Native initialized data
-  ORION_SEC_NATIVE_BSS,         // Native uninitialized data
+  ORION_SEC_NULL = 0,          // Null section
+  ORION_SEC_ORIONPP_TEXT,      // Orion++ executable code
+  ORION_SEC_ORIONVAR_TEXT,     // Orion variant executable code
+  ORION_SEC_NATIVE_TEXT,       // Native machine code
+  ORION_SEC_DATA,              // Initialized data
+  ORION_SEC_BSS,               // Uninitialized data
   ORION_SEC_SYMTAB,            // Symbol table
   ORION_SEC_STRTAB,            // String table
   ORION_SEC_RELA,              // Relocation entries with addends
@@ -53,7 +49,9 @@ typedef enum {
 typedef enum {
   ORION_TARGET_NONE = 0,
   ORION_TARGET_X86,
+  ORION_TARGET_X86_32,
   ORION_TARGET_X86_64,
+  ORION_TARGET_ARM_THUMB,
   ORION_TARGET_ARM,
   ORION_TARGET_ARM64,
   ORION_TARGET_RISCV32,

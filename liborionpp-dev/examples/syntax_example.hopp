@@ -1,183 +1,113 @@
-// Orion++ Syntax Example
-// This file demonstrates the new variable and symbol syntax
+// Single Line Comment
+/* 
+Multi 
+Line 
+Comment 
+*/
+
+FEATURES {
+  /* 
+    Currently available features
+      HINT - no functionality by itself but includes helpful hints for optimization and safety
+      OBJ - Functionality to define the object structure (if not used then the output will just be a big binary of direct translations)
+      ISA - The standard orionpp instruction set which can support basic arithmetic, control flow and memory.
+      ABI - ABI Calling Convention definitions to help with function definitions. (defines functionality to define custom ABIs and standard ABIs)
+    To exist in future development
+      C - This is C language helpers with C primitive type definitions and more help for C compilers.
+      ...More Coming Soon...
+  */
+
+  OBJ // (obj.*)
+  ISA // (isa.*)
+  ABI // (abi.*, @abi)
+  HINT // (hint.*, @hint.*)  
+}
 
 
-obj.section [EXEC] .text
+// obj.section {TEXT|DATA|BSS|SYMTAB|STRTAB} [{WRITE|ALLOC|MERGE}...] "SECTION"
+// translates to orion object section types (ORIONPP_TEXT,DATA,BSS,SYMTAB,STRTAB)
+obj.section TEXT [] ".text"
 
-// Simple addition function
-// int add(int a, int b) { return a + b; }
-obj.sym[global,func] @"add":
-  .hint-abi(c)
-  .hint-args(i32, i32)
-  .hint-rets(i32)
+// @abi is a decorator for a symbol
+// the symbol does not need to be of type FUNC.
+// the abi functions underneath the symbol will utilize the C ABI for callee
+@abi(c) // ABIs utilize a special abi table and will be resolved at link time
+
+// define symbol at program location
+// obj.sym {LOCAL|GLOBAL|WEAK} {NULL,OBJ,FUNC} "SYMBOL"
+obj.sym GLOBAL FUNC "add"
+  // abi.args [VARID...] defines variable identifiers for arguments (accept as many as the ABI supports)
+  abi.args [0, 1]
+
+  // abi.rets [VARID...] defines variable identifiers for returns (can return more then one if the ABI supports it)
+  abi.rets [2]
+
+  abi.callee.setup
   
-  abi.callee.enter
-  isa.enter
-    // Get function parameters (old syntax used string names)
-    isa.let $1, abi.callee.getarg.0    // $1 = parameter 'a'
-    isa.let $2, abi.callee.getarg.1    // $2 = parameter 'b'
-    
-    // Perform addition using numeric variable IDs
-    isa.add $3, $1, $2                 // $3 = $1 + $2
-    
-    // Return the result
-    abi.callee.setret.0 $3
-  isa.leave
-  abi.callee.leave
-  isa.RET
-.hint-endfunc()
+  // track local variables
+  isa.scope_enter
+    // Example local variables
+    isa.let $3
+    isa.mov $3, d10 // d = decimal / base 10
+    isa.const $4, 10
 
-// Function with local variables
-// int multiply_and_add(int x, int y) { 
-//   int temp = x * y; 
-//   return temp + 10; 
-// }
-obj.sym[global,func] @"multiply_and_add":
-  .hint-abi(c)
-  .hint-args(i32, i32)
-  .hint-rets(i32)
-  
-  abi.callee.enter
-  isa.enter
-    // Parameters
-    isa.let $1, abi.callee.getarg.0    // x
-    isa.let $2, abi.callee.getarg.1    // y
-    
-    // Local variables start at $256+
-    isa.mul $256, $1, $2               // temp = x * y
-    isa.const $257, 10                 // constant 10
-    isa.add $258, $256, $257           // result = temp + 10
-    
-    abi.callee.setret.0 $258
-  isa.leave
-  abi.callee.leave
-  isa.RET
-.hint-endfunc()
+    // add the first and second argument then place into the return variable
+    // the $2 variable will be returned by the abi in cleanup
+    isa.add $2, $0, $1
 
-// Function demonstrating symbol usage
-// int factorial(int n) {
-//   if (n <= 1) return 1;
-//   else return n * factorial(n - 1);
-// }
-obj.sym[global,func] @"factorial":
-  .hint-abi(c)
-  .hint-args(i32)
-  .hint-rets(i32)
+    // Example for calling a function utilizing an abi
+    // set the abi call
+    // 
+    abi.caller(c)
+    abi.caller.args [$0, $1]
+    abi.caller.rets [$2]
+    abi.caller.setup // set args, stack allignment and red zone if needed plus anything else in the calling convention
+      call @add@
+    abi.caller.cleanup // clean everything up
   
-  abi.callee.enter
-  isa.enter
-    isa.let $1, abi.callee.getarg.0    // n
-    
-    // Check if n <= 1
-    isa.const $256, 1
-    isa.bgt $1, $256, .L_recursive     // if n > 1, go to recursive case
-    
-    // Base case: return 1
-    isa.const $257, 1
-    abi.callee.setret.0 $257
-    isa.jmp .L_return
-    
-obj.label .L_recursive:
-    // Recursive case: return n * factorial(n - 1)
-    isa.sub $258, $1, $256             // n - 1
-    
-    // Call factorial(n - 1) using symbol syntax
-    abi.caller.setup
-    abi.caller.setarg.0 $258
-    isa.call @"factorial"              // Symbol reference with @"name"
-    abi.caller.getret.0 $259           // result of factorial(n-1)
-    abi.caller.cleanup
-    
-    // Multiply n * factorial(n-1)
-    isa.mul $260, $1, $259
-    abi.callee.setret.0 $260
-    
-obj.label .L_return:
-  isa.leave
-  abi.callee.leave
-  isa.RET
-.hint-endfunc()
+    // example for branch control flow
 
-// Main function demonstrating function calls
-obj.sym[global,func] @"main":
-  .hint-abi(c)
-  .hint-args(null)
-  .hint-rets(i32)
-  
-  abi.callee.enter
-  isa.enter
-    // Call add(5, 3)
-    abi.caller.setup
-    isa.const $256, 5
-    isa.const $257, 3
-    abi.caller.setarg.0 $256
-    abi.caller.setarg.1 $257
-    isa.call @"add"                    // Symbol reference
-    abi.caller.getret.0 $258           // result = 8
-    abi.caller.cleanup
-    
-    // Call factorial(5)
-    abi.caller.setup
-    isa.const $259, 5
-    abi.caller.setarg.0 $259
-    isa.call @"factorial"              // Symbol reference
-    abi.caller.getret.0 $260           // result = 120
-    abi.caller.cleanup
-    
-    // Return 0
-    isa.const $261, 0
-    abi.callee.setret.0 $261
-  isa.leave
-  abi.callee.leave
-  isa.RET
-.hint-endfunc()
+    // to help with label resolving a prefix on the label for if it is placed below or above must be used
+    isa.br.eq +.0, $0, $1 // if ($0 == $1) goto .0;
+    // value is not eq
 
-// Example with complex symbol names
-obj.sym[global,func] @"std::string::length":
-  .hint-abi(c)
-  .hint-args(i32)
-  .hint-rets(i32)
-  
-  abi.callee.enter
-  isa.enter
-    // Dummy implementation
-    isa.const $1, 42
-    abi.callee.setret.0 $1
-  isa.leave
-  abi.callee.leave
-  isa.RET
-.hint-endfunc()
+    // jmp is used for unconditional branching
+    isa.jmp +.1
 
-// Example with operator overloading
-obj.sym[global,func] @"operator+":
-  .hint-abi(c)
-  .hint-args(i32, i32)
-  .hint-rets(i32)
-  
-  abi.callee.enter
-  isa.enter
-    isa.let $1, abi.callee.getarg.0
-    isa.let $2, abi.callee.getarg.1
-    isa.add $3, $1, $2
-    abi.callee.setret.0 $3
-  isa.leave
-  abi.callee.leave
-  isa.RET
-.hint-endfunc()
+    // labels can override one another as they are expected to be local
+    isa.label .0 // value is eq
 
-// Example with Unicode function name
-obj.sym[global,func] @"计算总和":
-  .hint-abi(c)
-  .hint-args(i32, i32)
-  .hint-rets(i32)
-  
-  abi.callee.enter
-  isa.enter
-    isa.let $1, abi.callee.getarg.0
-    isa.let $2, abi.callee.getarg.1
-    isa.add $3, $1, $2
-    abi.callee.setret.0 $3
-  isa.leave
-  abi.callee.leave
-  isa.RET
-.hint-endfunc()
+    isa.label .1 // end of if
+
+    // infinite loop example
+    // do { ... } while ($0 == $1);
+    isa.label .0
+      // loop body
+      
+      isa.br.eq -.0, $0, $1
+
+  // every variable decalred in the scope will be cleaned up automatically
+  isa.scope_leave
+
+  abi.callee.cleanup
+
+  isa.ret
+hint.symend;
+
+// Values
+//  $variable_id
+//  @symbol@  (it needs the end @ as symbols could have spaces in their name also \@ should be used for writing an @symbol and \\ for backslashes)
+//  %{base}[digits]
+//    example: %d10 is decimal 10
+//    specific bases %2-9-A-Z
+//    special bases x (hex), d (decimal), o (octal), b (binary)
+//  [{value}, ...]
+//  .{label}
+
+obj.section DATA [] ".data"
+
+obj.sym GLOBAL OBJ "hello_world_str"
+  .byte %x68 // h
+  .byte %x77 // w
+  .byte %x00 // \0
+hint.symend;
