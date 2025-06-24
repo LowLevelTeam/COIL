@@ -34,7 +34,7 @@ static orionpp_result_t resize_hash_table(orionpp_string_table_t* table) {
   
   table->hash_table_size *= 2;
   table->hash_table = table->allocator.malloc(
-    sizeof(struct string_hash_entry*) * table->hash_table_size);
+    sizeof(struct string_hash_entry) * table->hash_table_size);
   
   if (!table->hash_table) {
     table->hash_table = old_table;
@@ -42,16 +42,20 @@ static orionpp_result_t resize_hash_table(orionpp_string_table_t* table) {
     return ORIONPP_ERROR(ORIONPP_ERROR_OUT_OF_MEMORY);
   }
   
-  memset(table->hash_table, 0, sizeof(struct string_hash_entry*) * table->hash_table_size);
+  // Initialize new hash table (all entries are sentinel/head nodes)
+  memset(table->hash_table, 0, sizeof(struct string_hash_entry) * table->hash_table_size);
   
-  // Rehash all entries
+  // Rehash all entries from old table
   for (uint32_t i = 0; i < old_size; i++) {
     struct string_hash_entry* entry = old_table[i].next;
     while (entry) {
       struct string_hash_entry* next = entry->next;
       uint32_t bucket = entry->hash % table->hash_table_size;
+      
+      // Insert at head of new bucket chain
       entry->next = table->hash_table[bucket].next;
       table->hash_table[bucket].next = entry;
+      
       entry = next;
     }
   }
@@ -93,6 +97,7 @@ orionpp_result_t orionpp_string_table_create(orionpp_string_table_t** table,
     return ORIONPP_ERROR(ORIONPP_ERROR_OUT_OF_MEMORY);
   }
   
+  // Initialize all hash table entries as sentinel/head nodes
   memset(t->hash_table, 0, sizeof(struct string_hash_entry) * t->hash_table_size);
   
   *table = t;
@@ -136,9 +141,10 @@ orionpp_result_t orionpp_string_table_add_length(orionpp_string_table_t* table,
   uint32_t bucket = hash % table->hash_table_size;
   
   // Check for existing string (deduplication)
-  struct string_hash_entry* entry = &table->hash_table[bucket];
+  // Start from the first real entry (skip sentinel)
+  struct string_hash_entry* entry = table->hash_table[bucket].next;
   while (entry) {
-    if (entry->offset > 0 && entry->length == length && entry->hash == hash) {
+    if (entry->length == length && entry->hash == hash) {
       if (memcmp(table->data + entry->offset, str, length) == 0) {
         *offset = entry->offset;
         return ORIONPP_OK_INT(entry->offset);

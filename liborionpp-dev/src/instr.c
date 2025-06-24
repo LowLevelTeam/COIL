@@ -114,13 +114,82 @@ void orionpp_instruction_destroy(orionpp_instruction_t* instruction,
 bool orionpp_instruction_feature_supports_opcode(orionpp_feature_t feature, uint8_t opcode) {
   switch (feature) {
     case ORIONPP_FEATURE_OBJ:
-      return opcode > 0 && opcode < ORIONPP_OBJ_MAX;
+      // Check specific valid OBJ opcodes
+      switch (opcode) {
+        case ORIONPP_OBJ_SECTION:
+        case ORIONPP_OBJ_SYMBOL:
+        case ORIONPP_OBJ_BYTE:
+        case ORIONPP_OBJ_WORD:
+        case ORIONPP_OBJ_DWORD:
+        case ORIONPP_OBJ_QWORD:
+        case ORIONPP_OBJ_ALIGN:
+          return true;
+        default:
+          return false;
+      }
+      
     case ORIONPP_FEATURE_ISA:
-      return opcode > 0 && opcode < ORIONPP_ISA_MAX;
+      // Check specific valid ISA opcodes
+      switch (opcode) {
+        case ORIONPP_ISA_SCOPE_ENTER:
+        case ORIONPP_ISA_SCOPE_LEAVE:
+        case ORIONPP_ISA_LET:
+        case ORIONPP_ISA_MOV:
+        case ORIONPP_ISA_CONST:
+        case ORIONPP_ISA_ADD:
+        case ORIONPP_ISA_SUB:
+        case ORIONPP_ISA_MUL:
+        case ORIONPP_ISA_DIV:
+        case ORIONPP_ISA_AND:
+        case ORIONPP_ISA_OR:
+        case ORIONPP_ISA_XOR:
+        case ORIONPP_ISA_NOT:
+        case ORIONPP_ISA_SHL:
+        case ORIONPP_ISA_SHR:
+        case ORIONPP_ISA_CMP:
+        case ORIONPP_ISA_BR_EQ:
+        case ORIONPP_ISA_BR_NE:
+        case ORIONPP_ISA_BR_LT:
+        case ORIONPP_ISA_BR_LE:
+        case ORIONPP_ISA_BR_GT:
+        case ORIONPP_ISA_BR_GE:
+        case ORIONPP_ISA_JMP:
+        case ORIONPP_ISA_LABEL:
+        case ORIONPP_ISA_CALL:
+        case ORIONPP_ISA_RET:
+        case ORIONPP_ISA_NOP:
+          return true;
+        default:
+          return false;
+      }
+      
     case ORIONPP_FEATURE_ABI:
-      return opcode > 0 && opcode < ORIONPP_ABI_MAX;
+      // Check specific valid ABI opcodes
+      switch (opcode) {
+        case ORIONPP_ABI_CALLEE:
+        case ORIONPP_ABI_CALLER:
+        case ORIONPP_ABI_ARGS:
+        case ORIONPP_ABI_RETS:
+        case ORIONPP_ABI_SETUP:
+        case ORIONPP_ABI_CLEANUP:
+          return true;
+        default:
+          return false;
+      }
+      
     case ORIONPP_FEATURE_HINT:
-      return opcode > 0 && opcode < ORIONPP_HINT_MAX;
+      // Check specific valid HINT opcodes
+      switch (opcode) {
+        case ORIONPP_HINT_SYMEND:
+        case ORIONPP_HINT_OPTIMIZE:
+        case ORIONPP_HINT_UNROLL:
+        case ORIONPP_HINT_INLINE:
+        case ORIONPP_HINT_NOINLINE:
+          return true;
+        default:
+          return false;
+      }
+      
     default:
       return false;
   }
