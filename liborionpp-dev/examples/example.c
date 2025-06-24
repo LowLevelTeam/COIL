@@ -24,10 +24,10 @@ static orionpp_result_t create_add_function_module(orionpp_module_t** module) {
   orionpp_string_table_t* strings = orionpp_module_get_string_table(mod);
   
   // Add string table entries
-  uint32_t text_section_offset, add_symbol_offset, c_abi_offset;
+  uint32_t text_section_offset, add_symbol_offset, abi_offset;
   orionpp_string_table_add(strings, ".text", &text_section_offset);
   orionpp_string_table_add(strings, "add", &add_symbol_offset);
-  orionpp_string_table_add(strings, "c", &c_abi_offset);
+  orionpp_string_table_add(strings, "sys", &abi_offset);
   
   // Create .text section
   orionpp_instruction_t* text_section;
@@ -53,7 +53,7 @@ static orionpp_result_t create_add_function_module(orionpp_module_t** module) {
   result = orionpp_module_add_instruction(mod, ORIONPP_FEATURE_ABI, ORIONPP_ABI_CALLEE, &abi_decl);
   if (ORIONPP_IS_ERROR(result)) return result;
   
-  result = orionpp_instruction_set_abi_declaration(abi_decl, ORIONPP_ABI_CALLEE_TYPE, c_abi_offset);
+  result = orionpp_instruction_set_abi_declaration(abi_decl, ORIONPP_ABI_CALLEE_TYPE, abi_offset);
   if (ORIONPP_IS_ERROR(result)) return result;
   
   // ABI arguments: [0, 1]

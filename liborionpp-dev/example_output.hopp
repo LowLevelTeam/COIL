@@ -10,7 +10,7 @@ FEATURES {
 
 obj.section TEXT [ALLOC|EXEC] ".text"
 obj.sym GLOBAL FUNC "add"
-  abi.callee(c)
+  abi.callee(sys)
   abi.args [$0, $1]
   abi.rets [$2]
   abi.setup
