@@ -1,6 +1,6 @@
 /**
  * @file src/codegen.c
- * @brief Code generator implementation for Orion++ IR
+ * @brief Improved code generator implementation for Orion++ IR
  */
 
 #include "codegen.h"
@@ -325,6 +325,10 @@ void codegen_program(CodeGen* codegen, const ASTNode* node) {
     } else {
       codegen_statement(codegen, stmt);
     }
+    
+    if (codegen->had_error) {
+      return;
+    }
   }
 }
 
@@ -391,18 +395,15 @@ void codegen_variable_decl(CodeGen* codegen, const ASTNode* node) {
       break;
   }
   
+  // Emit variable declaration
+  emit_var_instruction(codegen, symbol->var_id, opp_type);
+  
   if (node->variable_decl.initializer) {
     // Generate initializer expression
     orionpp_variable_id_t init_var = codegen_expression(codegen, node->variable_decl.initializer);
     
-    // Emit variable declaration
-    emit_var_instruction(codegen, symbol->var_id, opp_type);
-    
     // Emit assignment
     emit_mov_instruction(codegen, symbol->var_id, init_var);
-  } else {
-    // Emit variable declaration without initialization
-    emit_var_instruction(codegen, symbol->var_id, opp_type);
   }
 }
 
@@ -451,6 +452,9 @@ void codegen_block(CodeGen* codegen, const ASTNode* node) {
   
   for (size_t i = 0; i < node->block.statement_count; i++) {
     codegen_statement(codegen, node->block.statements[i]);
+    if (codegen->had_error) {
+      return;
+    }
   }
 }
 
@@ -462,18 +466,25 @@ void codegen_if_statement(CodeGen* codegen, const ASTNode* node) {
   
   // Generate condition
   orionpp_variable_id_t condition_var = codegen_expression(codegen, node->if_stmt.condition);
+  if (codegen->had_error) return;
   
   // Create labels
   orionpp_label_id_t else_label = codegen_get_label(codegen);
   orionpp_label_id_t end_label = codegen_get_label(codegen);
   
-  // Branch to else if condition is false (we need to negate the condition)
+  // Create a temporary variable for negated condition
   orionpp_variable_id_t not_condition = codegen_get_temp_var(codegen);
+  emit_var_instruction(codegen, not_condition, ORIONPP_TYPE_WORD);
+  
+  // Negate the condition for branch-if-false logic
   emit_unary_instruction(codegen, ORIONPP_OP_ISA_NOT, not_condition, condition_var);
+  
+  // Branch to else if condition is false
   emit_branch_instruction(codegen, not_condition, else_label);
   
   // Generate then branch
   codegen_statement(codegen, node->if_stmt.then_branch);
+  if (codegen->had_error) return;
   
   // Jump to end
   emit_jump_instruction(codegen, end_label);
@@ -484,6 +495,7 @@ void codegen_if_statement(CodeGen* codegen, const ASTNode* node) {
   // Generate else branch if it exists
   if (node->if_stmt.else_branch) {
     codegen_statement(codegen, node->if_stmt.else_branch);
+    if (codegen->had_error) return;
   }
   
   // End label
@@ -505,14 +517,19 @@ void codegen_while_statement(CodeGen* codegen, const ASTNode* node) {
   
   // Generate condition
   orionpp_variable_id_t condition_var = codegen_expression(codegen, node->while_stmt.condition);
+  if (codegen->had_error) return;
   
-  // Branch to end if condition is false
+  // Create temporary variable for negated condition
   orionpp_variable_id_t not_condition = codegen_get_temp_var(codegen);
+  emit_var_instruction(codegen, not_condition, ORIONPP_TYPE_WORD);
+  
+  // Negate condition and branch to end if false
   emit_unary_instruction(codegen, ORIONPP_OP_ISA_NOT, not_condition, condition_var);
   emit_branch_instruction(codegen, not_condition, end_label);
   
   // Generate body
   codegen_statement(codegen, node->while_stmt.body);
+  if (codegen->had_error) return;
   
   // Jump back to loop
   emit_jump_instruction(codegen, loop_label);
@@ -530,6 +547,7 @@ void codegen_for_statement(CodeGen* codegen, const ASTNode* node) {
   // Generate initialization
   if (node->for_stmt.init) {
     codegen_statement(codegen, node->for_stmt.init);
+    if (codegen->had_error) return;
   }
   
   // Create labels
@@ -542,17 +560,22 @@ void codegen_for_statement(CodeGen* codegen, const ASTNode* node) {
   // Generate condition
   if (node->for_stmt.condition) {
     orionpp_variable_id_t condition_var = codegen_expression(codegen, node->for_stmt.condition);
+    if (codegen->had_error) return;
+    
     orionpp_variable_id_t not_condition = codegen_get_temp_var(codegen);
+    emit_var_instruction(codegen, not_condition, ORIONPP_TYPE_WORD);
     emit_unary_instruction(codegen, ORIONPP_OP_ISA_NOT, not_condition, condition_var);
     emit_branch_instruction(codegen, not_condition, end_label);
   }
   
   // Generate body
   codegen_statement(codegen, node->for_stmt.body);
+  if (codegen->had_error) return;
   
   // Generate update
   if (node->for_stmt.update) {
     codegen_expression(codegen, node->for_stmt.update);
+    if (codegen->had_error) return;
   }
   
   // Jump back to loop
@@ -568,30 +591,28 @@ void codegen_return_statement(CodeGen* codegen, const ASTNode* node) {
     return;
   }
   
-  orionpp_variable_id_t return_var = 0;
   if (node->return_stmt.value) {
-    return_var = codegen_expression(codegen, node->return_stmt.value);
-  }
-  
-  // Emit return instruction with value
-  orinopp_instruction_t instr;
-  instr.root = ORIONPP_OP_ISA;
-  instr.child = ORIONPP_OP_ISA_RET;
-  
-  if (node->return_stmt.value) {
+    orionpp_variable_id_t return_var = codegen_expression(codegen, node->return_stmt.value);
+    if (codegen->had_error) return;
+    
+    // Emit return instruction with value
+    orinopp_instruction_t instr;
+    instr.root = ORIONPP_OP_ISA;
+    instr.child = ORIONPP_OP_ISA_RET;
     instr.value_count = 1;
     instr.values = safe_malloc(sizeof(orinopp_value_t));
+    
     instr.values[0].root = ORIONPP_TYPE_VARID;
     instr.values[0].child = 0;
     instr.values[0].bytes = (char*)&return_var;
     instr.values[0].bytesize = sizeof(return_var);
+    
+    orionpp_writef(get_file_handle(codegen->output), &instr);
+    free(instr.values);
   } else {
-    instr.value_count = 0;
-    instr.values = NULL;
+    // Emit return instruction without value
+    emit_instruction(codegen, ORIONPP_OP_ISA, ORIONPP_OP_ISA_RET);
   }
-  
-  orionpp_writef(get_file_handle(codegen->output), &instr);
-  if (instr.values) free(instr.values);
 }
 
 void codegen_assignment(CodeGen* codegen, const ASTNode* node) {
@@ -607,6 +628,8 @@ void codegen_assignment(CodeGen* codegen, const ASTNode* node) {
   }
   
   orionpp_variable_id_t value_var = codegen_expression(codegen, node->assignment.value);
+  if (codegen->had_error) return;
+  
   emit_mov_instruction(codegen, symbol->var_id, value_var);
 }
 
@@ -645,6 +668,10 @@ orionpp_variable_id_t codegen_expression(CodeGen* codegen, const ASTNode* node) 
         arg_vars = safe_malloc(node->call.argument_count * sizeof(orionpp_variable_id_t));
         for (size_t i = 0; i < node->call.argument_count; i++) {
           arg_vars[i] = codegen_expression(codegen, node->call.arguments[i]);
+          if (codegen->had_error) {
+            free(arg_vars);
+            return 0;
+          }
         }
       }
       
@@ -668,6 +695,7 @@ orionpp_variable_id_t codegen_expression(CodeGen* codegen, const ASTNode* node) 
     }
     case AST_ASSIGNMENT: {
       codegen_assignment(codegen, node);
+      if (codegen->had_error) return 0;
       // Return the variable being assigned to
       Symbol* symbol = codegen_find_symbol(codegen, node->assignment.name);
       return symbol ? symbol->var_id : 0;
@@ -685,8 +713,15 @@ orionpp_variable_id_t codegen_binary_op(CodeGen* codegen, const ASTNode* node) {
   }
   
   orionpp_variable_id_t left_var = codegen_expression(codegen, node->binary_op.left);
+  if (codegen->had_error) return 0;
+  
   orionpp_variable_id_t right_var = codegen_expression(codegen, node->binary_op.right);
+  if (codegen->had_error) return 0;
+  
   orionpp_variable_id_t result_var = codegen_get_temp_var(codegen);
+  
+  // Emit variable declaration for result
+  emit_var_instruction(codegen, result_var, ORIONPP_TYPE_WORD);
   
   orionpp_opcode_module_t op;
   switch (node->binary_op.operator) {
@@ -695,22 +730,22 @@ orionpp_variable_id_t codegen_binary_op(CodeGen* codegen, const ASTNode* node) {
     case BINOP_MUL: op = ORIONPP_OP_ISA_MUL; break;
     case BINOP_DIV: op = ORIONPP_OP_ISA_DIV; break;
     case BINOP_MOD: op = ORIONPP_OP_ISA_MOD; break;
-    // For comparison operators, we'll use subtraction and then check the result
+    case BINOP_AND: op = ORIONPP_OP_ISA_AND; break;
+    case BINOP_OR: op = ORIONPP_OP_ISA_OR; break;
+    
+    // For comparison operators, use subtraction and comparison logic
     case BINOP_EQ:
     case BINOP_NE:
     case BINOP_LT:
     case BINOP_LE:
     case BINOP_GT:
     case BINOP_GE: {
-      // For now, emit subtraction and let a later pass handle comparison logic
+      // Emit subtraction first
       emit_binary_instruction(codegen, ORIONPP_OP_ISA_SUB, result_var, left_var, right_var);
+      
+      // For now, treat the result as the comparison result
+      // In a full implementation, you'd need comparison operations
       return result_var;
-    }
-    case BINOP_AND:
-    case BINOP_OR: {
-      // Logical operations - use bitwise for now
-      op = (node->binary_op.operator == BINOP_AND) ? ORIONPP_OP_ISA_AND : ORIONPP_OP_ISA_OR;
-      break;
     }
     default:
       codegen_error(codegen, "Unsupported binary operator");
@@ -728,7 +763,12 @@ orionpp_variable_id_t codegen_unary_op(CodeGen* codegen, const ASTNode* node) {
   }
   
   orionpp_variable_id_t operand_var = codegen_expression(codegen, node->unary_op.operand);
+  if (codegen->had_error) return 0;
+  
   orionpp_variable_id_t result_var = codegen_get_temp_var(codegen);
+  
+  // Emit variable declaration for result  
+  emit_var_instruction(codegen, result_var, ORIONPP_TYPE_WORD);
   
   switch (node->unary_op.operator) {
     case UNOP_MINUS: {

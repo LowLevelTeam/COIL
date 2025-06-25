@@ -20,11 +20,11 @@ int main() {
   return sum;
 }
 
-int add(int a, int b) {
-  return a + b;
-}
-
-int simple_function() {
-  int result = add(10, 20);
-  return result;
-}
+// int add(int a, int b) {
+//   return a + b;
+// }
+// 
+// int simple_function() {
+//   int result = add(10, 20);
+//   return result;
+// }

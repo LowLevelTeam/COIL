@@ -1,6 +1,6 @@
 /**
  * @file src/executor.c
- * @brief Orion++ instruction executor implementation
+ * @brief Improved Orion++ instruction executor implementation
  */
 
 #include "executor.h"
@@ -127,6 +127,15 @@ int ovm_exec_const(OrionVM* vm, const orinopp_instruction_t* instr) {
       var->value.str[value->bytesize] = '\0';
       var->is_initialized = true;
       break;
+    case ORIONPP_TYPE_C:
+      if (value->bytesize >= sizeof(char)) {
+        var->value.i64 = *(char*)value->bytes;
+        var->is_initialized = true;
+      } else {
+        ovm_error(vm, "Invalid character constant size");
+        return -1;
+      }
+      break;
     default:
       ovm_error(vm, "Unsupported constant type: %d", type);
       return -1;
@@ -244,6 +253,7 @@ int ovm_exec_br(OrionVM* vm, const orinopp_instruction_t* instr) {
   switch (cond->type) {
     case ORIONPP_TYPE_WORD:
     case ORIONPP_TYPE_SIZE:
+    case ORIONPP_TYPE_C:
       should_branch = (cond->value.i64 != 0);
       break;
     default:
@@ -310,6 +320,9 @@ int ovm_exec_call(OrionVM* vm, const orinopp_instruction_t* instr) {
             case ORIONPP_TYPE_STRING:
               printf("%s\n", arg->value.str ? arg->value.str : "(null)");
               break;
+            case ORIONPP_TYPE_C:
+              printf("%c\n", (char)arg->value.i64);
+              break;
             default:
               printf("(unhandled type)\n");
               break;
@@ -361,65 +374,519 @@ int ovm_exec_ret(OrionVM* vm, const orinopp_instruction_t* instr) {
   return 0;
 }
 
-// Arithmetic operations implementation
+// Improved arithmetic operations implementation
 int ovm_exec_add(OrionVM* vm, const orinopp_instruction_t* instr) {
-  return ovm_perform_binary_op(vm, NULL, NULL, NULL, ORIONPP_OP_ISA_ADD);
+  if (instr->value_count < 3) {
+    ovm_error(vm, "ADD instruction requires 3 operands");
+    return -1;
+  }
+  
+  orionpp_variable_id_t dest_id, left_id, right_id;
+  if (ovm_extract_variable_id(&instr->values[0], &dest_id) != 0 ||
+      ovm_extract_variable_id(&instr->values[1], &left_id) != 0 ||
+      ovm_extract_variable_id(&instr->values[2], &right_id) != 0) {
+    ovm_error(vm, "Invalid variable IDs in ADD instruction");
+    return -1;
+  }
+  
+  VMVariable* dest = ovm_get_variable(vm, dest_id);
+  VMVariable* left = ovm_get_variable(vm, left_id);
+  VMVariable* right = ovm_get_variable(vm, right_id);
+  
+  if (!dest || !left || !right) {
+    ovm_error(vm, "Variables not found in ADD instruction");
+    return -1;
+  }
+  
+  ValidationResult validation = ovm_validate_type_operation(vm, left, right, ORIONPP_OP_ISA_ADD);
+  if (validation != OVM_VALID) {
+    ovm_error(vm, "Type validation failed for ADD operation");
+    return -1;
+  }
+  
+  dest->value.i64 = left->value.i64 + right->value.i64;
+  dest->is_initialized = true;
+  return 0;
 }
 
 int ovm_exec_sub(OrionVM* vm, const orinopp_instruction_t* instr) {
-  return ovm_perform_binary_op(vm, NULL, NULL, NULL, ORIONPP_OP_ISA_SUB);
+  if (instr->value_count < 3) {
+    ovm_error(vm, "SUB instruction requires 3 operands");
+    return -1;
+  }
+  
+  orionpp_variable_id_t dest_id, left_id, right_id;
+  if (ovm_extract_variable_id(&instr->values[0], &dest_id) != 0 ||
+      ovm_extract_variable_id(&instr->values[1], &left_id) != 0 ||
+      ovm_extract_variable_id(&instr->values[2], &right_id) != 0) {
+    ovm_error(vm, "Invalid variable IDs in SUB instruction");
+    return -1;
+  }
+  
+  VMVariable* dest = ovm_get_variable(vm, dest_id);
+  VMVariable* left = ovm_get_variable(vm, left_id);
+  VMVariable* right = ovm_get_variable(vm, right_id);
+  
+  if (!dest || !left || !right) {
+    ovm_error(vm, "Variables not found in SUB instruction");
+    return -1;
+  }
+  
+  ValidationResult validation = ovm_validate_type_operation(vm, left, right, ORIONPP_OP_ISA_SUB);
+  if (validation != OVM_VALID) {
+    ovm_error(vm, "Type validation failed for SUB operation");
+    return -1;
+  }
+  
+  dest->value.i64 = left->value.i64 - right->value.i64;
+  dest->is_initialized = true;
+  return 0;
 }
 
 int ovm_exec_mul(OrionVM* vm, const orinopp_instruction_t* instr) {
-  return ovm_perform_binary_op(vm, NULL, NULL, NULL, ORIONPP_OP_ISA_MUL);
+  if (instr->value_count < 3) {
+    ovm_error(vm, "MUL instruction requires 3 operands");
+    return -1;
+  }
+  
+  orionpp_variable_id_t dest_id, left_id, right_id;
+  if (ovm_extract_variable_id(&instr->values[0], &dest_id) != 0 ||
+      ovm_extract_variable_id(&instr->values[1], &left_id) != 0 ||
+      ovm_extract_variable_id(&instr->values[2], &right_id) != 0) {
+    ovm_error(vm, "Invalid variable IDs in MUL instruction");
+    return -1;
+  }
+  
+  VMVariable* dest = ovm_get_variable(vm, dest_id);
+  VMVariable* left = ovm_get_variable(vm, left_id);
+  VMVariable* right = ovm_get_variable(vm, right_id);
+  
+  if (!dest || !left || !right) {
+    ovm_error(vm, "Variables not found in MUL instruction");
+    return -1;
+  }
+  
+  ValidationResult validation = ovm_validate_type_operation(vm, left, right, ORIONPP_OP_ISA_MUL);
+  if (validation != OVM_VALID) {
+    ovm_error(vm, "Type validation failed for MUL operation");
+    return -1;
+  }
+  
+  dest->value.i64 = left->value.i64 * right->value.i64;
+  dest->is_initialized = true;
+  return 0;
 }
 
 int ovm_exec_div(OrionVM* vm, const orinopp_instruction_t* instr) {
-  return ovm_perform_binary_op(vm, NULL, NULL, NULL, ORIONPP_OP_ISA_DIV);
+  if (instr->value_count < 3) {
+    ovm_error(vm, "DIV instruction requires 3 operands");
+    return -1;
+  }
+  
+  orionpp_variable_id_t dest_id, left_id, right_id;
+  if (ovm_extract_variable_id(&instr->values[0], &dest_id) != 0 ||
+      ovm_extract_variable_id(&instr->values[1], &left_id) != 0 ||
+      ovm_extract_variable_id(&instr->values[2], &right_id) != 0) {
+    ovm_error(vm, "Invalid variable IDs in DIV instruction");
+    return -1;
+  }
+  
+  VMVariable* dest = ovm_get_variable(vm, dest_id);
+  VMVariable* left = ovm_get_variable(vm, left_id);
+  VMVariable* right = ovm_get_variable(vm, right_id);
+  
+  if (!dest || !left || !right) {
+    ovm_error(vm, "Variables not found in DIV instruction");
+    return -1;
+  }
+  
+  ValidationResult validation = ovm_validate_type_operation(vm, left, right, ORIONPP_OP_ISA_DIV);
+  if (validation != OVM_VALID) {
+    ovm_error(vm, "Type validation failed for DIV operation");
+    return -1;
+  }
+  
+  if (right->value.i64 == 0) {
+    ovm_error(vm, "Division by zero");
+    return -1;
+  }
+  
+  dest->value.i64 = left->value.i64 / right->value.i64;
+  dest->is_initialized = true;
+  return 0;
 }
 
 int ovm_exec_mod(OrionVM* vm, const orinopp_instruction_t* instr) {
-  return ovm_perform_binary_op(vm, NULL, NULL, NULL, ORIONPP_OP_ISA_MOD);
+  if (instr->value_count < 3) {
+    ovm_error(vm, "MOD instruction requires 3 operands");
+    return -1;
+  }
+  
+  orionpp_variable_id_t dest_id, left_id, right_id;
+  if (ovm_extract_variable_id(&instr->values[0], &dest_id) != 0 ||
+      ovm_extract_variable_id(&instr->values[1], &left_id) != 0 ||
+      ovm_extract_variable_id(&instr->values[2], &right_id) != 0) {
+    ovm_error(vm, "Invalid variable IDs in MOD instruction");
+    return -1;
+  }
+  
+  VMVariable* dest = ovm_get_variable(vm, dest_id);
+  VMVariable* left = ovm_get_variable(vm, left_id);
+  VMVariable* right = ovm_get_variable(vm, right_id);
+  
+  if (!dest || !left || !right) {
+    ovm_error(vm, "Variables not found in MOD instruction");
+    return -1;
+  }
+  
+  ValidationResult validation = ovm_validate_type_operation(vm, left, right, ORIONPP_OP_ISA_MOD);
+  if (validation != OVM_VALID) {
+    ovm_error(vm, "Type validation failed for MOD operation");
+    return -1;
+  }
+  
+  if (right->value.i64 == 0) {
+    ovm_error(vm, "Division by zero in modulo operation");
+    return -1;
+  }
+  
+  dest->value.i64 = left->value.i64 % right->value.i64;
+  dest->is_initialized = true;
+  return 0;
 }
 
 int ovm_exec_inc(OrionVM* vm, const orinopp_instruction_t* instr) {
-  return ovm_perform_unary_op(vm, NULL, NULL, ORIONPP_OP_ISA_INC);
+  if (instr->value_count < 2) {
+    ovm_error(vm, "INC instruction requires 2 operands");
+    return -1;
+  }
+  
+  orionpp_variable_id_t dest_id, operand_id;
+  if (ovm_extract_variable_id(&instr->values[0], &dest_id) != 0 ||
+      ovm_extract_variable_id(&instr->values[1], &operand_id) != 0) {
+    ovm_error(vm, "Invalid variable IDs in INC instruction");
+    return -1;
+  }
+  
+  VMVariable* dest = ovm_get_variable(vm, dest_id);
+  VMVariable* operand = ovm_get_variable(vm, operand_id);
+  
+  if (!dest || !operand) {
+    ovm_error(vm, "Variables not found in INC instruction");
+    return -1;
+  }
+  
+  ValidationResult validation = ovm_validate_variable_initialization(vm, operand);
+  if (validation != OVM_VALID) {
+    ovm_error(vm, "Operand variable not initialized");
+    return -1;
+  }
+  
+  dest->value.i64 = operand->value.i64 + 1;
+  dest->is_initialized = true;
+  return 0;
 }
 
 int ovm_exec_dec(OrionVM* vm, const orinopp_instruction_t* instr) {
-  return ovm_perform_unary_op(vm, NULL, NULL, ORIONPP_OP_ISA_DEC);
+  if (instr->value_count < 2) {
+    ovm_error(vm, "DEC instruction requires 2 operands");
+    return -1;
+  }
+  
+  orionpp_variable_id_t dest_id, operand_id;
+  if (ovm_extract_variable_id(&instr->values[0], &dest_id) != 0 ||
+      ovm_extract_variable_id(&instr->values[1], &operand_id) != 0) {
+    ovm_error(vm, "Invalid variable IDs in DEC instruction");
+    return -1;
+  }
+  
+  VMVariable* dest = ovm_get_variable(vm, dest_id);
+  VMVariable* operand = ovm_get_variable(vm, operand_id);
+  
+  if (!dest || !operand) {
+    ovm_error(vm, "Variables not found in DEC instruction");
+    return -1;
+  }
+  
+  ValidationResult validation = ovm_validate_variable_initialization(vm, operand);
+  if (validation != OVM_VALID) {
+    ovm_error(vm, "Operand variable not initialized");
+    return -1;
+  }
+  
+  dest->value.i64 = operand->value.i64 - 1;
+  dest->is_initialized = true;
+  return 0;
 }
 
 int ovm_exec_incp(OrionVM* vm, const orinopp_instruction_t* instr) {
-  return ovm_perform_unary_op(vm, NULL, NULL, ORIONPP_OP_ISA_INCp);
+  // Post-increment: return original value, then increment
+  if (instr->value_count < 2) {
+    ovm_error(vm, "INC++ instruction requires 2 operands");
+    return -1;
+  }
+  
+  orionpp_variable_id_t dest_id, operand_id;
+  if (ovm_extract_variable_id(&instr->values[0], &dest_id) != 0 ||
+      ovm_extract_variable_id(&instr->values[1], &operand_id) != 0) {
+    ovm_error(vm, "Invalid variable IDs in INC++ instruction");
+    return -1;
+  }
+  
+  VMVariable* dest = ovm_get_variable(vm, dest_id);
+  VMVariable* operand = ovm_get_variable(vm, operand_id);
+  
+  if (!dest || !operand) {
+    ovm_error(vm, "Variables not found in INC++ instruction");
+    return -1;
+  }
+  
+  ValidationResult validation = ovm_validate_variable_initialization(vm, operand);
+  if (validation != OVM_VALID) {
+    ovm_error(vm, "Operand variable not initialized");
+    return -1;
+  }
+  
+  dest->value.i64 = operand->value.i64;
+  operand->value.i64++;
+  dest->is_initialized = true;
+  return 0;
 }
 
 int ovm_exec_decp(OrionVM* vm, const orinopp_instruction_t* instr) {
-  return ovm_perform_unary_op(vm, NULL, NULL, ORIONPP_OP_ISA_DECp);
+  // Post-decrement: return original value, then decrement
+  if (instr->value_count < 2) {
+    ovm_error(vm, "DEC++ instruction requires 2 operands");
+    return -1;
+  }
+  
+  orionpp_variable_id_t dest_id, operand_id;
+  if (ovm_extract_variable_id(&instr->values[0], &dest_id) != 0 ||
+      ovm_extract_variable_id(&instr->values[1], &operand_id) != 0) {
+    ovm_error(vm, "Invalid variable IDs in DEC++ instruction");
+    return -1;
+  }
+  
+  VMVariable* dest = ovm_get_variable(vm, dest_id);
+  VMVariable* operand = ovm_get_variable(vm, operand_id);
+  
+  if (!dest || !operand) {
+    ovm_error(vm, "Variables not found in DEC++ instruction");
+    return -1;
+  }
+  
+  ValidationResult validation = ovm_validate_variable_initialization(vm, operand);
+  if (validation != OVM_VALID) {
+    ovm_error(vm, "Operand variable not initialized");
+    return -1;
+  }
+  
+  dest->value.i64 = operand->value.i64;
+  operand->value.i64--;
+  dest->is_initialized = true;
+  return 0;
 }
 
 int ovm_exec_and(OrionVM* vm, const orinopp_instruction_t* instr) {
-  return ovm_perform_binary_op(vm, NULL, NULL, NULL, ORIONPP_OP_ISA_AND);
+  if (instr->value_count < 3) {
+    ovm_error(vm, "AND instruction requires 3 operands");
+    return -1;
+  }
+  
+  orionpp_variable_id_t dest_id, left_id, right_id;
+  if (ovm_extract_variable_id(&instr->values[0], &dest_id) != 0 ||
+      ovm_extract_variable_id(&instr->values[1], &left_id) != 0 ||
+      ovm_extract_variable_id(&instr->values[2], &right_id) != 0) {
+    ovm_error(vm, "Invalid variable IDs in AND instruction");
+    return -1;
+  }
+  
+  VMVariable* dest = ovm_get_variable(vm, dest_id);
+  VMVariable* left = ovm_get_variable(vm, left_id);
+  VMVariable* right = ovm_get_variable(vm, right_id);
+  
+  if (!dest || !left || !right) {
+    ovm_error(vm, "Variables not found in AND instruction");
+    return -1;
+  }
+  
+  ValidationResult validation = ovm_validate_type_operation(vm, left, right, ORIONPP_OP_ISA_AND);
+  if (validation != OVM_VALID) {
+    ovm_error(vm, "Type validation failed for AND operation");
+    return -1;
+  }
+  
+  dest->value.i64 = left->value.i64 & right->value.i64;
+  dest->is_initialized = true;
+  return 0;
 }
 
 int ovm_exec_or(OrionVM* vm, const orinopp_instruction_t* instr) {
-  return ovm_perform_binary_op(vm, NULL, NULL, NULL, ORIONPP_OP_ISA_OR);
+  if (instr->value_count < 3) {
+    ovm_error(vm, "OR instruction requires 3 operands");
+    return -1;
+  }
+  
+  orionpp_variable_id_t dest_id, left_id, right_id;
+  if (ovm_extract_variable_id(&instr->values[0], &dest_id) != 0 ||
+      ovm_extract_variable_id(&instr->values[1], &left_id) != 0 ||
+      ovm_extract_variable_id(&instr->values[2], &right_id) != 0) {
+    ovm_error(vm, "Invalid variable IDs in OR instruction");
+    return -1;
+  }
+  
+  VMVariable* dest = ovm_get_variable(vm, dest_id);
+  VMVariable* left = ovm_get_variable(vm, left_id);
+  VMVariable* right = ovm_get_variable(vm, right_id);
+  
+  if (!dest || !left || !right) {
+    ovm_error(vm, "Variables not found in OR instruction");
+    return -1;
+  }
+  
+  ValidationResult validation = ovm_validate_type_operation(vm, left, right, ORIONPP_OP_ISA_OR);
+  if (validation != OVM_VALID) {
+    ovm_error(vm, "Type validation failed for OR operation");
+    return -1;
+  }
+  
+  dest->value.i64 = left->value.i64 | right->value.i64;
+  dest->is_initialized = true;
+  return 0;
 }
 
 int ovm_exec_xor(OrionVM* vm, const orinopp_instruction_t* instr) {
-  return ovm_perform_binary_op(vm, NULL, NULL, NULL, ORIONPP_OP_ISA_XOR);
+  if (instr->value_count < 3) {
+    ovm_error(vm, "XOR instruction requires 3 operands");
+    return -1;
+  }
+  
+  orionpp_variable_id_t dest_id, left_id, right_id;
+  if (ovm_extract_variable_id(&instr->values[0], &dest_id) != 0 ||
+      ovm_extract_variable_id(&instr->values[1], &left_id) != 0 ||
+      ovm_extract_variable_id(&instr->values[2], &right_id) != 0) {
+    ovm_error(vm, "Invalid variable IDs in XOR instruction");
+    return -1;
+  }
+  
+  VMVariable* dest = ovm_get_variable(vm, dest_id);
+  VMVariable* left = ovm_get_variable(vm, left_id);
+  VMVariable* right = ovm_get_variable(vm, right_id);
+  
+  if (!dest || !left || !right) {
+    ovm_error(vm, "Variables not found in XOR instruction");
+    return -1;
+  }
+  
+  ValidationResult validation = ovm_validate_type_operation(vm, left, right, ORIONPP_OP_ISA_XOR);
+  if (validation != OVM_VALID) {
+    ovm_error(vm, "Type validation failed for XOR operation");
+    return -1;
+  }
+  
+  dest->value.i64 = left->value.i64 ^ right->value.i64;
+  dest->is_initialized = true;
+  return 0;
 }
 
 int ovm_exec_not(OrionVM* vm, const orinopp_instruction_t* instr) {
-  return ovm_perform_unary_op(vm, NULL, NULL, ORIONPP_OP_ISA_NOT);
+  if (instr->value_count < 2) {
+    ovm_error(vm, "NOT instruction requires 2 operands");
+    return -1;
+  }
+  
+  orionpp_variable_id_t dest_id, operand_id;
+  if (ovm_extract_variable_id(&instr->values[0], &dest_id) != 0 ||
+      ovm_extract_variable_id(&instr->values[1], &operand_id) != 0) {
+    ovm_error(vm, "Invalid variable IDs in NOT instruction");
+    return -1;
+  }
+  
+  VMVariable* dest = ovm_get_variable(vm, dest_id);
+  VMVariable* operand = ovm_get_variable(vm, operand_id);
+  
+  if (!dest || !operand) {
+    ovm_error(vm, "Variables not found in NOT instruction");
+    return -1;
+  }
+  
+  ValidationResult validation = ovm_validate_variable_initialization(vm, operand);
+  if (validation != OVM_VALID) {
+    ovm_error(vm, "Operand variable not initialized");
+    return -1;
+  }
+  
+  dest->value.i64 = ~operand->value.i64;
+  dest->is_initialized = true;
+  return 0;
 }
 
 int ovm_exec_shl(OrionVM* vm, const orinopp_instruction_t* instr) {
-  return ovm_perform_binary_op(vm, NULL, NULL, NULL, ORIONPP_OP_ISA_SHL);
+  if (instr->value_count < 3) {
+    ovm_error(vm, "SHL instruction requires 3 operands");
+    return -1;
+  }
+  
+  orionpp_variable_id_t dest_id, left_id, right_id;
+  if (ovm_extract_variable_id(&instr->values[0], &dest_id) != 0 ||
+      ovm_extract_variable_id(&instr->values[1], &left_id) != 0 ||
+      ovm_extract_variable_id(&instr->values[2], &right_id) != 0) {
+    ovm_error(vm, "Invalid variable IDs in SHL instruction");
+    return -1;
+  }
+  
+  VMVariable* dest = ovm_get_variable(vm, dest_id);
+  VMVariable* left = ovm_get_variable(vm, left_id);
+  VMVariable* right = ovm_get_variable(vm, right_id);
+  
+  if (!dest || !left || !right) {
+    ovm_error(vm, "Variables not found in SHL instruction");
+    return -1;
+  }
+  
+  ValidationResult validation = ovm_validate_type_operation(vm, left, right, ORIONPP_OP_ISA_SHL);
+  if (validation != OVM_VALID) {
+    ovm_error(vm, "Type validation failed for SHL operation");
+    return -1;
+  }
+  
+  dest->value.i64 = left->value.i64 << right->value.i64;
+  dest->is_initialized = true;
+  return 0;
 }
 
 int ovm_exec_shr(OrionVM* vm, const orinopp_instruction_t* instr) {
-  return ovm_perform_binary_op(vm, NULL, NULL, NULL, ORIONPP_OP_ISA_SHR);
+  if (instr->value_count < 3) {
+    ovm_error(vm, "SHR instruction requires 3 operands");
+    return -1;
+  }
+  
+  orionpp_variable_id_t dest_id, left_id, right_id;
+  if (ovm_extract_variable_id(&instr->values[0], &dest_id) != 0 ||
+      ovm_extract_variable_id(&instr->values[1], &left_id) != 0 ||
+      ovm_extract_variable_id(&instr->values[2], &right_id) != 0) {
+    ovm_error(vm, "Invalid variable IDs in SHR instruction");
+    return -1;
+  }
+  
+  VMVariable* dest = ovm_get_variable(vm, dest_id);
+  VMVariable* left = ovm_get_variable(vm, left_id);
+  VMVariable* right = ovm_get_variable(vm, right_id);
+  
+  if (!dest || !left || !right) {
+    ovm_error(vm, "Variables not found in SHR instruction");
+    return -1;
+  }
+  
+  ValidationResult validation = ovm_validate_type_operation(vm, left, right, ORIONPP_OP_ISA_SHR);
+  if (validation != OVM_VALID) {
+    ovm_error(vm, "Type validation failed for SHR operation");
+    return -1;
+  }
+  
+  dest->value.i64 = left->value.i64 >> right->value.i64;
+  dest->is_initialized = true;
+  return 0;
 }
 
 int ovm_exec_hint(OrionVM* vm, const orinopp_instruction_t* instr) {
@@ -476,15 +943,94 @@ int ovm_extract_string(const orinopp_value_t* value, char** result) {
 }
 
 int ovm_perform_binary_op(OrionVM* vm, VMVariable* dest, VMVariable* left, VMVariable* right, orionpp_opcode_module_t op) {
-  // This is a simplified implementation - in practice you'd extract operands from instruction
-  ovm_error(vm, "Binary operations not fully implemented");
-  return -1;
+  if (!vm || !dest || !left || !right) return -1;
+  
+  ValidationResult validation = ovm_validate_type_operation(vm, left, right, op);
+  if (validation != OVM_VALID) {
+    return -1;
+  }
+  
+  switch (op) {
+    case ORIONPP_OP_ISA_ADD:
+      dest->value.i64 = left->value.i64 + right->value.i64;
+      break;
+    case ORIONPP_OP_ISA_SUB:
+      dest->value.i64 = left->value.i64 - right->value.i64;
+      break;
+    case ORIONPP_OP_ISA_MUL:
+      dest->value.i64 = left->value.i64 * right->value.i64;
+      break;
+    case ORIONPP_OP_ISA_DIV:
+      if (right->value.i64 == 0) {
+        ovm_error(vm, "Division by zero");
+        return -1;
+      }
+      dest->value.i64 = left->value.i64 / right->value.i64;
+      break;
+    case ORIONPP_OP_ISA_MOD:
+      if (right->value.i64 == 0) {
+        ovm_error(vm, "Division by zero in modulo");
+        return -1;
+      }
+      dest->value.i64 = left->value.i64 % right->value.i64;
+      break;
+    case ORIONPP_OP_ISA_AND:
+      dest->value.i64 = left->value.i64 & right->value.i64;
+      break;
+    case ORIONPP_OP_ISA_OR:
+      dest->value.i64 = left->value.i64 | right->value.i64;
+      break;
+    case ORIONPP_OP_ISA_XOR:
+      dest->value.i64 = left->value.i64 ^ right->value.i64;
+      break;
+    case ORIONPP_OP_ISA_SHL:
+      dest->value.i64 = left->value.i64 << right->value.i64;
+      break;
+    case ORIONPP_OP_ISA_SHR:
+      dest->value.i64 = left->value.i64 >> right->value.i64;
+      break;
+    default:
+      ovm_error(vm, "Unsupported binary operation");
+      return -1;
+  }
+  
+  dest->is_initialized = true;
+  return 0;
 }
 
 int ovm_perform_unary_op(OrionVM* vm, VMVariable* dest, VMVariable* operand, orionpp_opcode_module_t op) {
-  // This is a simplified implementation - in practice you'd extract operands from instruction
-  ovm_error(vm, "Unary operations not fully implemented");
-  return -1;
+  if (!vm || !dest || !operand) return -1;
+  
+  ValidationResult validation = ovm_validate_variable_initialization(vm, operand);
+  if (validation != OVM_VALID) {
+    return -1;
+  }
+  
+  switch (op) {
+    case ORIONPP_OP_ISA_NOT:
+      dest->value.i64 = ~operand->value.i64;
+      break;
+    case ORIONPP_OP_ISA_INC:
+      dest->value.i64 = operand->value.i64 + 1;
+      break;
+    case ORIONPP_OP_ISA_DEC:
+      dest->value.i64 = operand->value.i64 - 1;
+      break;
+    case ORIONPP_OP_ISA_INCp:
+      dest->value.i64 = operand->value.i64;
+      operand->value.i64++;
+      break;
+    case ORIONPP_OP_ISA_DECp:
+      dest->value.i64 = operand->value.i64;
+      operand->value.i64--;
+      break;
+    default:
+      ovm_error(vm, "Unsupported unary operation");
+      return -1;
+  }
+  
+  dest->is_initialized = true;
+  return 0;
 }
 
 int ovm_convert_value(VMVariable* dest, const VMVariable* src, orionpp_type_t target_type) {
@@ -496,6 +1042,7 @@ int ovm_convert_value(VMVariable* dest, const VMVariable* src, orionpp_type_t ta
     switch (src->type) {
       case ORIONPP_TYPE_WORD:
       case ORIONPP_TYPE_SIZE:
+      case ORIONPP_TYPE_C:
         dest->value.i64 = src->value.i64;
         break;
       case ORIONPP_TYPE_STRING:
