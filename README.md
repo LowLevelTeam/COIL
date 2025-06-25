@@ -1,24 +1,7 @@
 # Orion
 
-Orion toolchain is an intermediate representation built for optimizations and compatibility.
+## Current Toolchain and Focus
 
-
-## Example Toolchain
-Source Language
-Orion++ the high level IR
-Orion.* the low level IR
-Native ISA
-
-
-Example toolchain
-```
-[.c] -> orioncc -> [.orionpp] -> oc++ -> [.*.orion] -> oc -> [.o] -> ol -> [.exe,.out,.dll,.lib,.a,.so]
-```
-
-
-Differences in human and binary variations.
-
-In human variations it may be common to see quite assembly looking assembly structure. for example defining symbols at abstract points. These are mainly to facilitate easy viewing.
-Keep in mind that the binary variations exist in an object format where symbols are specified in tables.
-
+Currently Orion is focused on Orion++ IR which is the highest level of the IR toolchain.
+Orion++ is tested and developed through the use of an orion++ virtual machine.
 
