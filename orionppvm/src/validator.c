@@ -117,6 +117,19 @@ ValidationResult ovm_validate_instruction(OrionVM* vm, const orinopp_instruction
 ValidationResult ovm_validate_labels(OrionVM* vm) {
   if (!vm) return OVM_INVALID_LABEL_ID;
   
+  // register all labels
+  for (size_t i = 0; i < vm->instruction_count; i++) {
+    const orinopp_instruction_t* instr = &vm->instructions[i];
+    if (instr->root == ORIONPP_OP_ISA && instr->child == ORIONPP_OP_ISA_LABEL) {
+      if (instr->value_count > 0 && instr->values[0].root == ORIONPP_TYPE_LABELID) {
+        orionpp_label_id_t label_id;
+        if (ovm_extract_label_id(&instr->values[0], &label_id) == 0) {
+          ovm_register_label(vm, label_id, i);
+        }
+      }
+    }
+  }
+
   // Validate all label references point to valid labels
   for (size_t i = 0; i < vm->instruction_count; i++) {
     const orinopp_instruction_t* instr = &vm->instructions[i];
