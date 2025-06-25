@@ -3,7 +3,7 @@
  * @brief Implementation of orion++ functionality
  */
 
-#include "orion/orionpp.h"
+#include "orionpp/orionpp.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

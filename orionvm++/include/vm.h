@@ -6,7 +6,7 @@
 #ifndef VM_H
 #define VM_H
 
-#include "orion/orionpp.h"
+#include "orionpp/orionpp.h"
 #include <stddef.h>
 #include <stdint.h>
 #include <stdbool.h>

@@ -7,7 +7,7 @@
 #define CODEGEN_H
 
 #include "ast.h"
-#include "orion/orionpp.h"
+#include "orionpp/orionpp.h"
 #include <stdio.h>
 
 // Symbol table entry
