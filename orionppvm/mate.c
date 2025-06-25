@@ -10,7 +10,7 @@ i32 main(int argc, const char *argv[]) {
 
   StartBuild();
   {
-    Executable orioncc_program = CreateExecutable((ExecutableOptions){
+    Executable orionpp_vm = CreateExecutable((ExecutableOptions){
       .output = "ovm++", // Orion++ Virtual Machine
       .std = args.stdlevel,
       .debug = args.debuglevel,
@@ -18,14 +18,34 @@ i32 main(int argc, const char *argv[]) {
       .error = args.errorfmt,
       .optimization = args.optlevel
     });
-    AddIncludePaths(orioncc_program, "./include", "../liborion-dev/include/");
-    AddLibraryPaths(orioncc_program, "../liborion-dev/build/");
-    AddFile(orioncc_program, "./src/*.c");
+    AddIncludePaths(orionpp_vm, "./include", "../liborion-dev/include/");
+    AddLibraryPaths(orionpp_vm, "../liborion-dev/build/");
+    AddFile(orionpp_vm, "./src/*.c");
+    AddFile(orionpp_vm, "./app/main.c");
     if (isLinux()) {
-      LinkSystemLibraries(orioncc_program, "m"); // Add math only if on linux since MSVC includes this on STD
+      LinkSystemLibraries(orionpp_vm, "m"); // Add math library on Linux
     }
-    LinkSystemLibraries(orioncc_program, "orion-dev");
-    InstallExecutable(orioncc_program);
+    LinkSystemLibraries(orionpp_vm, "orion-dev");
+    InstallExecutable(orionpp_vm);
+    
+    // Also create a test executable
+    Executable orionpp_vm_test = CreateExecutable((ExecutableOptions){
+      .output = "ovm++-test",
+      .std = args.stdlevel,
+      .debug = args.debuglevel,
+      .warnings = args.warninglevel,
+      .error = args.errorfmt,
+      .optimization = args.optlevel
+    });
+    AddIncludePaths(orionpp_vm_test, "./include", "../liborion-dev/include/");
+    AddLibraryPaths(orionpp_vm_test, "../liborion-dev/build/");
+    AddFile(orionpp_vm_test, "./src/*");  
+    AddFile(orionpp_vm_test, "./tests/test_vm.c");
+    if (isLinux()) {
+      LinkSystemLibraries(orionpp_vm_test, "m");
+    }
+    LinkSystemLibraries(orionpp_vm_test, "orion-dev");
+    InstallExecutable(orionpp_vm_test);
   }
   EndBuild();
 }
