@@ -1,6 +1,6 @@
 /**
  * @file include/codegen.h
- * @brief Code generator for Orion++ IR
+ * @brief Enhanced code generator for Orion++ IR with conditional branches
  */
 
 #ifndef CODEGEN_H
@@ -63,7 +63,13 @@ void emit_binary_instruction(CodeGen* codegen, orionpp_opcode_module_t op, orion
 void emit_unary_instruction(CodeGen* codegen, orionpp_opcode_module_t op, orionpp_variable_id_t dest, orionpp_variable_id_t operand);
 void emit_label_instruction(CodeGen* codegen, orionpp_label_id_t label_id);
 void emit_jump_instruction(CodeGen* codegen, orionpp_label_id_t label_id);
-void emit_branch_instruction(CodeGen* codegen, orionpp_variable_id_t condition, orionpp_label_id_t label_id);
+
+// Enhanced conditional branch instructions
+void emit_conditional_branch_instruction(CodeGen* codegen, orionpp_opcode_module_t branch_op, orionpp_variable_id_t left, orionpp_variable_id_t right, orionpp_label_id_t label_id);
+void emit_zero_branch_instruction(CodeGen* codegen, orionpp_opcode_module_t branch_op, orionpp_variable_id_t var, orionpp_label_id_t label_id);
 void emit_call_instruction(CodeGen* codegen, const char* function_name, orionpp_variable_id_t* args, size_t arg_count, orionpp_variable_id_t result);
+
+// Comparison result generation
+orionpp_variable_id_t codegen_comparison(CodeGen* codegen, BinaryOperator op, orionpp_variable_id_t left_var, orionpp_variable_id_t right_var);
 
 #endif // CODEGEN_H

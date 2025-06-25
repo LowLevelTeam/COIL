@@ -1,6 +1,6 @@
 /**
  * @file src/codegen.c
- * @brief Improved code generator implementation for Orion++ IR
+ * @brief Enhanced code generator implementation with conditional branches for Orion++ IR
  */
 
 #include "codegen.h"
@@ -245,18 +245,47 @@ void emit_jump_instruction(CodeGen* codegen, orionpp_label_id_t label_id) {
   free(instr.values);
 }
 
-void emit_branch_instruction(CodeGen* codegen, orionpp_variable_id_t condition, orionpp_label_id_t label_id) {
+void emit_conditional_branch_instruction(CodeGen* codegen, orionpp_opcode_module_t branch_op, orionpp_variable_id_t left, orionpp_variable_id_t right, orionpp_label_id_t label_id) {
   orinopp_instruction_t instr;
   instr.root = ORIONPP_OP_ISA;
-  instr.child = ORIONPP_OP_ISA_BR;
+  instr.child = branch_op;
+  instr.value_count = 3;
+  instr.values = safe_malloc(3 * sizeof(orinopp_value_t));
+  
+  // Left operand
+  instr.values[0].root = ORIONPP_TYPE_VARID;
+  instr.values[0].child = 0;
+  instr.values[0].bytes = (char*)&left;
+  instr.values[0].bytesize = sizeof(left);
+  
+  // Right operand
+  instr.values[1].root = ORIONPP_TYPE_VARID;
+  instr.values[1].child = 0;
+  instr.values[1].bytes = (char*)&right;
+  instr.values[1].bytesize = sizeof(right);
+  
+  // Label ID
+  instr.values[2].root = ORIONPP_TYPE_LABELID;
+  instr.values[2].child = 0;
+  instr.values[2].bytes = (char*)&label_id;
+  instr.values[2].bytesize = sizeof(label_id);
+  
+  orionpp_writef(get_file_handle(codegen->output), &instr);
+  free(instr.values);
+}
+
+void emit_zero_branch_instruction(CodeGen* codegen, orionpp_opcode_module_t branch_op, orionpp_variable_id_t var, orionpp_label_id_t label_id) {
+  orinopp_instruction_t instr;
+  instr.root = ORIONPP_OP_ISA;
+  instr.child = branch_op;
   instr.value_count = 2;
   instr.values = safe_malloc(2 * sizeof(orinopp_value_t));
   
-  // Condition variable
+  // Variable
   instr.values[0].root = ORIONPP_TYPE_VARID;
   instr.values[0].child = 0;
-  instr.values[0].bytes = (char*)&condition;
-  instr.values[0].bytesize = sizeof(condition);
+  instr.values[0].bytes = (char*)&var;
+  instr.values[0].bytesize = sizeof(var);
   
   // Label ID
   instr.values[1].root = ORIONPP_TYPE_LABELID;
@@ -298,6 +327,61 @@ void emit_call_instruction(CodeGen* codegen, const char* function_name, orionpp_
   
   orionpp_writef(get_file_handle(codegen->output), &instr);
   free(instr.values);
+}
+
+orionpp_variable_id_t codegen_comparison(CodeGen* codegen, BinaryOperator op, orionpp_variable_id_t left_var, orionpp_variable_id_t right_var) {
+  // Create a result variable to store the comparison result (1 for true, 0 for false)
+  orionpp_variable_id_t result_var = codegen_get_temp_var(codegen);
+  emit_var_instruction(codegen, result_var, ORIONPP_TYPE_WORD);
+  
+  // Create labels for true and false cases
+  orionpp_label_id_t true_label = codegen_get_label(codegen);
+  orionpp_label_id_t false_label = codegen_get_label(codegen);
+  orionpp_label_id_t end_label = codegen_get_label(codegen);
+  
+  // Emit appropriate conditional branch
+  orionpp_opcode_module_t branch_op;
+  switch (op) {
+    case BINOP_EQ:
+      branch_op = ORIONPP_OP_ISA_BREQ;
+      break;
+    case BINOP_NE:
+      branch_op = ORIONPP_OP_ISA_BRNEQ;
+      break;
+    case BINOP_LT:
+      branch_op = ORIONPP_OP_ISA_BRLT;
+      break;
+    case BINOP_LE:
+      branch_op = ORIONPP_OP_ISA_BRLE;
+      break;
+    case BINOP_GT:
+      branch_op = ORIONPP_OP_ISA_BRGT;
+      break;
+    case BINOP_GE:
+      branch_op = ORIONPP_OP_ISA_BRGE;
+      break;
+    default:
+      codegen_error(codegen, "Unsupported comparison operator");
+      return result_var;
+  }
+  
+  // Emit conditional branch to true label
+  emit_conditional_branch_instruction(codegen, branch_op, left_var, right_var, true_label);
+  
+  // False case: set result to 0
+  int32_t false_value = 0;
+  emit_const_instruction(codegen, result_var, ORIONPP_TYPE_WORD, &false_value, sizeof(false_value));
+  emit_jump_instruction(codegen, end_label);
+  
+  // True case: set result to 1
+  emit_label_instruction(codegen, true_label);
+  int32_t true_value = 1;
+  emit_const_instruction(codegen, result_var, ORIONPP_TYPE_WORD, &true_value, sizeof(true_value));
+  
+  // End label
+  emit_label_instruction(codegen, end_label);
+  
+  return result_var;
 }
 
 bool codegen_generate(CodeGen* codegen, const ASTNode* ast) {
@@ -472,15 +556,8 @@ void codegen_if_statement(CodeGen* codegen, const ASTNode* node) {
   orionpp_label_id_t else_label = codegen_get_label(codegen);
   orionpp_label_id_t end_label = codegen_get_label(codegen);
   
-  // Create a temporary variable for negated condition
-  orionpp_variable_id_t not_condition = codegen_get_temp_var(codegen);
-  emit_var_instruction(codegen, not_condition, ORIONPP_TYPE_WORD);
-  
-  // Negate the condition for branch-if-false logic
-  emit_unary_instruction(codegen, ORIONPP_OP_ISA_NOT, not_condition, condition_var);
-  
-  // Branch to else if condition is false
-  emit_branch_instruction(codegen, not_condition, else_label);
+  // Branch to else if condition is zero (false)
+  emit_zero_branch_instruction(codegen, ORIONPP_OP_ISA_BRZ, condition_var, else_label);
   
   // Generate then branch
   codegen_statement(codegen, node->if_stmt.then_branch);
@@ -519,13 +596,8 @@ void codegen_while_statement(CodeGen* codegen, const ASTNode* node) {
   orionpp_variable_id_t condition_var = codegen_expression(codegen, node->while_stmt.condition);
   if (codegen->had_error) return;
   
-  // Create temporary variable for negated condition
-  orionpp_variable_id_t not_condition = codegen_get_temp_var(codegen);
-  emit_var_instruction(codegen, not_condition, ORIONPP_TYPE_WORD);
-  
-  // Negate condition and branch to end if false
-  emit_unary_instruction(codegen, ORIONPP_OP_ISA_NOT, not_condition, condition_var);
-  emit_branch_instruction(codegen, not_condition, end_label);
+  // Branch to end if condition is zero (false)
+  emit_zero_branch_instruction(codegen, ORIONPP_OP_ISA_BRZ, condition_var, end_label);
   
   // Generate body
   codegen_statement(codegen, node->while_stmt.body);
@@ -562,10 +634,8 @@ void codegen_for_statement(CodeGen* codegen, const ASTNode* node) {
     orionpp_variable_id_t condition_var = codegen_expression(codegen, node->for_stmt.condition);
     if (codegen->had_error) return;
     
-    orionpp_variable_id_t not_condition = codegen_get_temp_var(codegen);
-    emit_var_instruction(codegen, not_condition, ORIONPP_TYPE_WORD);
-    emit_unary_instruction(codegen, ORIONPP_OP_ISA_NOT, not_condition, condition_var);
-    emit_branch_instruction(codegen, not_condition, end_label);
+    // Branch to end if condition is zero (false)
+    emit_zero_branch_instruction(codegen, ORIONPP_OP_ISA_BRZ, condition_var, end_label);
   }
   
   // Generate body
@@ -718,6 +788,20 @@ orionpp_variable_id_t codegen_binary_op(CodeGen* codegen, const ASTNode* node) {
   orionpp_variable_id_t right_var = codegen_expression(codegen, node->binary_op.right);
   if (codegen->had_error) return 0;
   
+  // Handle comparison operators with new conditional branch instructions
+  switch (node->binary_op.operator) {
+    case BINOP_EQ:
+    case BINOP_NE:
+    case BINOP_LT:
+    case BINOP_LE:
+    case BINOP_GT:
+    case BINOP_GE:
+      return codegen_comparison(codegen, node->binary_op.operator, left_var, right_var);
+    default:
+      break;
+  }
+  
+  // Handle arithmetic and logical operators
   orionpp_variable_id_t result_var = codegen_get_temp_var(codegen);
   
   // Emit variable declaration for result
@@ -732,21 +816,6 @@ orionpp_variable_id_t codegen_binary_op(CodeGen* codegen, const ASTNode* node) {
     case BINOP_MOD: op = ORIONPP_OP_ISA_MOD; break;
     case BINOP_AND: op = ORIONPP_OP_ISA_AND; break;
     case BINOP_OR: op = ORIONPP_OP_ISA_OR; break;
-    
-    // For comparison operators, use subtraction and comparison logic
-    case BINOP_EQ:
-    case BINOP_NE:
-    case BINOP_LT:
-    case BINOP_LE:
-    case BINOP_GT:
-    case BINOP_GE: {
-      // Emit subtraction first
-      emit_binary_instruction(codegen, ORIONPP_OP_ISA_SUB, result_var, left_var, right_var);
-      
-      // For now, treat the result as the comparison result
-      // In a full implementation, you'd need comparison operations
-      return result_var;
-    }
     default:
       codegen_error(codegen, "Unsupported binary operator");
       return result_var;

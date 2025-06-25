@@ -19,6 +19,18 @@ int ovm_exec_lea(OrionVM* vm, const orinopp_instruction_t* instr);
 int ovm_exec_label(OrionVM* vm, const orinopp_instruction_t* instr);
 int ovm_exec_jmp(OrionVM* vm, const orinopp_instruction_t* instr);
 int ovm_exec_br(OrionVM* vm, const orinopp_instruction_t* instr);
+
+// Conditional branch instructions
+int ovm_exec_breq(OrionVM* vm, const orinopp_instruction_t* instr);
+int ovm_exec_brneq(OrionVM* vm, const orinopp_instruction_t* instr);
+int ovm_exec_brgt(OrionVM* vm, const orinopp_instruction_t* instr);
+int ovm_exec_brge(OrionVM* vm, const orinopp_instruction_t* instr);
+int ovm_exec_brlt(OrionVM* vm, const orinopp_instruction_t* instr);
+int ovm_exec_brle(OrionVM* vm, const orinopp_instruction_t* instr);
+int ovm_exec_brz(OrionVM* vm, const orinopp_instruction_t* instr);
+int ovm_exec_brnz(OrionVM* vm, const orinopp_instruction_t* instr);
+
+// Call and return
 int ovm_exec_call(OrionVM* vm, const orinopp_instruction_t* instr);
 int ovm_exec_ret(OrionVM* vm, const orinopp_instruction_t* instr);
 
@@ -53,6 +65,10 @@ int ovm_extract_string(const orinopp_value_t* value, char** result);
 // Arithmetic helpers
 int ovm_perform_binary_op(OrionVM* vm, VMVariable* dest, VMVariable* left, VMVariable* right, orionpp_opcode_module_t op);
 int ovm_perform_unary_op(OrionVM* vm, VMVariable* dest, VMVariable* operand, orionpp_opcode_module_t op);
+
+// Comparison helpers
+int ovm_compare_variables(OrionVM* vm, VMVariable* left, VMVariable* right, int* result);
+int ovm_branch_if_condition(OrionVM* vm, bool condition, orionpp_label_id_t label_id);
 
 // Type conversion
 int ovm_convert_value(VMVariable* dest, const VMVariable* src, orionpp_type_t target_type);

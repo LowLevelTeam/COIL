@@ -12,12 +12,16 @@ int main() {
     sum = sum * 2;
   }
   
-  int i = 0;
-  while (i < 5) {
-    i = i + 1;
-  }
+  // int i = 0;
+  // while (i < 5) {
+  //   i = i + 1;
+  // }
   
-  return i;
+  // print is defined by the interpreter
+  print("Wassup");
+  print(sum);
+
+  return 0;
 }
 
 int add(int a, int b) {

@@ -1,6 +1,6 @@
 /**
  * @file src/vm.c
- * @brief Orion++ Virtual Machine implementation
+ * @brief Enhanced Orion++ Virtual Machine implementation with conditional branch support
  */
 
 #include "vm.h"
@@ -310,7 +310,14 @@ int ovm_step(OrionVM* vm) {
   if (instr->root == ORIONPP_OP_ISA) {
     switch (instr->child) {
       case ORIONPP_OP_ISA_JMP:
-      case ORIONPP_OP_ISA_BR:
+      case ORIONPP_OP_ISA_BREQ:
+      case ORIONPP_OP_ISA_BRNEQ:
+      case ORIONPP_OP_ISA_BRGT:
+      case ORIONPP_OP_ISA_BRGE:
+      case ORIONPP_OP_ISA_BRLT:
+      case ORIONPP_OP_ISA_BRLE:
+      case ORIONPP_OP_ISA_BRZ:
+      case ORIONPP_OP_ISA_BRNZ:
       case ORIONPP_OP_ISA_CALL:
       case ORIONPP_OP_ISA_RET:
         // PC already updated by instruction
@@ -464,7 +471,14 @@ const char* ovm_opcode_to_string(orionpp_opcode_t opcode, orionpp_opcode_module_
         case ORIONPP_OP_ISA_LEA: return "LEA";
         case ORIONPP_OP_ISA_LABEL: return "LABEL";
         case ORIONPP_OP_ISA_JMP: return "JMP";
-        case ORIONPP_OP_ISA_BR: return "BR";
+        case ORIONPP_OP_ISA_BREQ: return "BR.EQ";
+        case ORIONPP_OP_ISA_BRNEQ: return "BR.NEQ";
+        case ORIONPP_OP_ISA_BRGT: return "BR.GT";
+        case ORIONPP_OP_ISA_BRGE: return "BR.GE";
+        case ORIONPP_OP_ISA_BRLT: return "BR.LT";
+        case ORIONPP_OP_ISA_BRLE: return "BR.LE";
+        case ORIONPP_OP_ISA_BRZ: return "BR.Z";
+        case ORIONPP_OP_ISA_BRNZ: return "BR.NZ";
         case ORIONPP_OP_ISA_CALL: return "CALL";
         case ORIONPP_OP_ISA_RET: return "RET";
         case ORIONPP_OP_ISA_ADD: return "ADD";

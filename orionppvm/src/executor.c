@@ -1,6 +1,6 @@
 /**
  * @file src/executor.c
- * @brief Improved Orion++ instruction executor implementation
+ * @brief Enhanced Orion++ instruction executor implementation with conditional branches
  */
 
 #include "executor.h"
@@ -21,7 +21,14 @@ int ovm_execute_instruction(OrionVM* vm, const orinopp_instruction_t* instr) {
         case ORIONPP_OP_ISA_LEA: return ovm_exec_lea(vm, instr);
         case ORIONPP_OP_ISA_LABEL: return ovm_exec_label(vm, instr);
         case ORIONPP_OP_ISA_JMP: return ovm_exec_jmp(vm, instr);
-        case ORIONPP_OP_ISA_BR: return ovm_exec_br(vm, instr);
+        case ORIONPP_OP_ISA_BREQ: return ovm_exec_breq(vm, instr);
+        case ORIONPP_OP_ISA_BRNEQ: return ovm_exec_brneq(vm, instr);
+        case ORIONPP_OP_ISA_BRGT: return ovm_exec_brgt(vm, instr);
+        case ORIONPP_OP_ISA_BRGE: return ovm_exec_brge(vm, instr);
+        case ORIONPP_OP_ISA_BRLT: return ovm_exec_brlt(vm, instr);
+        case ORIONPP_OP_ISA_BRLE: return ovm_exec_brle(vm, instr);
+        case ORIONPP_OP_ISA_BRZ: return ovm_exec_brz(vm, instr);
+        case ORIONPP_OP_ISA_BRNZ: return ovm_exec_brnz(vm, instr);
         case ORIONPP_OP_ISA_CALL: return ovm_exec_call(vm, instr);
         case ORIONPP_OP_ISA_RET: return ovm_exec_ret(vm, instr);
         case ORIONPP_OP_ISA_ADD: return ovm_exec_add(vm, instr);
@@ -220,66 +227,354 @@ int ovm_exec_jmp(OrionVM* vm, const orinopp_instruction_t* instr) {
   return 0;
 }
 
-int ovm_exec_br(OrionVM* vm, const orinopp_instruction_t* instr) {
-  if (instr->value_count < 2) {
-    ovm_error(vm, "BR instruction requires 2 operands");
+// Conditional branch instruction implementations
+int ovm_exec_breq(OrionVM* vm, const orinopp_instruction_t* instr) {
+  if (instr->value_count < 3) {
+    ovm_error(vm, "BREQ instruction requires 3 operands");
     return -1;
   }
   
-  orionpp_variable_id_t cond_id;
+  orionpp_variable_id_t left_id, right_id;
   orionpp_label_id_t label_id;
   
-  if (ovm_extract_variable_id(&instr->values[0], &cond_id) != 0 ||
-      ovm_extract_label_id(&instr->values[1], &label_id) != 0) {
-    ovm_error(vm, "Invalid operands in BR instruction");
+  if (ovm_extract_variable_id(&instr->values[0], &left_id) != 0 ||
+      ovm_extract_variable_id(&instr->values[1], &right_id) != 0 ||
+      ovm_extract_label_id(&instr->values[2], &label_id) != 0) {
+    ovm_error(vm, "Invalid operands in BREQ instruction");
     return -1;
   }
   
-  VMVariable* cond = ovm_get_variable(vm, cond_id);
-  if (!cond) {
-    ovm_error(vm, "Condition variable %u not found", cond_id);
+  VMVariable* left = ovm_get_variable(vm, left_id);
+  VMVariable* right = ovm_get_variable(vm, right_id);
+  
+  if (!left || !right) {
+    ovm_error(vm, "Variables not found in BREQ instruction");
     return -1;
   }
   
-  // Validate condition is initialized
-  ValidationResult validation = ovm_validate_variable_initialization(vm, cond);
+  // Validate variables are initialized
+  ValidationResult validation = ovm_validate_variable_initialization(vm, left);
   if (validation != OVM_VALID) {
-    ovm_error(vm, "Condition variable not initialized");
+    ovm_error(vm, "Left operand not initialized");
     return -1;
   }
   
-  // Check condition
-  bool should_branch = false;
-  switch (cond->type) {
+  validation = ovm_validate_variable_initialization(vm, right);
+  if (validation != OVM_VALID) {
+    ovm_error(vm, "Right operand not initialized");
+    return -1;
+  }
+  
+  int comparison_result;
+  if (ovm_compare_variables(vm, left, right, &comparison_result) != 0) {
+    return -1;
+  }
+  
+  return ovm_branch_if_condition(vm, comparison_result == 0, label_id);
+}
+
+int ovm_exec_brneq(OrionVM* vm, const orinopp_instruction_t* instr) {
+  if (instr->value_count < 3) {
+    ovm_error(vm, "BRNEQ instruction requires 3 operands");
+    return -1;
+  }
+  
+  orionpp_variable_id_t left_id, right_id;
+  orionpp_label_id_t label_id;
+  
+  if (ovm_extract_variable_id(&instr->values[0], &left_id) != 0 ||
+      ovm_extract_variable_id(&instr->values[1], &right_id) != 0 ||
+      ovm_extract_label_id(&instr->values[2], &label_id) != 0) {
+    ovm_error(vm, "Invalid operands in BRNEQ instruction");
+    return -1;
+  }
+  
+  VMVariable* left = ovm_get_variable(vm, left_id);
+  VMVariable* right = ovm_get_variable(vm, right_id);
+  
+  if (!left || !right) {
+    ovm_error(vm, "Variables not found in BRNEQ instruction");
+    return -1;
+  }
+  
+  ValidationResult validation = ovm_validate_variable_initialization(vm, left);
+  if (validation != OVM_VALID) {
+    ovm_error(vm, "Left operand not initialized");
+    return -1;
+  }
+  
+  validation = ovm_validate_variable_initialization(vm, right);
+  if (validation != OVM_VALID) {
+    ovm_error(vm, "Right operand not initialized");
+    return -1;
+  }
+  
+  int comparison_result;
+  if (ovm_compare_variables(vm, left, right, &comparison_result) != 0) {
+    return -1;
+  }
+  
+  return ovm_branch_if_condition(vm, comparison_result != 0, label_id);
+}
+
+int ovm_exec_brgt(OrionVM* vm, const orinopp_instruction_t* instr) {
+  if (instr->value_count < 3) {
+    ovm_error(vm, "BRGT instruction requires 3 operands");
+    return -1;
+  }
+  
+  orionpp_variable_id_t left_id, right_id;
+  orionpp_label_id_t label_id;
+  
+  if (ovm_extract_variable_id(&instr->values[0], &left_id) != 0 ||
+      ovm_extract_variable_id(&instr->values[1], &right_id) != 0 ||
+      ovm_extract_label_id(&instr->values[2], &label_id) != 0) {
+    ovm_error(vm, "Invalid operands in BRGT instruction");
+    return -1;
+  }
+  
+  VMVariable* left = ovm_get_variable(vm, left_id);
+  VMVariable* right = ovm_get_variable(vm, right_id);
+  
+  if (!left || !right) {
+    ovm_error(vm, "Variables not found in BRGT instruction");
+    return -1;
+  }
+  
+  ValidationResult validation = ovm_validate_variable_initialization(vm, left);
+  if (validation != OVM_VALID) {
+    ovm_error(vm, "Left operand not initialized");
+    return -1;
+  }
+  
+  validation = ovm_validate_variable_initialization(vm, right);
+  if (validation != OVM_VALID) {
+    ovm_error(vm, "Right operand not initialized");
+    return -1;
+  }
+  
+  int comparison_result;
+  if (ovm_compare_variables(vm, left, right, &comparison_result) != 0) {
+    return -1;
+  }
+  
+  return ovm_branch_if_condition(vm, comparison_result > 0, label_id);
+}
+
+int ovm_exec_brge(OrionVM* vm, const orinopp_instruction_t* instr) {
+  if (instr->value_count < 3) {
+    ovm_error(vm, "BRGE instruction requires 3 operands");
+    return -1;
+  }
+  
+  orionpp_variable_id_t left_id, right_id;
+  orionpp_label_id_t label_id;
+  
+  if (ovm_extract_variable_id(&instr->values[0], &left_id) != 0 ||
+      ovm_extract_variable_id(&instr->values[1], &right_id) != 0 ||
+      ovm_extract_label_id(&instr->values[2], &label_id) != 0) {
+    ovm_error(vm, "Invalid operands in BRGE instruction");
+    return -1;
+  }
+  
+  VMVariable* left = ovm_get_variable(vm, left_id);
+  VMVariable* right = ovm_get_variable(vm, right_id);
+  
+  if (!left || !right) {
+    ovm_error(vm, "Variables not found in BRGE instruction");
+    return -1;
+  }
+  
+  ValidationResult validation = ovm_validate_variable_initialization(vm, left);
+  if (validation != OVM_VALID) {
+    ovm_error(vm, "Left operand not initialized");
+    return -1;
+  }
+  
+  validation = ovm_validate_variable_initialization(vm, right);
+  if (validation != OVM_VALID) {
+    ovm_error(vm, "Right operand not initialized");
+    return -1;
+  }
+  
+  int comparison_result;
+  if (ovm_compare_variables(vm, left, right, &comparison_result) != 0) {
+    return -1;
+  }
+  
+  return ovm_branch_if_condition(vm, comparison_result >= 0, label_id);
+}
+
+int ovm_exec_brlt(OrionVM* vm, const orinopp_instruction_t* instr) {
+  if (instr->value_count < 3) {
+    ovm_error(vm, "BRLT instruction requires 3 operands");
+    return -1;
+  }
+  
+  orionpp_variable_id_t left_id, right_id;
+  orionpp_label_id_t label_id;
+  
+  if (ovm_extract_variable_id(&instr->values[0], &left_id) != 0 ||
+      ovm_extract_variable_id(&instr->values[1], &right_id) != 0 ||
+      ovm_extract_label_id(&instr->values[2], &label_id) != 0) {
+    ovm_error(vm, "Invalid operands in BRLT instruction");
+    return -1;
+  }
+  
+  VMVariable* left = ovm_get_variable(vm, left_id);
+  VMVariable* right = ovm_get_variable(vm, right_id);
+  
+  if (!left || !right) {
+    ovm_error(vm, "Variables not found in BRLT instruction");
+    return -1;
+  }
+  
+  ValidationResult validation = ovm_validate_variable_initialization(vm, left);
+  if (validation != OVM_VALID) {
+    ovm_error(vm, "Left operand not initialized");
+    return -1;
+  }
+  
+  validation = ovm_validate_variable_initialization(vm, right);
+  if (validation != OVM_VALID) {
+    ovm_error(vm, "Right operand not initialized");
+    return -1;
+  }
+  
+  int comparison_result;
+  if (ovm_compare_variables(vm, left, right, &comparison_result) != 0) {
+    return -1;
+  }
+  
+  return ovm_branch_if_condition(vm, comparison_result < 0, label_id);
+}
+
+int ovm_exec_brle(OrionVM* vm, const orinopp_instruction_t* instr) {
+  if (instr->value_count < 3) {
+    ovm_error(vm, "BRLE instruction requires 3 operands");
+    return -1;
+  }
+  
+  orionpp_variable_id_t left_id, right_id;
+  orionpp_label_id_t label_id;
+  
+  if (ovm_extract_variable_id(&instr->values[0], &left_id) != 0 ||
+      ovm_extract_variable_id(&instr->values[1], &right_id) != 0 ||
+      ovm_extract_label_id(&instr->values[2], &label_id) != 0) {
+    ovm_error(vm, "Invalid operands in BRLE instruction");
+    return -1;
+  }
+  
+  VMVariable* left = ovm_get_variable(vm, left_id);
+  VMVariable* right = ovm_get_variable(vm, right_id);
+  
+  if (!left || !right) {
+    ovm_error(vm, "Variables not found in BRLE instruction");
+    return -1;
+  }
+  
+  ValidationResult validation = ovm_validate_variable_initialization(vm, left);
+  if (validation != OVM_VALID) {
+    ovm_error(vm, "Left operand not initialized");
+    return -1;
+  }
+  
+  validation = ovm_validate_variable_initialization(vm, right);
+  if (validation != OVM_VALID) {
+    ovm_error(vm, "Right operand not initialized");
+    return -1;
+  }
+  
+  int comparison_result;
+  if (ovm_compare_variables(vm, left, right, &comparison_result) != 0) {
+    return -1;
+  }
+  
+  return ovm_branch_if_condition(vm, comparison_result <= 0, label_id);
+}
+
+int ovm_exec_brz(OrionVM* vm, const orinopp_instruction_t* instr) {
+  if (instr->value_count < 2) {
+    ovm_error(vm, "BRZ instruction requires 2 operands");
+    return -1;
+  }
+  
+  orionpp_variable_id_t var_id;
+  orionpp_label_id_t label_id;
+  
+  if (ovm_extract_variable_id(&instr->values[0], &var_id) != 0 ||
+      ovm_extract_label_id(&instr->values[1], &label_id) != 0) {
+    ovm_error(vm, "Invalid operands in BRZ instruction");
+    return -1;
+  }
+  
+  VMVariable* var = ovm_get_variable(vm, var_id);
+  if (!var) {
+    ovm_error(vm, "Variable %u not found", var_id);
+    return -1;
+  }
+  
+  ValidationResult validation = ovm_validate_variable_initialization(vm, var);
+  if (validation != OVM_VALID) {
+    ovm_error(vm, "Variable not initialized");
+    return -1;
+  }
+  
+  bool is_zero = false;
+  switch (var->type) {
     case ORIONPP_TYPE_WORD:
     case ORIONPP_TYPE_SIZE:
     case ORIONPP_TYPE_C:
-      should_branch = (cond->value.i64 != 0);
+      is_zero = (var->value.i64 == 0);
       break;
     default:
-      ovm_error(vm, "Invalid condition type for BR instruction");
+      ovm_error(vm, "Invalid variable type for BRZ instruction");
       return -1;
   }
   
-  if (should_branch) {
-    size_t target = ovm_find_label(vm, label_id);
-    if (target == SIZE_MAX) {
-      ovm_error(vm, "Label %u not found", label_id);
-      return -1;
-    }
-    
-    validation = ovm_validate_label_jump(vm, label_id);
-    if (validation != OVM_VALID) {
-      ovm_error(vm, "Invalid branch target");
-      return -1;
-    }
-    
-    vm->pc = target;
-  } else {
-    vm->pc++; // Continue to next instruction
+  return ovm_branch_if_condition(vm, is_zero, label_id);
+}
+
+int ovm_exec_brnz(OrionVM* vm, const orinopp_instruction_t* instr) {
+  if (instr->value_count < 2) {
+    ovm_error(vm, "BRNZ instruction requires 2 operands");
+    return -1;
   }
   
-  return 0;
+  orionpp_variable_id_t var_id;
+  orionpp_label_id_t label_id;
+  
+  if (ovm_extract_variable_id(&instr->values[0], &var_id) != 0 ||
+      ovm_extract_label_id(&instr->values[1], &label_id) != 0) {
+    ovm_error(vm, "Invalid operands in BRNZ instruction");
+    return -1;
+  }
+  
+  VMVariable* var = ovm_get_variable(vm, var_id);
+  if (!var) {
+    ovm_error(vm, "Variable %u not found", var_id);
+    return -1;
+  }
+  
+  ValidationResult validation = ovm_validate_variable_initialization(vm, var);
+  if (validation != OVM_VALID) {
+    ovm_error(vm, "Variable not initialized");
+    return -1;
+  }
+  
+  bool is_not_zero = false;
+  switch (var->type) {
+    case ORIONPP_TYPE_WORD:
+    case ORIONPP_TYPE_SIZE:
+    case ORIONPP_TYPE_C:
+      is_not_zero = (var->value.i64 != 0);
+      break;
+    default:
+      ovm_error(vm, "Invalid variable type for BRNZ instruction");
+      return -1;
+  }
+  
+  return ovm_branch_if_condition(vm, is_not_zero, label_id);
 }
 
 int ovm_exec_call(OrionVM* vm, const orinopp_instruction_t* instr) {
@@ -349,6 +644,7 @@ int ovm_exec_call(OrionVM* vm, const orinopp_instruction_t* instr) {
     return -1;
   }
   
+  vm->pc++;
   free(function_name);
   return 0;
 }
@@ -374,7 +670,7 @@ int ovm_exec_ret(OrionVM* vm, const orinopp_instruction_t* instr) {
   return 0;
 }
 
-// Improved arithmetic operations implementation
+// Arithmetic operations (keeping existing implementations)
 int ovm_exec_add(OrionVM* vm, const orinopp_instruction_t* instr) {
   if (instr->value_count < 3) {
     ovm_error(vm, "ADD instruction requires 3 operands");
@@ -938,6 +1234,71 @@ int ovm_extract_string(const orinopp_value_t* value, char** result) {
   
   memcpy(*result, value->bytes, value->bytesize);
   (*result)[value->bytesize] = '\0';
+  
+  return 0;
+}
+
+int ovm_compare_variables(OrionVM* vm, VMVariable* left, VMVariable* right, int* result) {
+  if (!vm || !left || !right || !result) return -1;
+  
+  // Check types are compatible for comparison
+  if (!ovm_types_compatible(left->type, right->type)) {
+    ovm_error(vm, "Type mismatch in variable comparison");
+    return -1;
+  }
+  
+  // Perform comparison based on type
+  switch (left->type) {
+    case ORIONPP_TYPE_WORD:
+    case ORIONPP_TYPE_SIZE:
+    case ORIONPP_TYPE_C:
+      if (left->value.i64 < right->value.i64) {
+        *result = -1;
+      } else if (left->value.i64 > right->value.i64) {
+        *result = 1;
+      } else {
+        *result = 0;
+      }
+      break;
+    case ORIONPP_TYPE_STRING:
+      if (left->value.str && right->value.str) {
+        *result = strcmp(left->value.str, right->value.str);
+      } else if (left->value.str) {
+        *result = 1;
+      } else if (right->value.str) {
+        *result = -1;
+      } else {
+        *result = 0;
+      }
+      break;
+    default:
+      ovm_error(vm, "Unsupported type for comparison");
+      return -1;
+  }
+  
+  return 0;
+}
+
+int ovm_branch_if_condition(OrionVM* vm, bool condition, orionpp_label_id_t label_id) {
+  if (!vm) return -1;
+  
+  if (condition) {
+    size_t target = ovm_find_label(vm, label_id);
+    if (target == SIZE_MAX) {
+      ovm_error(vm, "Label %u not found", label_id);
+      return -1;
+    }
+    
+    ValidationResult validation = ovm_validate_label_jump(vm, label_id);
+    if (validation != OVM_VALID) {
+      ovm_error(vm, "Invalid branch target");
+      return -1;
+    }
+    
+    vm->pc = target;
+  } else {
+    vm->pc++; // Continue to next instruction
+  }
   
   return 0;
 }

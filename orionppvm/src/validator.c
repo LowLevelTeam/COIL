@@ -1,6 +1,6 @@
 /**
  * @file src/validator.c
- * @brief Orion++ runtime safety validator implementation
+ * @brief Enhanced Orion++ runtime safety validator implementation with conditional branch support
  */
 
 #include "validator.h"
@@ -62,7 +62,21 @@ ValidationResult ovm_validate_instruction(OrionVM* vm, const orinopp_instruction
           if (instr->value_count < 1) return OVM_INVALID_OPERAND;
           if (instr->values[0].root != ORIONPP_TYPE_LABELID) return OVM_INVALID_OPERAND;
           break;
-        case ORIONPP_OP_ISA_BR:
+        case ORIONPP_OP_ISA_BREQ:
+        case ORIONPP_OP_ISA_BRNEQ:
+        case ORIONPP_OP_ISA_BRGT:
+        case ORIONPP_OP_ISA_BRGE:
+        case ORIONPP_OP_ISA_BRLT:
+        case ORIONPP_OP_ISA_BRLE:
+          // Conditional branches with two operands and a label
+          if (instr->value_count < 3) return OVM_INVALID_OPERAND;
+          if (instr->values[0].root != ORIONPP_TYPE_VARID ||
+              instr->values[1].root != ORIONPP_TYPE_VARID ||
+              instr->values[2].root != ORIONPP_TYPE_LABELID) return OVM_INVALID_OPERAND;
+          break;
+        case ORIONPP_OP_ISA_BRZ:
+        case ORIONPP_OP_ISA_BRNZ:
+          // Zero/Non-zero branches with one operand and a label
           if (instr->value_count < 2) return OVM_INVALID_OPERAND;
           if (instr->values[0].root != ORIONPP_TYPE_VARID ||
               instr->values[1].root != ORIONPP_TYPE_LABELID) return OVM_INVALID_OPERAND;
@@ -137,7 +151,14 @@ ValidationResult ovm_validate_labels(OrionVM* vm) {
     if (instr->root == ORIONPP_OP_ISA) {
       switch (instr->child) {
         case ORIONPP_OP_ISA_JMP:
-        case ORIONPP_OP_ISA_BR:
+        case ORIONPP_OP_ISA_BREQ:
+        case ORIONPP_OP_ISA_BRNEQ:
+        case ORIONPP_OP_ISA_BRGT:
+        case ORIONPP_OP_ISA_BRGE:
+        case ORIONPP_OP_ISA_BRLT:
+        case ORIONPP_OP_ISA_BRLE:
+        case ORIONPP_OP_ISA_BRZ:
+        case ORIONPP_OP_ISA_BRNZ:
           for (size_t j = 0; j < instr->value_count; j++) {
             if (instr->values[j].root == ORIONPP_TYPE_LABELID) {
               if (instr->values[j].bytesize < sizeof(orionpp_label_id_t)) {
