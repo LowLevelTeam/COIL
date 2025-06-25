@@ -80,7 +80,15 @@ enum orionpp_opcode_isa {
   // control flow
   ORIONPP_OP_ISA_LABEL, // auto computed label: (cant be far away as it is computed at runtime if you wish to jump to a far target use a symbol)
   ORIONPP_OP_ISA_JMP, // goto
-  ORIONPP_OP_ISA_BR, // if
+  ORIONPP_OP_ISA_BREQ, // i == i
+  ORIONPP_OP_ISA_BRNEQ, // i != i
+  ORIONPP_OP_ISA_BRGT, // i > i
+  ORIONPP_OP_ISA_BRGE, // i >= i 
+  ORIONPP_OP_ISA_BRLT, // i < i
+  ORIONPP_OP_ISA_BRLE, // i <= i
+  ORIONPP_OP_ISA_BRZ, // i == 0
+  ORIONPP_OP_ISA_BRNZ, // i != 0
+
   ORIONPP_OP_ISA_CALL, // uncondtional jump to target and save a return address
   ORIONPP_OP_ISA_RET, // return to the address saved by call instruction
 

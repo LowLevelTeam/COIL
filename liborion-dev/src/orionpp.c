@@ -37,7 +37,14 @@ static const char* isa_opcode_to_string(orionpp_opcode_module_t child) {
     case ORIONPP_OP_ISA_LEA: return "LEA";
     case ORIONPP_OP_ISA_LABEL: return "LABEL";
     case ORIONPP_OP_ISA_JMP: return "JMP";
-    case ORIONPP_OP_ISA_BR: return "BR";
+    case ORIONPP_OP_ISA_BREQ: return "BR.EQ";
+    case ORIONPP_OP_ISA_BRNEQ: return "BR.NEQ";
+    case ORIONPP_OP_ISA_BRGT: return "BR.GT";
+    case ORIONPP_OP_ISA_BRGE: return "BR.GE"; 
+    case ORIONPP_OP_ISA_BRLT: return "BR.LT";
+    case ORIONPP_OP_ISA_BRLE: return "BR.LE";
+    case ORIONPP_OP_ISA_BRZ: return "BR.Z";
+    case ORIONPP_OP_ISA_BRNZ: return "BR.NZ";
     case ORIONPP_OP_ISA_CALL: return "CALL";
     case ORIONPP_OP_ISA_RET: return "RET";
     case ORIONPP_OP_ISA_ADD: return "ADD";
