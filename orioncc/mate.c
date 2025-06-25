@@ -18,7 +18,7 @@ i32 main(int argc, const char *argv[]) {
       .error = args.errorfmt,
       .optimization = args.optlevel
     });
-    AddIncludePaths(orioncc_program, "./include");
+    AddIncludePaths(orioncc_program, "./include", "../liborion-dev/include/");
     AddLibraryPaths(orioncc_program, "../liborion-dev/build/");
     AddFile(orioncc_program, "./src/*.c");
     if (isLinux()) {
