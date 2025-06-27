@@ -7,6 +7,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <limits.h>
+#include <float.h>
 
 #ifdef WIN32
   #include <windows.h>
@@ -16,179 +18,6 @@
 #endif
 
 // -------------------------------- HELPERS -------------------------------- //
-
-static const char* opcode_to_string(orionpp_opcode_t opcode) {
-  switch (opcode) {
-    case ORIONPP_OP_ISA: return "ISA";
-    case ORIONPP_OP_OBJ: return "OBJ";
-    case ORIONPP_OP_HINT: return "HINT";
-    case ORIONPP_OP_TYPE: return "TYPE";
-    case ORIONPP_OP_ABI: return "ABI";
-    case ORIONPP_OP_END: return "END";
-    default: return "UNKNOWN";
-  }
-}
-
-static const char* isa_opcode_to_string(orionpp_opcode_module_t child) {
-  switch (child) {
-    case ORIONPP_OP_ISA_VAR: return "VAR";
-    case ORIONPP_OP_ISA_CONST: return "CONST";
-    case ORIONPP_OP_ISA_MOV: return "MOV";
-    case ORIONPP_OP_ISA_LEA: return "LEA";
-    case ORIONPP_OP_ISA_LABEL: return "LABEL";
-    case ORIONPP_OP_ISA_JMP: return "JMP";
-    case ORIONPP_OP_ISA_BREQ: return "BR.EQ";
-    case ORIONPP_OP_ISA_BRNEQ: return "BR.NEQ";
-    case ORIONPP_OP_ISA_BRGT: return "BR.GT";
-    case ORIONPP_OP_ISA_BRGE: return "BR.GE"; 
-    case ORIONPP_OP_ISA_BRLT: return "BR.LT";
-    case ORIONPP_OP_ISA_BRLE: return "BR.LE";
-    case ORIONPP_OP_ISA_BRZ: return "BR.Z";
-    case ORIONPP_OP_ISA_BRNZ: return "BR.NZ";
-    case ORIONPP_OP_ISA_CALL: return "CALL";
-    case ORIONPP_OP_ISA_RET: return "RET";
-    case ORIONPP_OP_ISA_ADD: return "ADD";
-    case ORIONPP_OP_ISA_SUB: return "SUB";
-    case ORIONPP_OP_ISA_MUL: return "MUL";
-    case ORIONPP_OP_ISA_DIV: return "DIV";
-    case ORIONPP_OP_ISA_MOD: return "MOD";
-    case ORIONPP_OP_ISA_INC: return "INC";
-    case ORIONPP_OP_ISA_DEC: return "DEC";
-    case ORIONPP_OP_ISA_INCp: return "INC++";
-    case ORIONPP_OP_ISA_DECp: return "DEC++";
-    case ORIONPP_OP_ISA_AND: return "AND";
-    case ORIONPP_OP_ISA_OR: return "OR";
-    case ORIONPP_OP_ISA_XOR: return "XOR";
-    case ORIONPP_OP_ISA_NOT: return "NOT";
-    case ORIONPP_OP_ISA_SHL: return "SHL";
-    case ORIONPP_OP_ISA_SHR: return "SHR";
-    default: return "UNKNOWN_ISA";
-  }
-}
-
-static const char* type_to_string(orionpp_type_t type) {
-  switch (type) {
-    case ORIONPP_TYPE_VARID: return "VARID";
-    case ORIONPP_TYPE_LABELID: return "LABELID";
-    case ORIONPP_TYPE_SYMBOL: return "SYMBOL";
-    case ORIONPP_TYPE_STRING: return "STRING";
-    case ORIONPP_TYPE_WORD: return "WORD";
-    case ORIONPP_TYPE_SIZE: return "SIZE";
-    case ORIONPP_TYPE_SSIZE: return "SSIZE";
-    case ORIONPP_TYPE_C: return "C";
-    case ORIONPP_TYPE_END: return "END";
-    default: return "UNKNOWN_TYPE";
-  }
-}
-
-static const char* type_c_to_string(orionpp_type_module_t type) {
-  switch (type) {
-    case ORIONPP_TYPE_C_BOOL: return "BOOL";          
-    case ORIONPP_TYPE_C_BOOL_FALSE: return "BOOL_FALSE"; 
-    case ORIONPP_TYPE_C_BOOL_TRUE: return "BOOL_TRUE";  
-    case ORIONPP_TYPE_C_CHAR: return "CHAR";
-    case ORIONPP_TYPE_C_CHAR_MIN: return "CHAR_MIN";
-    case ORIONPP_TYPE_C_CHAR_MAX: return "CHAR_MAX";
-    case ORIONPP_TYPE_C_SCHAR: return "SCHAR";
-    case ORIONPP_TYPE_C_SCHAR_MIN: return "SCHAR_MIN";
-    case ORIONPP_TYPE_C_SCHAR_MAX: return "SCHAR_MAX";
-    case ORIONPP_TYPE_C_UCHAR: return "UCHAR";
-    case ORIONPP_TYPE_C_UCHAR_MIN: return "UCHAR_MIN";
-    case ORIONPP_TYPE_C_UCHAR_MAX: return "UCHAR_MAX";
-    case ORIONPP_TYPE_C_SHORT: return "SHORT";
-    case ORIONPP_TYPE_C_SHORT_MIN: return "SHORT_MIN";
-    case ORIONPP_TYPE_C_SHORT_MAX: return "SHORT_MAX";
-    case ORIONPP_TYPE_C_USHORT: return "USHORT";
-    case ORIONPP_TYPE_C_USHORT_MIN: return "USHORT_MIN";
-    case ORIONPP_TYPE_C_USHORT_MAX: return "USHORT_MAX";
-    case ORIONPP_TYPE_C_INT: return "INT";
-    case ORIONPP_TYPE_C_INT_MIN: return "INT_MIN";
-    case ORIONPP_TYPE_C_INT_MAX: return "INT_MAX";
-    case ORIONPP_TYPE_C_UINT: return "UINT";
-    case ORIONPP_TYPE_C_UINT_MIN: return "UINT_MIN";
-    case ORIONPP_TYPE_C_UINT_MAX: return "UINT_MAX";
-    case ORIONPP_TYPE_C_LONG: return "LONG";
-    case ORIONPP_TYPE_C_LONG_MIN: return "LONG_MIN";
-    case ORIONPP_TYPE_C_LONG_MAX: return "LONG_MAX";
-    case ORIONPP_TYPE_C_ULONG: return "ULONG";
-    case ORIONPP_TYPE_C_ULONG_MIN: return "ULONG_MIN";
-    case ORIONPP_TYPE_C_ULONG_MAX: return "ULONG_MAX";
-    case ORIONPP_TYPE_C_LLONG: return "LLONG";
-    case ORIONPP_TYPE_C_LLONG_MIN: return "LLONG_MIN";
-    case ORIONPP_TYPE_C_LLONG_MAX: return "LLONG_MAX";
-    case ORIONPP_TYPE_C_ULLONG: return "ULLONG";
-    case ORIONPP_TYPE_C_ULLONG_MIN: return "ULLONG_MIN";
-    case ORIONPP_TYPE_C_ULLONG_MAX: return "ULLONG_MAX";
-    case ORIONPP_TYPE_C_FLOAT: return "FLOAT";
-    case ORIONPP_TYPE_C_FLOAT_MIN: return "FLOAT_MIN";  
-    case ORIONPP_TYPE_C_FLOAT_MAX: return "FLOAT_MAX";  
-    case ORIONPP_TYPE_C_DOUBLE: return "DOUBLE";
-    case ORIONPP_TYPE_C_DOUBLE_MIN: return "DOUBLE_MIN";
-    case ORIONPP_TYPE_C_DOUBLE_MAX: return "DOUBLE_MAX";
-    case ORIONPP_TYPE_C_LDOUBLE: return "LDOUBLE";
-    case ORIONPP_TYPE_C_LDOUBLE_MIN: return "LDOUBLE_MIN";
-    case ORIONPP_TYPE_C_LDOUBLE_MAX: return "LDOUBLE_MAX";
-    case ORIONPP_TYPE_C_SIZE_T: return "SIZE_T";
-    case ORIONPP_TYPE_C_SIZE_T_MIN: return "SIZE_T_MIN";
-    case ORIONPP_TYPE_C_SIZE_T_MAX: return "SIZE_T_MAX";
-    case ORIONPP_TYPE_C_PTRDIFF_T: return "PTRDIFF_T";
-    case ORIONPP_TYPE_C_PTRDIFF_T_MIN: return "PTRDIFF_T_MIN";
-    case ORIONPP_TYPE_C_PTRDIFF_T_MAX: return "PTRDIFF_T_MAX";
-    case ORIONPP_TYPE_C_INTMAX_T: return "INTMAX_T";
-    case ORIONPP_TYPE_C_INTMAX_T_MIN: return "INTMAX_T_MIN";  
-    case ORIONPP_TYPE_C_INTMAX_T_MAX: return "INTMAX_T_MAX";  
-    case ORIONPP_TYPE_C_UINTMAX_T: return "UINTMAX_T";
-    case ORIONPP_TYPE_C_UINTMAX_T_MIN: return "UINTMAX_T_MIN";
-    case ORIONPP_TYPE_C_UINTMAX_T_MAX: return "UINTMAX_T_MAX";
-    case ORIONPP_TYPE_C_INTPTR_T: return "INTPTR_T";
-    case ORIONPP_TYPE_C_INTPTR_T_MIN: return "INTPTR_T_MIN";  
-    case ORIONPP_TYPE_C_INTPTR_T_MAX: return "INTPTR_T_MAX";  
-    case ORIONPP_TYPE_C_UINTPTR_T: return "UINTPTR_T";
-    case ORIONPP_TYPE_C_UINTPTR_T_MIN: return "UINTPTR_T_MIN";
-    case ORIONPP_TYPE_C_UINTPTR_T_MAX: return "UINTPTR_T_MAX";
-    case ORIONPP_TYPE_C_WCHAR_T: return "WCHAR_T";
-    case ORIONPP_TYPE_C_WCHAR_T_MIN: return "WCHAR_T_MIN";
-    case ORIONPP_TYPE_C_WCHAR_T_MAX: return "WCHAR_T_MAX";
-    case ORIONPP_TYPE_C_DEC32: return "DEC32";
-    case ORIONPP_TYPE_C_DEC32_MIN: return "DEC32_MIN";
-    case ORIONPP_TYPE_C_DEC32_MAX: return "DEC32_MAX";
-    case ORIONPP_TYPE_C_DEC64: return "DEC64";
-    case ORIONPP_TYPE_C_DEC64_MIN: return "DEC64_MIN";
-    case ORIONPP_TYPE_C_DEC64_MAX: return "DEC64_MAX";
-    case ORIONPP_TYPE_C_DEC128: return "DEC128";
-    case ORIONPP_TYPE_C_DEC128_MIN: return "DEC128_MIN";
-    case ORIONPP_TYPE_C_DEC128_MAX: return "DEC128_MAX";
-    case ORIONPP_TYPE_C_INT8: return "INT8";   
-    case ORIONPP_TYPE_C_UINT8: return "UINT8";  
-    case ORIONPP_TYPE_C_INT16: return "INT16";  
-    case ORIONPP_TYPE_C_UINT16: return "UINT16"; 
-    case ORIONPP_TYPE_C_INT32: return "INT32";  
-    case ORIONPP_TYPE_C_UINT32: return "UINT32"; 
-    case ORIONPP_TYPE_C_INT64: return "INT64";  
-    case ORIONPP_TYPE_C_UINT64: return "UINT64"; 
-    case ORIONPP_TYPE_C_PTR: return "PTR"; 
-    case ORIONPP_TYPE_C_CONST: return "CONST"; 
-    case ORIONPP_TYPE_C_VOLATILE: return "VOLATILE"; 
-    case ORIONPP_TYPE_C_RESTRICT: return "RESTRICT"; 
-    case ORIONPP_TYPE_C_ATOMIC: return "ATOMIC"; 
-    case ORIONPP_TYPE_C_COMPLEX: return "COMPLEX"; 
-    case ORIONPP_TYPE_C_IMAGINARY: return "IMAGINARY"; 
-    case ORIONPP_TYPE_C_BITINT: return "BITINT"; 
-    case ORIONPP_TYPE_C_REGISTER: return "REGISTER"; 
-    case ORIONPP_TYPE_C_STRUCT: return "STRUCT";
-    case ORIONPP_TYPE_C_UNION: return "UNION";
-    case ORIONPP_TYPE_C_STRUCTREF: return "STRUCTREF";
-    case ORIONPP_TYPE_C_UNIONREF: return "UNIONREF";
-    case ORIONPP_TYPE_C_TYPEREF: return "TYPEREF";
-    case ORIONPP_TYPE_C_ARRAY: return "ARRAY";
-    case ORIONPP_TYPE_C_VLARRAY: return "VLARRAY";
-    case ORIONPP_TYPE_C_VOID: return "VOID";
-    case ORIONPP_TYPE_C_VARADIC: return "VARADIC";
-    case ORIONPP_TYPE_C_FUNCTION: return "FUNCTION";
-    default: return "!INVALID!";
-  }
-}
-
 
 static size_t read_from_file(file_handle_t file, void* buffer, size_t size) {
 #ifdef WIN32
@@ -215,309 +44,564 @@ static size_t write_to_file(file_handle_t file, const void* buffer, size_t size)
 }
 
 // -------------------------------- IMPLEMENTATIONS -------------------------------- //
+void orionpp_parse(const char *buf, char *val, size_t valsize);
+void orionpp_parse_type(const char *buf, orionpp_ftype_t *value);
 
-void orionpp_dissasemble(orinopp_instruction_t *instr) {
-  if (!instr) {
-    printf("NULL instruction\n");
-    return;
-  }
 
-  printf("%s", opcode_to_string(instr->root));
-  
-  // Print child opcode for ISA instructions
-  if (instr->root == ORIONPP_OP_ISA) {
-    printf(".%s", isa_opcode_to_string(instr->child));
-  } else if (instr->child != 0) {
-    printf(".%d", instr->child);
-  }
-
-  // Print values
-  for (size_t i = 0; i < instr->value_count; i++) {
-    printf(" ");
-    
-    orinopp_value_t *value = &instr->values[i];
-    printf("%s", type_to_string(value->root));
-    
-    if (value->child != 0) {
-      if (value->child == ORIONPP_TYPE_C) { printf("%s", type_c_to_string(value->child)); }
-      else { printf(".%d", value->child); }
-    }
-    
-    printf(":");
-    
-    // Print value data based on type
-    switch (value->root) {
-      case ORIONPP_TYPE_VARID:
-      case ORIONPP_TYPE_LABELID:
-        if (value->bytesize >= sizeof(uint32_t)) {
-          uint32_t id = *(uint32_t*)value->bytes;
-          printf("%u", id);
-        }
-        break;
-      case ORIONPP_TYPE_WORD:
-      case ORIONPP_TYPE_SIZE:
-        if (value->bytesize >= sizeof(uint32_t)) {
-          uint32_t word = *(uint32_t*)value->bytes;
-          printf("0x%x", word);
-        }
-        break;
-      case ORIONPP_TYPE_SSIZE:
-        if (value->bytesize >= sizeof(int32_t)) {
-          int32_t ssize = *(int32_t*)value->bytes;
-          printf("%d", ssize);
-        }
-        break;
-      case ORIONPP_TYPE_STRING:
-      case ORIONPP_TYPE_SYMBOL:
-        printf("\"");
-        for (size_t j = 0; j < value->bytesize && j < 64; j++) {
-          char c = value->bytes[j];
-          if (c == '\0') break;
-          if (c >= 32 && c <= 126) {
-            printf("%c", c);
-          } else {
-            printf("\\x%02x", (unsigned char)c);
-          }
-        }
-        printf("\"");
-        break;
-      default:
-        printf("0x");
-        for (size_t j = 0; j < value->bytesize && j < 16; j++) {
-          printf("%02x", (unsigned char)value->bytes[j]);
-        }
-        break;
-    }
-  }
-  
-  printf("\n");
-}
-
-void orionpp_readf(file_handle_t file, orinopp_instruction_t *dest) {
-  if (!dest) return;
-  
-  // Initialize destination
-  memset(dest, 0, sizeof(orinopp_instruction_t));
-  
-  // Read root opcode
-  if (read_from_file(file, &dest->root, sizeof(dest->root)) != sizeof(dest->root)) {
-    return;
-  }
-  
-  // Read child opcode
-  if (read_from_file(file, &dest->child, sizeof(dest->child)) != sizeof(dest->child)) {
-    return;
-  }
-  
-  // Read value count
-  if (read_from_file(file, &dest->value_count, sizeof(dest->value_count)) != sizeof(dest->value_count)) {
-    return;
-  }
-  
-  if (dest->value_count == 0) {
-    dest->values = NULL;
-    return;
-  }
-  
-  // Allocate values array
-  dest->values = malloc(dest->value_count * sizeof(orinopp_value_t));
-  if (!dest->values) {
-    dest->value_count = 0;
-    return;
-  }
-  
-  // Read each value
-  for (size_t i = 0; i < dest->value_count; i++) {
-    orinopp_value_t *value = &dest->values[i];
-    
-    // Read type information
-    if (read_from_file(file, &value->root, sizeof(value->root)) != sizeof(value->root)) {
+void orionpp_string_opcode(char *buf, size_t bufsize, orionpp_opcode_t opcode, orionpp_opcode_module_t module_opcode) {
+  (void)bufsize; // TODO- Implement Safety
+  switch (opcode) {
+    case ORIONPP_OP_ISA:
+      memcpy(buf, "ISA.", 4);
+      buf += 4;
+      switch (module_opcode) {
+        case ORIONPP_OP_ISA_VAR: memcpy(buf, "VAR", 4); break;
+        case ORIONPP_OP_ISA_CONST: memcpy(buf, "CONST", 6); break;
+        case ORIONPP_OP_ISA_MOV: memcpy(buf, "MOV", 4); break;
+        case ORIONPP_OP_ISA_LEA: memcpy(buf, "LEA", 4); break;
+        case ORIONPP_OP_ISA_LABEL: memcpy(buf, "LABEL", 6); break;
+        case ORIONPP_OP_ISA_JMP: memcpy(buf, "JMP", 4); break;
+        case ORIONPP_OP_ISA_BREQ: memcpy(buf, "BR.EQ", 6); break;
+        case ORIONPP_OP_ISA_BRNEQ: memcpy(buf, "BR.NEQ", 7); break;
+        case ORIONPP_OP_ISA_BRGT: memcpy(buf, "BR.GT", 6); break;
+        case ORIONPP_OP_ISA_BRGE: memcpy(buf, "BR.GE", 6); break; 
+        case ORIONPP_OP_ISA_BRLT: memcpy(buf, "BR.LT", 6); break;
+        case ORIONPP_OP_ISA_BRLE: memcpy(buf, "BR.LE", 6); break;
+        case ORIONPP_OP_ISA_BRZ: memcpy(buf, "BR.Z", 5); break;
+        case ORIONPP_OP_ISA_BRNZ: memcpy(buf, "BR.NZ", 6); break;
+        case ORIONPP_OP_ISA_CALL: memcpy(buf, "CALL", 5); break;
+        case ORIONPP_OP_ISA_RET: memcpy(buf, "RET", 4); break;
+        case ORIONPP_OP_ISA_ADD: memcpy(buf, "ADD", 4); break;
+        case ORIONPP_OP_ISA_SUB: memcpy(buf, "SUB", 4); break;
+        case ORIONPP_OP_ISA_MUL: memcpy(buf, "MUL", 4); break;
+        case ORIONPP_OP_ISA_DIV: memcpy(buf, "DIV", 4); break;
+        case ORIONPP_OP_ISA_MOD: memcpy(buf, "MOD", 4); break;
+        case ORIONPP_OP_ISA_INC: memcpy(buf, "INC", 4); break;
+        case ORIONPP_OP_ISA_DEC: memcpy(buf, "DEC", 4); break;
+        case ORIONPP_OP_ISA_INCp: memcpy(buf, "INC++", 6); break;
+        case ORIONPP_OP_ISA_DECp: memcpy(buf, "DEC++", 6); break;
+        case ORIONPP_OP_ISA_AND: memcpy(buf, "AND", 4); break;
+        case ORIONPP_OP_ISA_OR: memcpy(buf, "OR", 3); break;
+        case ORIONPP_OP_ISA_XOR: memcpy(buf, "XOR", 4); break;
+        case ORIONPP_OP_ISA_NOT: memcpy(buf, "NOT", 4); break;
+        case ORIONPP_OP_ISA_SHL: memcpy(buf, "SHL", 4); break;
+        case ORIONPP_OP_ISA_SHR: memcpy(buf, "SHR", 4); break;
+        default: memcpy(buf, "UNKN", 5); break;
+      };
       break;
-    }
-    if (read_from_file(file, &value->child, sizeof(value->child)) != sizeof(value->child)) {
+    case ORIONPP_OP_OBJ:
+      memcpy(buf, "OBJ.", 4);
+      buf += 4;
+      switch (module_opcode) {
+        case ORIONPP_OP_OBJ_SECT: memcpy(buf, "SECT", 5); break;
+        case ORIONPP_OP_OBJ_SYM: memcpy(buf, "SYM", 4); break;
+        case ORIONPP_OP_OBJ_RAW: memcpy(buf, "RAW", 4); break;
+        case ORIONPP_OP_OBJ_RESV: memcpy(buf, "RESV", 5); break;
+        default: memcpy(buf, "UNKN", 5); break;
+      };
       break;
-    }
-    
-    // Read byte size
-    if (read_from_file(file, &value->bytesize, sizeof(value->bytesize)) != sizeof(value->bytesize)) {
+    case ORIONPP_OP_HINT:
+      memcpy(buf, "HINT.", 5);
+      buf += 5;
+      switch (module_opcode) {
+        case ORIONPP_OP_HINT_FUNCEND: memcpy(buf, "FUNCEND", 8); break;
+        default: memcpy(buf, "UNKN", 5); break;
+      };
       break;
-    }
-    
-    // Allocate and read bytes
-    if (value->bytesize > 0) {
-      char *bytes = malloc(value->bytesize);
-      if (!bytes) {
-        value->bytesize = 0;
-        value->bytes = NULL;
-        continue;
-      }
-      
-      if (read_from_file(file, bytes, value->bytesize) != value->bytesize) {
-        free(bytes);
-        value->bytesize = 0;
-        value->bytes = NULL;
-        continue;
-      }
-      
-      value->bytes = bytes;
-    } else {
-      value->bytes = NULL;
-    }
+    case ORIONPP_OP_TYPE:
+      memcpy(buf, "TYPE.", 5);
+      buf += 5;
+      switch (module_opcode) {
+        case ORIONPP_OP_TYPE_DEF: memcpy(buf, "DEF", 4); break;
+        default: memcpy(buf, "UNKN", 5); break;
+      };
+      break;
+    case ORIONPP_OP_ABI:
+      memcpy(buf, "ABI.", 4);
+      buf += 4;
+      switch (module_opcode) {
+        case ORIONPP_OP_ABI_ESETUP: memcpy(buf, "ESETUP", 7); break;
+        case ORIONPP_OP_ABI_ECLEANUP: memcpy(buf, "ECLEANUP", 9); break;
+        case ORIONPP_OP_ABI_GETARG: memcpy(buf, "GETARG", 7); break;
+        case ORIONPP_OP_ABI_SETRET: memcpy(buf, "SETRET", 7); break;
+        case ORIONPP_OP_ABI_RSETUP: memcpy(buf, "RSETUP", 7); break;
+        case ORIONPP_OP_ABI_RCLEANUP: memcpy(buf, "RCLEANUP", 9); break;
+        case ORIONPP_OP_ABI_SETARG: memcpy(buf, "SETARG", 7); break;
+        case ORIONPP_OP_ABI_GETRET: memcpy(buf, "GETRET", 7); break;
+        default: memcpy(buf, "UNKN", 5); break;
+      };
+      break;
+    case ORIONPP_OP_END: memcpy(buf, "END", 4); break;
+    default: memcpy(buf, "UNKN", 5);
+  }
+}
+void orionpp_string_type(char *buf, size_t bufsize, orionpp_type_t type, orionpp_type_module_t module_type) {
+  (void)bufsize; // TODO- Implement Safety 
+  switch (type) {
+    case ORIONPP_TYPE_VARID: memcpy(buf, "VARID", 6); break;
+    case ORIONPP_TYPE_LABELID: memcpy(buf, "LABELID", 8); break;
+    case ORIONPP_TYPE_SYMBOL: memcpy(buf, "SYMBOL", 7); break;
+    case ORIONPP_TYPE_STRING: memcpy(buf, "STRING", 7); break;
+    case ORIONPP_TYPE_WORD: memcpy(buf, "WORD", 5); break;
+    case ORIONPP_TYPE_C:
+      *buf = 'C';
+      ++buf;
+      switch (module_type) {
+        case ORIONPP_TYPE_C_BOOL: memcpy(buf, "BOOL", 5); break;          
+        case ORIONPP_TYPE_C_BOOL_FALSE: memcpy(buf, "BOOL_FALSE", 11); break; 
+        case ORIONPP_TYPE_C_BOOL_TRUE: memcpy(buf, "BOOL_TRUE", 10); break;  
+        case ORIONPP_TYPE_C_CHAR: memcpy(buf, "CHAR", 5); break;
+        case ORIONPP_TYPE_C_CHAR_MIN: memcpy(buf, "CHAR_MIN", 9); break;
+        case ORIONPP_TYPE_C_CHAR_MAX: memcpy(buf, "CHAR_MAX", 9); break;
+        case ORIONPP_TYPE_C_SCHAR: memcpy(buf, "SCHAR", 6); break;
+        case ORIONPP_TYPE_C_SCHAR_MIN: memcpy(buf, "SCHAR_MIN", 10); break;
+        case ORIONPP_TYPE_C_SCHAR_MAX: memcpy(buf, "SCHAR_MAX", 10); break;
+        case ORIONPP_TYPE_C_UCHAR: memcpy(buf, "UCHAR", 6); break;
+        case ORIONPP_TYPE_C_UCHAR_MIN: memcpy(buf, "UCHAR_MIN", 10); break;
+        case ORIONPP_TYPE_C_UCHAR_MAX: memcpy(buf, "UCHAR_MAX", 10); break;
+        case ORIONPP_TYPE_C_SHORT: memcpy(buf, "SHORT", 6); break;
+        case ORIONPP_TYPE_C_SHORT_MIN: memcpy(buf, "SHORT_MIN", 10); break;
+        case ORIONPP_TYPE_C_SHORT_MAX: memcpy(buf, "SHORT_MAX", 10); break;
+        case ORIONPP_TYPE_C_USHORT: memcpy(buf, "USHORT", 7); break;
+        case ORIONPP_TYPE_C_USHORT_MIN: memcpy(buf, "USHORT_MIN", 11); break;
+        case ORIONPP_TYPE_C_USHORT_MAX: memcpy(buf, "USHORT_MAX", 11); break;
+        case ORIONPP_TYPE_C_INT: memcpy(buf, "INT", 4); break;
+        case ORIONPP_TYPE_C_INT_MIN: memcpy(buf, "INT_MIN", 8); break;
+        case ORIONPP_TYPE_C_INT_MAX: memcpy(buf, "INT_MAX", 8); break;
+        case ORIONPP_TYPE_C_UINT: memcpy(buf, "UINT", 5); break;
+        case ORIONPP_TYPE_C_UINT_MIN: memcpy(buf, "UINT_MIN", 9); break;
+        case ORIONPP_TYPE_C_UINT_MAX: memcpy(buf, "UINT_MAX", 9); break;
+        case ORIONPP_TYPE_C_LONG: memcpy(buf, "LONG", 5); break;
+        case ORIONPP_TYPE_C_LONG_MIN: memcpy(buf, "LONG_MIN", 9); break;
+        case ORIONPP_TYPE_C_LONG_MAX: memcpy(buf, "LONG_MAX", 9); break;
+        case ORIONPP_TYPE_C_ULONG: memcpy(buf, "ULONG", 6); break;
+        case ORIONPP_TYPE_C_ULONG_MIN: memcpy(buf, "ULONG_MIN", 10); break;
+        case ORIONPP_TYPE_C_ULONG_MAX: memcpy(buf, "ULONG_MAX", 10); break;
+        case ORIONPP_TYPE_C_LLONG: memcpy(buf, "LLONG", 6); break;
+        case ORIONPP_TYPE_C_LLONG_MIN: memcpy(buf, "LLONG_MIN", 10); break;
+        case ORIONPP_TYPE_C_LLONG_MAX: memcpy(buf, "LLONG_MAX", 10); break;
+        case ORIONPP_TYPE_C_ULLONG: memcpy(buf, "ULLONG", 7); break;
+        case ORIONPP_TYPE_C_ULLONG_MIN: memcpy(buf, "ULLONG_MIN", 11); break;
+        case ORIONPP_TYPE_C_ULLONG_MAX: memcpy(buf, "ULLONG_MAX", 11); break;
+        case ORIONPP_TYPE_C_FLOAT: memcpy(buf, "FLOAT", 6); break;
+        case ORIONPP_TYPE_C_FLOAT_MIN: memcpy(buf, "FLOAT_MIN", 10); break;  
+        case ORIONPP_TYPE_C_FLOAT_MAX: memcpy(buf, "FLOAT_MAX", 10); break;  
+        case ORIONPP_TYPE_C_DOUBLE: memcpy(buf, "DOUBLE", 7); break;
+        case ORIONPP_TYPE_C_DOUBLE_MIN: memcpy(buf, "DOUBLE_MIN", 11); break;
+        case ORIONPP_TYPE_C_DOUBLE_MAX: memcpy(buf, "DOUBLE_MAX", 11); break;
+        case ORIONPP_TYPE_C_LDOUBLE: memcpy(buf, "LDOUBLE", 8); break;
+        case ORIONPP_TYPE_C_LDOUBLE_MIN: memcpy(buf, "LDOUBLE_MIN", 12); break;
+        case ORIONPP_TYPE_C_LDOUBLE_MAX: memcpy(buf, "LDOUBLE_MAX", 12); break;
+        case ORIONPP_TYPE_C_SIZE_T: memcpy(buf, "SIZE_T", 7); break;
+        case ORIONPP_TYPE_C_SIZE_T_MIN: memcpy(buf, "SIZE_T_MIN", 11); break;
+        case ORIONPP_TYPE_C_SIZE_T_MAX: memcpy(buf, "SIZE_T_MAX", 11); break;
+        case ORIONPP_TYPE_C_PTRDIFF_T: memcpy(buf, "PTRDIFF_T", 10); break;
+        case ORIONPP_TYPE_C_PTRDIFF_T_MIN: memcpy(buf, "PTRDIFF_T_MIN", 14); break;
+        case ORIONPP_TYPE_C_PTRDIFF_T_MAX: memcpy(buf, "PTRDIFF_T_MAX", 14); break;
+        case ORIONPP_TYPE_C_INTMAX_T: memcpy(buf, "INTMAX_T", 9); break;
+        case ORIONPP_TYPE_C_INTMAX_T_MIN: memcpy(buf, "INTMAX_T_MIN", 13); break;  
+        case ORIONPP_TYPE_C_INTMAX_T_MAX: memcpy(buf, "INTMAX_T_MAX", 13); break;  
+        case ORIONPP_TYPE_C_UINTMAX_T: memcpy(buf, "UINTMAX_T", 10); break;
+        case ORIONPP_TYPE_C_UINTMAX_T_MIN: memcpy(buf, "UINTMAX_T_MIN", 14); break;
+        case ORIONPP_TYPE_C_UINTMAX_T_MAX: memcpy(buf, "UINTMAX_T_MAX", 14); break;
+        case ORIONPP_TYPE_C_INTPTR_T: memcpy(buf, "INTPTR_T", 9); break;
+        case ORIONPP_TYPE_C_INTPTR_T_MIN: memcpy(buf, "INTPTR_T_MIN", 13); break;  
+        case ORIONPP_TYPE_C_INTPTR_T_MAX: memcpy(buf, "INTPTR_T_MAX", 13); break;  
+        case ORIONPP_TYPE_C_UINTPTR_T: memcpy(buf, "UINTPTR_T", 10); break;
+        case ORIONPP_TYPE_C_UINTPTR_T_MIN: memcpy(buf, "UINTPTR_T_MIN", 14); break;
+        case ORIONPP_TYPE_C_UINTPTR_T_MAX: memcpy(buf, "UINTPTR_T_MAX", 14); break;
+        case ORIONPP_TYPE_C_WCHAR_T: memcpy(buf, "WCHAR_T", 8); break;
+        case ORIONPP_TYPE_C_WCHAR_T_MIN: memcpy(buf, "WCHAR_T_MIN", 12); break;
+        case ORIONPP_TYPE_C_WCHAR_T_MAX: memcpy(buf, "WCHAR_T_MAX", 12); break;
+        case ORIONPP_TYPE_C_DEC32: memcpy(buf, "DEC32", 6); break;
+        case ORIONPP_TYPE_C_DEC32_MIN: memcpy(buf, "DEC32_MIN", 10); break;
+        case ORIONPP_TYPE_C_DEC32_MAX: memcpy(buf, "DEC32_MAX", 10); break;
+        case ORIONPP_TYPE_C_DEC64: memcpy(buf, "DEC64", 6); break;
+        case ORIONPP_TYPE_C_DEC64_MIN: memcpy(buf, "DEC64_MIN", 10); break;
+        case ORIONPP_TYPE_C_DEC64_MAX: memcpy(buf, "DEC64_MAX", 10); break;
+        case ORIONPP_TYPE_C_DEC128: memcpy(buf, "DEC128", 7); break;
+        case ORIONPP_TYPE_C_DEC128_MIN: memcpy(buf, "DEC128_MIN", 11); break;
+        case ORIONPP_TYPE_C_DEC128_MAX: memcpy(buf, "DEC128_MAX", 11); break;
+        case ORIONPP_TYPE_C_INT8: memcpy(buf, "INT8", 5); break;
+        case ORIONPP_TYPE_C_UINT8: memcpy(buf, "UINT8", 6); break;
+        case ORIONPP_TYPE_C_INT16: memcpy(buf, "INT16", 6); break;
+        case ORIONPP_TYPE_C_UINT16: memcpy(buf, "UINT16", 7); break;
+        case ORIONPP_TYPE_C_INT32: memcpy(buf, "INT32", 6); break;
+        case ORIONPP_TYPE_C_UINT32: memcpy(buf, "UINT32", 7); break;
+        case ORIONPP_TYPE_C_INT64: memcpy(buf, "INT64", 6); break;
+        case ORIONPP_TYPE_C_UINT64: memcpy(buf, "UINT64", 7); break;
+        case ORIONPP_TYPE_C_PTR: memcpy(buf, "PTR", 4); break;
+        case ORIONPP_TYPE_C_CONST: memcpy(buf, "CONST", 6); break; 
+        case ORIONPP_TYPE_C_VOLATILE: memcpy(buf, "VOLATILE", 9); break; 
+        case ORIONPP_TYPE_C_RESTRICT: memcpy(buf, "RESTRICT", 9); break; 
+        case ORIONPP_TYPE_C_ATOMIC: memcpy(buf, "ATOMIC", 7); break; 
+        case ORIONPP_TYPE_C_COMPLEX: memcpy(buf, "COMPLEX", 8); break; 
+        case ORIONPP_TYPE_C_IMAGINARY: memcpy(buf, "IMAGINARY", 10); break; 
+        case ORIONPP_TYPE_C_REGISTER: memcpy(buf, "REGISTER", 9); break;
+        case ORIONPP_TYPE_C_STRUCT: memcpy(buf, "STRUCT", 7); break;
+        case ORIONPP_TYPE_C_UNION: memcpy(buf, "UNION", 6); break;
+        case ORIONPP_TYPE_C_STRUCTREF: memcpy(buf, "STRUCTREF", 10); break;
+        case ORIONPP_TYPE_C_UNIONREF: memcpy(buf, "UNIONREF", 9); break;
+        case ORIONPP_TYPE_C_TYPEREF: memcpy(buf, "TYPEREF", 8); break;
+        case ORIONPP_TYPE_C_ARRAY: memcpy(buf, "ARRAY", 6); break;
+        case ORIONPP_TYPE_C_VLARRAY: memcpy(buf, "VLARRAY", 8); break;
+        case ORIONPP_TYPE_C_VOID: memcpy(buf, "VOID", 5); break;
+        case ORIONPP_TYPE_C_VARADIC: memcpy(buf, "VARADIC", 8); break;
+        case ORIONPP_TYPE_C_FUNCTION: memcpy(buf, "FUNCTION", 9); break;
+        default: memcpy(buf, "INVL", 5);
+      };
+      break;
+    case ORIONPP_TYPE_END: memcpy(buf, "END", 4); break;
+    default: memcpy(buf, "UNKN", 5);
   }
 }
 
-void orionpp_writef(file_handle_t file, const orinopp_instruction_t *src) {
-  if (!src) return;
-  
-  // Write root opcode
-  write_to_file(file, &src->root, sizeof(src->root));
-  
-  // Write child opcode
-  write_to_file(file, &src->child, sizeof(src->child));
-  
-  // Write value count
-  write_to_file(file, &src->value_count, sizeof(src->value_count));
-  
-  // Write each value
-  for (size_t i = 0; i < src->value_count; i++) {
-    const orinopp_value_t *value = &src->values[i];
-    
-    // Write type information
-    write_to_file(file, &value->root, sizeof(value->root));
-    write_to_file(file, &value->child, sizeof(value->child));
-    
-    // Write byte size
-    write_to_file(file, &value->bytesize, sizeof(value->bytesize));
-    
-    // Write bytes
-    if (value->bytesize > 0 && value->bytes) {
-      write_to_file(file, value->bytes, value->bytesize);
-    }
+void orionpp_parse_value_simple(const char *buf, orionpp_value_t *val, size_t bytesize) {
+  if (orionpp_peak_end() == 1) {
+    val->val = arena_alloc(arena, bytesize);
+    orionpp_parse(buf, val->val, bytesize);
+    val->valsize = bytesize;
+  } else {
+    val->val = NULL;
+    val->valsize = 0;
+  }
+}
+void orionpp_parse_value_complex(const char *buf, orionpp_ftype_t *type); // followed by constant data (like _BitInt<N>)
+void orionpp_parse_value_qualifer(const char *buf, orionpp_ftype_t *qualifier, orionpp_ftype_t *type);
+void orionpp_parse_value_complex_qualifer(const char *buf, orionpp_ftype_t *qualifier, orionpp_ftype_t *type); // like Arrary<T>[N]
+void orionpp_parse_value_list(const char *buf, orionpp_ftype_t *qualifier, orionpp_ftype_t **type);
+void orionpp_parse_value_func(const char *buf, orionpp_ftype_t *qualifier, orionpp_ftype_t **rets, orionpp_ftype_t **params);
+
+// parse loaded orionpp into memory
+void orionpp_parse_value(orion_arena_t *arena, orionpp_header_t *header, const char *buf, orionpp_value_t *val) {
+  orionpp_parse_type(buf, &val->type);
+
+  switch (val->type.type) {
+    case ORIONPP_TYPE_VARID:
+    case ORIONPP_TYPE_LABELID:
+    case ORIONPP_TYPE_SYMBOL:
+    case ORIONPP_TYPE_STRING:
+      orionpp_parse_value_simple(buf, val, 4);
+      break;
+    case ORIONPP_TYPE_WORD:
+      orionpp_parse_value_simple(buf, val, header->wordbytesize);
+    case ORIONPP_TYPE_C:
+      switch (val->type.module_type) {
+        case ORIONPP_TYPE_C_BOOL:
+          orionpp_parse_value_simple(buf, val, 1);
+          break;
+        case ORIONPP_TYPE_C_BOOL_FALSE:
+          val->val = arena_alloc(arena, 1);
+          *(bool*)val->val = false;
+          val->valsize = 1;
+          break;
+        case ORIONPP_TYPE_C_BOOL_TRUE:
+          val->val = arena_alloc(arena, 1);
+          *(bool*)val->val = true;
+          val->valsize = 1;
+          break;
+        case ORIONPP_TYPE_C_CHAR:
+          orionpp_parse_value_simple(buf, val, 1);
+          break;
+        case ORIONPP_TYPE_C_CHAR_MIN:
+          val->val = arena_alloc(arena, 1);
+          *(char*)val->val = CHAR_MIN;
+          val->valsize = 1;
+          break;
+        case ORIONPP_TYPE_C_CHAR_MAX:
+          val->val = arena_alloc(arena, 1);
+          *(char*)val->val = CHAR_MAX;
+          val->valsize = 1;
+          break;
+        case ORIONPP_TYPE_C_SCHAR:
+          orionpp_parse_value_simple(buf, val, 1);
+          break;
+        case ORIONPP_TYPE_C_SCHAR_MIN:
+          val->val = arena_alloc(arena, 1);
+          *(signed char*)val->val = SCHAR_MIN;
+          val->valsize = 1;
+          break;
+        case ORIONPP_TYPE_C_SCHAR_MAX:
+          val->val = arena_alloc(arena, 1);
+          *(signed char*)val->val = SCHAR_MAX;
+          val->valsize = 1;
+          break;
+        case ORIONPP_TYPE_C_UCHAR:
+          orionpp_parse_value_simple(buf, val, 1);
+          break;
+        case ORIONPP_TYPE_C_UCHAR_MIN:
+          val->val = arena_alloc(arena, 1);
+          *(unsigned char*)val->val = 0;
+          val->valsize = 1;
+          break;
+        case ORIONPP_TYPE_C_UCHAR_MAX:
+          val->val = arena_alloc(arena, 1);
+          *(unsigned char*)val->val = UCHAR_MAX;
+          val->valsize = 1;
+          break;
+        case ORIONPP_TYPE_C_SHORT:
+          orionpp_parse_value_simple(buf, val, 2);
+          break;
+        case ORIONPP_TYPE_C_SHORT_MIN:
+          val->val = arena_alloc(arena, 2);
+          *(short*)val->val = SHRT_MIN;
+          val->valsize = 2;
+          break;
+        case ORIONPP_TYPE_C_SHORT_MAX:
+          val->val = arena_alloc(arena, 2);
+          *(short*)val->val = SHRT_MAX;
+          val->valsize = 2;
+          break;
+        case ORIONPP_TYPE_C_USHORT:
+          orionpp_parse_value_simple(buf, val, 2);
+          break;
+        case ORIONPP_TYPE_C_USHORT_MIN:
+          val->val = arena_alloc(arena, 2);
+          *(unsigned short*)val->val = 0;
+          val->valsize = 2;
+          break;
+        case ORIONPP_TYPE_C_USHORT_MAX:
+          val->val = arena_alloc(arena, 2);
+          *(unsigned short*)val->val = USHRT_MAX;
+          val->valsize = 2;
+          break;
+        case ORIONPP_TYPE_C_INT:
+          orionpp_parse_value_simple(buf, val, max(header->wordbytesize / 2, 2)); // int has to be at least 16 bit according to c standard but on 64 bit its expected to be 32 bit.
+          break;
+        case ORIONPP_TYPE_C_INT_MIN:
+          val->val = arena_alloc(arena, max(header->wordbytesize / 2, 2));
+          *(int*)val->val = INT_MIN;
+          val->valsize = max(header->wordbytesize / 2, 2);
+          break;
+        case ORIONPP_TYPE_C_INT_MAX:
+          val->val = arena_alloc(arena, max(header->wordbytesize / 2, 2));
+          *(int*)val->val = INT_MAX;
+          val->valsize = max(header->wordbytesize / 2, 2);
+          break;
+        case ORIONPP_TYPE_C_UINT:
+          orionpp_parse_value_simple(buf, val, max(header->wordbytesize / 2, 2));
+          break;
+        case ORIONPP_TYPE_C_UINT_MIN:
+          val->val = arena_alloc(arena, max(header->wordbytesize / 2, 2));
+          *(unsigned int*)val->val = 0;
+          val->valsize = max(header->wordbytesize / 2, 2);
+          break;
+        case ORIONPP_TYPE_C_UINT_MAX:
+          val->val = arena_alloc(arena, max(header->wordbytesize / 2, 2));
+          *(unsigned int*)val->val = UINT_MAX;
+          val->valsize = max(header->wordbytesize / 2, 2);
+          break;
+        case ORIONPP_TYPE_C_LONG:
+          val->val = arena_alloc(arena, max(header->wordbytesize, 4));
+          orionpp_parse(buf, val->val, max(header->wordbytesize, 4));
+          val->valsize = max(header->wordbytesize, 4);
+          break;
+        case ORIONPP_TYPE_C_LONG_MIN:
+          val->val = arena_alloc(arena, max(header->wordbytesize, 4));
+          *(long*)val->val = LONG_MIN;
+          val->valsize = max(header->wordbytesize, 4);
+          break;
+        case ORIONPP_TYPE_C_LONG_MAX:
+          val->val = arena_alloc(arena, max(header->wordbytesize, 4));
+          *(long*)val->val = LONG_MAX;
+          val->valsize = max(header->wordbytesize, 4);
+          break;
+        case ORIONPP_TYPE_C_ULONG:
+          val->val = arena_alloc(arena, max(header->wordbytesize, 4));
+          orionpp_parse(buf, val->val, max(header->wordbytesize, 4));
+          val->valsize = max(header->wordbytesize, 4);
+          break;
+        case ORIONPP_TYPE_C_ULONG_MIN:
+          val->val = arena_alloc(arena, max(header->wordbytesize, 4));
+          *(unsigned long*)val->val = 0;
+          val->valsize = max(header->wordbytesize, 4);
+          break;
+        case ORIONPP_TYPE_C_ULONG_MAX:
+          val->val = arena_alloc(arena, max(header->wordbytesize, 4));
+          *(unsigned long*)val->val = ULONG_MAX;
+          val->valsize = max(header->wordbytesize, 4);
+          break;
+        case ORIONPP_TYPE_C_LLONG:
+          val->val = arena_alloc(arena, max(header->wordbytesize, 8));
+          orionpp_parse(buf, val->val, max(header->wordbytesize, 8));
+          val->valsize = max(header->wordbytesize, 8);
+          break;
+        case ORIONPP_TYPE_C_LLONG_MIN:
+          val->val = arena_alloc(arena, max(header->wordbytesize, 8));
+          *(long long*)val->val = LLONG_MIN;
+          val->valsize = max(header->wordbytesize, 8);
+          break;
+        case ORIONPP_TYPE_C_LLONG_MAX:
+          val->val = arena_alloc(arena, max(header->wordbytesize, 8));
+          *(long long*)val->val = LLONG_MAX;
+          val->valsize = max(header->wordbytesize, 8);
+          break;
+        case ORIONPP_TYPE_C_ULLONG:
+          val->val = arena_alloc(arena, max(header->wordbytesize, 8));
+          orionpp_parse(buf, val->val, max(header->wordbytesize, 8));
+          val->valsize = max(header->wordbytesize, 8);
+          break;
+        case ORIONPP_TYPE_C_ULLONG_MIN:
+          val->val = arena_alloc(arena, max(header->wordbytesize, 8));
+          *(unsigned long long*)val->val = 0;
+          val->valsize = max(header->wordbytesize, 8);
+          break;
+        case ORIONPP_TYPE_C_ULLONG_MAX:
+          val->val = arena_alloc(arena, max(header->wordbytesize, 8));
+          *(unsigned long long*)val->val = ULLONG_MAX;
+          val->valsize = max(header->wordbytesize, 8);
+          break;
+        case ORIONPP_TYPE_C_FLOAT:
+          val->val = arena_alloc(arena, 4); // float has to be 4 bytes according to orion deal with it. (C doesn't specify)
+          orionpp_parse(buf, val->val, 4);
+          val->valsize = 4;
+          break;
+        case ORIONPP_TYPE_C_FLOAT_MIN:
+          val->val = arena_alloc(arena, 4);
+          *(float*)val->val = FLT_MIN;
+          val->valsize = 4;
+          break;
+        case ORIONPP_TYPE_C_FLOAT_MAX:
+          val->val = arena_alloc(arena, 4);
+          *(float*)val->val = FLT_MAX;
+          val->valsize = 4;
+          break;
+        case ORIONPP_TYPE_C_DOUBLE:
+          val->val = arena_alloc(arena, 8); // double has to be 8 bytes according to orion deal with it. (C doesn't specify)
+          orionpp_parse(buf, val->val, 8);
+          val->valsize = 8;
+          break;
+        case ORIONPP_TYPE_C_DOUBLE_MIN:
+          val->val = arena_alloc(arena, 8);
+          *(double*)val->val = DBL_MIN;
+          val->valsize = 8;
+          break;
+        case ORIONPP_TYPE_C_DOUBLE_MAX:
+          val->val = arena_alloc(arena, 8);
+          *(double*)val->val = DBL_MAX;
+          val->valsize = 8;
+          break;
+        case ORIONPP_TYPE_C_LDOUBLE:
+          val->val = arena_alloc(arena, 16); // long double has to be 16 bytes according to orion deal with it. (C doesn't specify) (could be 10 bytes but just ignore the other bytes then)
+          orionpp_parse(buf, val->val, 16);
+          val->valsize = 16;
+          break;
+        case ORIONPP_TYPE_C_LDOUBLE_MIN:
+          val->val = arena_alloc(arena, 16);
+          *(long double*)val->val = LDBL_MIN;
+          val->valsize = 16;
+          break;
+        case ORIONPP_TYPE_C_LDOUBLE_MAX:
+          val->val = arena_alloc(arena, 16);
+          *(long double*)val->val = LDBL_MAX;
+          val->valsize = 16;
+          break;
+        case ORIONPP_TYPE_C_WCHAR_T:
+          val->val = arena_alloc(arena, sizeof(wchar_t));
+          orionpp_parse(buf, val->val, sizeof(wchar_t));
+          val->valsize = sizeof(wchar_t);
+          break;
+        case ORIONPP_TYPE_C_WCHAR_T_MIN:
+          val->val = arena_alloc(arena, sizeof(wchar_t));
+          *(wchar_t*)val->val = WCHAR_MIN;
+          val->valsize = sizeof(wchar_t);
+          break;
+        case ORIONPP_TYPE_C_WCHAR_T_MAX:
+          val->val = arena_alloc(arena, sizeof(wchar_t));
+          *(wchar_t*)val->val = WCHAR_MAX;
+          val->valsize = sizeof(wchar_t);
+          break;
+        case ORIONPP_TYPE_C_DEC32:
+          val->val = arena_alloc(arena, 4);
+          orionpp_parse(buf, val->val, 4);
+          val->valsize = 4;
+          break;
+        case ORIONPP_TYPE_C_DEC64:
+          val->val = arena_alloc(arena, 8);
+          orionpp_parse(buf, val->val, 8);
+          val->valsize = 8;
+          break;
+        case ORIONPP_TYPE_C_DEC128:
+          val->val = arena_alloc(arena, 16);
+          orionpp_parse(buf, val->val, 16);
+          val->valsize = 16;
+          break;
+        case ORIONPP_TYPE_C_INT8:
+        case ORIONPP_TYPE_C_UINT8:
+          val->val = arena_alloc(arena, 1);
+          orionpp_parse(buf, val->val, 1);
+          val->valsize = 1;
+          break;
+        case ORIONPP_TYPE_C_INT16:
+        case ORIONPP_TYPE_C_UINT16:
+          val->val = arena_alloc(arena, 2);
+          orionpp_parse(buf, val->val, 2);
+          val->valsize = 2;
+          break;
+        case ORIONPP_TYPE_C_INT32:
+        case ORIONPP_TYPE_C_UINT32:
+          val->val = arena_alloc(arena, 4);
+          orionpp_parse(buf, val->val, 4);
+          val->valsize = 4;
+          break;
+        case ORIONPP_TYPE_C_INT64:
+        case ORIONPP_TYPE_C_UINT64:
+          val->val = arena_alloc(arena, 8);
+          orionpp_parse(buf, val->val, 8);
+          val->valsize = 8;
+          break;
+        case ORIONPP_TYPE_C_PTR:
+          val->val = arena_alloc(arena, header->addrbytesize);
+          orionpp_parse(buf, val->val, header->addrbytesize);
+          val->valsize = header->addrbytesize;
+          break;
+        case ORIONPP_TYPE_C_CONST:
+        case ORIONPP_TYPE_C_VOLATILE:
+        case ORIONPP_TYPE_C_RESTRICT:
+        case ORIONPP_TYPE_C_ATOMIC:
+        case ORIONPP_TYPE_C_REGISTER:
+          val->val = arena_alloc(arena, sizeof(orionpp_value_t));
+          orionpp_parse_value(arena, header, buf, (orionpp_value_t*)val->val); // qualifiers are followed by another value
+          val->valsize = sizeof(orionpp_ftype_t);
+          break;
+          
+        // Complex types would need special handling
+        case ORIONPP_TYPE_C_COMPLEX:
+        case ORIONPP_TYPE_C_IMAGINARY:
+        case ORIONPP_TYPE_C_STRUCT:
+        case ORIONPP_TYPE_C_UNION:
+        case ORIONPP_TYPE_C_STRUCTREF:
+        case ORIONPP_TYPE_C_UNIONREF:
+        case ORIONPP_TYPE_C_TYPEREF:
+        case ORIONPP_TYPE_C_ARRAY:
+        case ORIONPP_TYPE_C_VLARRAY:
+        case ORIONPP_TYPE_C_FUNCTION:
+          // These would require more complex parsing logic
+          val->val = NULL;
+          val->valsize = 0;
+          break;
+          
+        case ORIONPP_TYPE_C_VOID:
+          val->val = NULL;
+          val->valsize = 0;
+          break;
+          
+        case ORIONPP_TYPE_C_VARADIC:
+          val->val = NULL;
+          val->valsize = 0;
+          break;
+          
+        default:
+          val->val = NULL;
+          val->valsize = 0;
+          break;
+      }
+      break;
+    default:
+      val->val = NULL;
+      val->valsize = 0;
   }
 }
 
-void orionpp_readbuf(char *buf, size_t bufsize, orinopp_instruction_t *dest) {
-  if (!buf || !dest || bufsize == 0) return;
-  
-  size_t offset = 0;
-  
-  // Initialize destination
-  memset(dest, 0, sizeof(orinopp_instruction_t));
-  
-  // Read root opcode
-  if (offset + sizeof(dest->root) > bufsize) return;
-  memcpy(&dest->root, buf + offset, sizeof(dest->root));
-  offset += sizeof(dest->root);
-  
-  // Read child opcode
-  if (offset + sizeof(dest->child) > bufsize) return;
-  memcpy(&dest->child, buf + offset, sizeof(dest->child));
-  offset += sizeof(dest->child);
-  
-  // Read value count
-  if (offset + sizeof(dest->value_count) > bufsize) return;
-  memcpy(&dest->value_count, buf + offset, sizeof(dest->value_count));
-  offset += sizeof(dest->value_count);
-  
-  if (dest->value_count == 0) {
-    dest->values = NULL;
-    return;
-  }
-  
-  // Allocate values array
-  dest->values = malloc(dest->value_count * sizeof(orinopp_value_t));
-  if (!dest->values) {
-    dest->value_count = 0;
-    return;
-  }
-  
-  // Read each value
-  for (size_t i = 0; i < dest->value_count; i++) {
-    orinopp_value_t *value = &dest->values[i];
-    
-    // Read type information
-    if (offset + sizeof(value->root) > bufsize) break;
-    memcpy(&value->root, buf + offset, sizeof(value->root));
-    offset += sizeof(value->root);
-    
-    if (offset + sizeof(value->child) > bufsize) break;
-    memcpy(&value->child, buf + offset, sizeof(value->child));
-    offset += sizeof(value->child);
-    
-    // Read byte size
-    if (offset + sizeof(value->bytesize) > bufsize) break;
-    memcpy(&value->bytesize, buf + offset, sizeof(value->bytesize));
-    offset += sizeof(value->bytesize);
-    
-    // Allocate and read bytes
-    if (value->bytesize > 0) {
-      if (offset + value->bytesize > bufsize) {
-        value->bytesize = 0;
-        value->bytes = NULL;
-        break;
-      }
-      
-      char *bytes = malloc(value->bytesize);
-      if (!bytes) {
-        value->bytesize = 0;
-        value->bytes = NULL;
-        continue;
-      }
-      
-      memcpy(bytes, buf + offset, value->bytesize);
-      offset += value->bytesize;
-      
-      value->bytes = bytes;
-    } else {
-      value->bytes = NULL;
-    }
-  }
-}
 
-void orionpp_writebuf(const char *buf, size_t bufsize, const orinopp_instruction_t *src) {
-  if (!buf || !src || bufsize == 0) return;
-  
-  size_t offset = 0;
-  char *write_buf = (char*)buf; // Cast away const for writing
-  
-  // Write root opcode
-  if (offset + sizeof(src->root) > bufsize) return;
-  memcpy(write_buf + offset, &src->root, sizeof(src->root));
-  offset += sizeof(src->root);
-  
-  // Write child opcode
-  if (offset + sizeof(src->child) > bufsize) return;
-  memcpy(write_buf + offset, &src->child, sizeof(src->child));
-  offset += sizeof(src->child);
-  
-  // Write value count
-  if (offset + sizeof(src->value_count) > bufsize) return;
-  memcpy(write_buf + offset, &src->value_count, sizeof(src->value_count));
-  offset += sizeof(src->value_count);
-  
-  // Write each value
-  for (size_t i = 0; i < src->value_count; i++) {
-    const orinopp_value_t *value = &src->values[i];
-    
-    // Write type information
-    if (offset + sizeof(value->root) > bufsize) return;
-    memcpy(write_buf + offset, &value->root, sizeof(value->root));
-    offset += sizeof(value->root);
-    
-    if (offset + sizeof(value->child) > bufsize) return;
-    memcpy(write_buf + offset, &value->child, sizeof(value->child));
-    offset += sizeof(value->child);
-    
-    // Write byte size
-    if (offset + sizeof(value->bytesize) > bufsize) return;
-    memcpy(write_buf + offset, &value->bytesize, sizeof(value->bytesize));
-    offset += sizeof(value->bytesize);
-    
-    // Write bytes
-    if (value->bytesize > 0 && value->bytes) {
-      if (offset + value->bytesize > bufsize) return;
-      memcpy(write_buf + offset, value->bytes, value->bytesize);
-      offset += value->bytesize;
-    }
-  }
-}
+
