@@ -1,5 +1,15 @@
-#ifndef __ORIONPP_ERROR
-#define __ORIONPP_ERROR
+#ifndef ORIONPP_ERROR_H
+#define ORIONPP_ERROR_H
+
+/**
+ * @file error.h
+ * @brief Error code definitions and utilities
+ * 
+ * Defines all error codes used throughout the library and provides
+ * utilities for error message retrieval.
+ */
+
+typedef int orionpp_error_t;
 
 enum orionpp_error {
   ORIONPP_ERROR_GOOD = 0,
@@ -17,8 +27,11 @@ enum orionpp_error {
   ORIONPP_ERROR_UNKNOWN
 };
 
-typedef int orionpp_error_t;
-
+/**
+ * @brief Get human-readable error message
+ * @param err Error code
+ * @return Null-terminated error message string
+ */
 const char *orionpp_strerr(orionpp_error_t err);
 
-#endif // __ORIONPP_ERROR
+#endif // ORIONPP_ERROR_H

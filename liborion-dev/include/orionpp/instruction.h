@@ -1,113 +1,89 @@
-#ifndef __ORIONPP_INSTRUCTION
-#define __ORIONPP_INSTRUCTION
+#ifndef ORIONPP_INSTRUCTION_H
+#define ORIONPP_INSTRUCTION_H
 
 #include <stdint.h>
-#include <orionpp/arena.h>
+#include <stddef.h>
+#include <orionpp/error.h>
 
-// -------------------------------- ENUMS -------------------------------- //
+/**
+ * @file instruction.h
+ * @brief Orion++ instruction set definitions and operations
+ * 
+ * Defines the instruction format, opcodes, type system, and provides
+ * functions for instruction manipulation, formatting, and I/O operations.
+ */
+
+// Forward declaration for arena
+struct orionpp_arena;
+
+// Platform-specific file handle
+#ifdef WIN32
+  #include <windows.h>
+  typedef HANDLE orionpp_file_t;
+#else
+  typedef int orionpp_file_t;
+#endif
+
+// Opcode definitions
+typedef uint8_t orionpp_opcode_root_t;
+typedef uint8_t orionpp_opcode_module_t;
 
 enum orionpp_opcode_root {
-  ORIONPP_OPCODE_ISA,
+  ORIONPP_OPCODE_ISA
 };
 
 enum orionpp_opcode_isa {
-  ORIONPP_OP_ISA_NOP, // no operation
-  ORIONPP_OP_ISA_LET, // var i {= {value}}
-  ORIONPP_OP_ISA_CONST, // const i {= {value}}
-  ORIONPP_OP_ISA_MOV, // i = i
-  ORIONPP_OP_ISA_LEA, // i = &i
-  ORIONPP_OP_ISA_JMP, // uncondtional jump to target
-  ORIONPP_OP_ISA_BREQ, // if (x == x)
-  ORIONPP_OP_ISA_BRNEQ, // if (x != x)
-  ORIONPP_OP_ISA_BRGT, // if (x > y)
-  ORIONPP_OP_ISA_BRGE, // if (x >= y) 
-  ORIONPP_OP_ISA_BRLT, // if (x < y)
-  ORIONPP_OP_ISA_BRLE, // if (x <= y)
-  ORIONPP_OP_ISA_BRZ, // if (!x)
-  ORIONPP_OP_ISA_BRNZ, // if (x)
-  ORIONPP_OP_ISA_CALL, // uncondtional jump to target and save a return address
-  ORIONPP_OP_ISA_RET, // return to the address saved by call instruction
-  ORIONPP_OP_ISA_LABEL, // can only be used in control flow of a child or the same scope
-  ORIONPP_OP_ISA_SCOPE, // enter a scope
-  ORIONPP_OP_ISA_SCOPL, // leave a scope 
-  ORIONPP_OP_ISA_ADD, // i + i
-  ORIONPP_OP_ISA_SUB, // i - i
-  ORIONPP_OP_ISA_MUL, // i * i
-  ORIONPP_OP_ISA_DIV, // i / i
-  ORIONPP_OP_ISA_MOD, // i % i
-  ORIONPP_OP_ISA_INC, // ++i
-  ORIONPP_OP_ISA_DEC, // --i
-  ORIONPP_OP_ISA_INCp, // i++
-  ORIONPP_OP_ISA_DECp, // i--
-  ORIONPP_OP_ISA_AND, // i & i
-  ORIONPP_OP_ISA_OR,  // i | i
-  ORIONPP_OP_ISA_XOR, // i ^ i
-  ORIONPP_OP_ISA_NOT, // ~i
-  ORIONPP_OP_ISA_SHL, // i << i
-  ORIONPP_OP_ISA_SHR, // i >> i
+  ORIONPP_OP_ISA_NOP, ORIONPP_OP_ISA_LET, ORIONPP_OP_ISA_CONST, ORIONPP_OP_ISA_MOV,
+  ORIONPP_OP_ISA_LEA, ORIONPP_OP_ISA_JMP, ORIONPP_OP_ISA_BREQ, ORIONPP_OP_ISA_BRNEQ,
+  ORIONPP_OP_ISA_BRGT, ORIONPP_OP_ISA_BRGE, ORIONPP_OP_ISA_BRLT, ORIONPP_OP_ISA_BRLE,
+  ORIONPP_OP_ISA_BRZ, ORIONPP_OP_ISA_BRNZ, ORIONPP_OP_ISA_CALL, ORIONPP_OP_ISA_RET,
+  ORIONPP_OP_ISA_LABEL, ORIONPP_OP_ISA_SCOPE, ORIONPP_OP_ISA_SCOPL, ORIONPP_OP_ISA_ADD,
+  ORIONPP_OP_ISA_SUB, ORIONPP_OP_ISA_MUL, ORIONPP_OP_ISA_DIV, ORIONPP_OP_ISA_MOD,
+  ORIONPP_OP_ISA_INC, ORIONPP_OP_ISA_DEC, ORIONPP_OP_ISA_INCp, ORIONPP_OP_ISA_DECp,
+  ORIONPP_OP_ISA_AND, ORIONPP_OP_ISA_OR, ORIONPP_OP_ISA_XOR, ORIONPP_OP_ISA_NOT,
+  ORIONPP_OP_ISA_SHL, ORIONPP_OP_ISA_SHR
 };
+
+// Type system definitions
+typedef uint8_t orionpp_type_root_t;
+typedef uint8_t orionpp_type_module_t;
 
 enum orionpp_opcode_type {
   ORIONPP_TYPE_QUAL,
-  ORIONPP_TYPE_INT,
+  ORIONPP_TYPE_INT
 };
 
 enum orionpp_opcode_qual {
   ORIONPP_TYPE_CONST,
   ORIONPP_TYPE_VOLATILE,
-  ORIONPP_TYPE_PTR,
+  ORIONPP_TYPE_PTR
 };
 
 enum orionpp_opcode_int {
-  // basics
-  ORIONPP_TYPE_INT8,
-  ORIONPP_TYPE_INT16,
-  ORIONPP_TYPE_INT32,
-  ORIONPP_TYPE_INT64,
-  ORIONPP_TYPE_UNT8,
-  ORIONPP_TYPE_UNT16,
-  ORIONPP_TYPE_UNT32,
-  ORIONPP_TYPE_UNT64,
+  ORIONPP_TYPE_INT8, ORIONPP_TYPE_INT16, ORIONPP_TYPE_INT32, ORIONPP_TYPE_INT64,
+  ORIONPP_TYPE_UNT8, ORIONPP_TYPE_UNT16, ORIONPP_TYPE_UNT32, ORIONPP_TYPE_UNT64
 };
 
-// -------------------------------- TYPES -------------------------------- //
-
-#ifdef WIN32
-  #include <windows.h>
-  typedef HANDLE file_handle_t;
-#else
-  #include <fcntl.h>
-  #include <unistd.h>
-  typedef int file_handle_t;
-#endif
-
-typedef uint8_t orionpp_opcode_root_t;
-typedef uint8_t orionpp_opcode_module_t;
-
-typedef uint8_t orionpp_type_root_t;
-typedef uint8_t orionpp_type_module_t;
-
-// -------------------------------- STRUCTS -------------------------------- //
-
+// Core data structures
 typedef struct orionpp_type_raw {
   orionpp_type_root_t root;
-  orionpp_type_module_t module_; // module is a C++ keyword
+  orionpp_type_module_t module_;
 } orionpp_type_raw_t;
 
 typedef struct orionpp_type {
   orionpp_type_raw_t base;
-  size_t count; // count of types
-  struct orionpp_type *types; // optional array of types 
+  size_t count;
+  struct orionpp_type *types;
 } orionpp_type_t;
 
 typedef struct orionpp_opcode {
   orionpp_opcode_root_t root;
-  orionpp_opcode_module_t module_; // module is a C++ keyword
+  orionpp_opcode_module_t module_;
 } orionpp_opcode_t;
 
 typedef struct orionpp_value {
   orionpp_type_t type;
-  void *value; 
+  void *value;
   size_t value_byte_size;
 } orionpp_value_t;
 
@@ -117,28 +93,32 @@ typedef struct orionpp_instruction {
   orionpp_value_t *values;
 } orionpp_instruction_t;
 
-// -------------------------------- FUNCS -------------------------------- //
+// Core instruction operations
+orionpp_error_t orionpp_instruction_init(orionpp_instruction_t *instr);
+orionpp_error_t orionpp_instruction_destroy(orionpp_instruction_t *instr);
+orionpp_error_t orionpp_instruction_copy(orionpp_instruction_t *dest, const orionpp_instruction_t *src);
 
-// Debug Helpers (implemented in instruction_format.c)
-// format ROOT.MODULE
-size_t orionpp_string_opcode(char *buf, size_t bufsize, orionpp_opcode_t*); // 0 on error or the size of the string >0
-// format TYPE, TYPE<TYPE> // NOT IMPLEMENTED YET(TYPE[x], TYPE{ TYPE, TYPE })
-size_t orionpp_string_type(char *buf, size_t bufsize, orionpp_type_t*);
-// VALUE: TYPE
-size_t orionpp_string_value(char *buf, size_t bufsize, orionpp_value_t*);
-// ROOT.MODULE VALUE: TYPE, ...
-size_t orionpp_string_instr(char *buf, size_t bufsize, orionpp_instruction_t*);
-void orionpp_print_opcode(orionpp_opcode_t*);
-void orionpp_print_type(orionpp_type_t*);
-void orionpp_print_value(orionpp_value_t*);
-void orionpp_print_instr(orionpp_instruction_t*);
+// Formatting and debug functions
+size_t orionpp_string_opcode(char *buf, size_t bufsize, const orionpp_opcode_t *opcode);
+size_t orionpp_string_type(char *buf, size_t bufsize, const orionpp_type_t *type);
+size_t orionpp_string_value(char *buf, size_t bufsize, const orionpp_value_t *value);
+size_t orionpp_string_instr(char *buf, size_t bufsize, const orionpp_instruction_t *instr);
 
-// I/O Helpers (implemented in instruction.c)
-orionpp_error_t orionpp_readf(file_handle_t file, orionpp_instruction_t *dest);
-orionpp_error_t orionpp_writef(file_handle_t file, const orionpp_instruction_t *src);
-orionpp_error_t orionpp_readarena(orionpp_arena_t *arena, orionpp_instruction_t *dest);
-orionpp_error_t orionpp_writearena(orionpp_arena_t *arena, const orionpp_instruction_t *src);
-orionpp_error_t orionpp_readbuf(const char *buf, size_t bufsize, orionpp_instruction_t *dest);
-orionpp_error_t orionpp_writebuf(char *buf, size_t bufsize, const orionpp_instruction_t *src);
+void orionpp_print_opcode(const orionpp_opcode_t *opcode);
+void orionpp_print_type(const orionpp_type_t *type);
+void orionpp_print_value(const orionpp_value_t *value);
+void orionpp_print_instr(const orionpp_instruction_t *instr);
 
-#endif // __ORIONPP_INSTRUCTION
+// Serialization functions
+orionpp_error_t orionpp_serialize_instr(char *buf, size_t bufsize, const orionpp_instruction_t *src);
+orionpp_error_t orionpp_deserialize_instr(const char *buf, size_t bufsize, orionpp_instruction_t *dest);
+
+// File I/O functions
+orionpp_error_t orionpp_read_file(orionpp_file_t file, orionpp_instruction_t *dest);
+orionpp_error_t orionpp_write_file(orionpp_file_t file, const orionpp_instruction_t *src);
+
+// Arena I/O functions
+orionpp_error_t orionpp_read_arena(struct orionpp_arena *arena, orionpp_instruction_t *dest);
+orionpp_error_t orionpp_write_arena(struct orionpp_arena *arena, const orionpp_instruction_t *src);
+
+#endif // ORIONPP_INSTRUCTION_H

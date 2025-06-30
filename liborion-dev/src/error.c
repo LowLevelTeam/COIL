@@ -1,5 +1,12 @@
 #include "orionpp/error.h"
 
+/**
+ * @file error.c
+ * @brief Error handling implementation
+ * 
+ * Provides human-readable error messages for all library error codes.
+ */
+
 static const char *error_messages[] = {
   "Success",
   "Invalid argument",

@@ -1,33 +1,26 @@
-#include "test_common.h"
+#include "test_framework.h"
+#include "orionpp/instruction.h"
+#include <stdlib.h>
+#include <string.h>
 
-// Test framework globals
+/**
+ * @file test_framework.c
+ * @brief Test framework implementation
+ * 
+ * Provides test statistics tracking and helper functions.
+ */
+
+// Test statistics globals
 int test_count = 0;
 int assert_total = 0;
 int assert_passed = 0;
 int assert_failed = 0;
 
-// Helper function to clean up instruction memory
 void cleanup_instruction(orionpp_instruction_t *instr) {
   if (!instr) return;
-  
-  if (instr->values) {
-    for (size_t i = 0; i < instr->value_count; i++) {
-      if (instr->values[i].value) {
-        free(instr->values[i].value);
-        instr->values[i].value = NULL;
-      }
-      if (instr->values[i].type.types) {
-        free(instr->values[i].type.types);
-        instr->values[i].type.types = NULL;
-      }
-    }
-    free(instr->values);
-    instr->values = NULL;
-  }
-  instr->value_count = 0;
+  orionpp_instruction_destroy(instr);
 }
 
-// Helper function to create a test value
 orionpp_error_t create_test_value(orionpp_value_t *value, orionpp_type_root_t type_root, 
                                   orionpp_type_module_t type_module, void *data, size_t data_size) {
   if (!value) return ORIONPP_ERROR_INVALID_ARG;
