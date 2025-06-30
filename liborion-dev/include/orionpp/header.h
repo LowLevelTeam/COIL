@@ -37,4 +37,10 @@ typedef struct orionpp_header {
   orionpp_byte_t patch;
 } orionpp_header_t;
 
+// -------------------------------- FUNCS -------------------------------- //
+
+orionpp_error_t orionpp_header_init(orionpp_header_t *header);
+orionpp_error_t orionpp_header_validate(const orionpp_header_t *header);
+int orionpp_header_has_feature(const orionpp_header_t *header, orionpp_feature_t feature);
+
 #endif // __ORIONPP_HEADER

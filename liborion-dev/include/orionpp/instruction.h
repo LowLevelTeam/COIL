@@ -85,9 +85,15 @@ typedef uint8_t orionpp_type_module_t;
 
 // -------------------------------- STRUCTS -------------------------------- //
 
-typedef struct orionpp_type {
+typedef struct orionpp_type_raw {
   orionpp_type_root_t root;
   orionpp_type_module_t module_; // module is a C++ keyword
+} orionpp_type_raw_t;
+
+typedef struct orionpp_type {
+  orionpp_type_raw_t base;
+  size_t count; // count of types
+  orionpp_type_raw_t *types; // optional array of types 
 } orionpp_type_t;
 
 typedef struct orionpp_opcode {
@@ -102,20 +108,21 @@ typedef struct orionpp_value {
 
 typedef struct orinopp_instruction {
   orionpp_opcode_t opcode;
+  size_t value_count;
   orionpp_value_t *values;
 } orinopp_instruction_t;
 
 // -------------------------------- FUNCS -------------------------------- //
 
 // Debug Helpers
-size_t orionpp_string_opcode(char *buf, size_t bufsize, orionpp_opcode_t); // 0 on error or the size of the string >0
-size_t orionpp_string_type(char *buf, size_t bufsize, orionpp_type_t);
-size_t orionpp_string_value(char *buf, size_t bufsize, orionpp_value_t);
-size_t orionpp_string_instr(char *buf, size_t bufsize, orinopp_instruction_t);
-void orionpp_print_opcode(orionpp_opcode_t);
-void orionpp_print_type(orionpp_type_t);
-void orionpp_print_value(orionpp_value_t);
-void orionpp_print_instr(orinopp_instruction_t);
+size_t orionpp_string_opcode(char *buf, size_t bufsize, orionpp_opcode_t*); // 0 on error or the size of the string >0
+size_t orionpp_string_type(char *buf, size_t bufsize, orionpp_type_t*);
+size_t orionpp_string_value(char *buf, size_t bufsize, orionpp_value_t*);
+size_t orionpp_string_instr(char *buf, size_t bufsize, orinopp_instruction_t*);
+void orionpp_print_opcode(orionpp_opcode_t*);
+void orionpp_print_type(orionpp_type_t*);
+void orionpp_print_value(orionpp_value_t*);
+void orionpp_print_instr(orinopp_instruction_t*);
 
 // Implementation Helpers
 orionpp_error_t orionpp_readf(file_handle_t file, orinopp_instruction_t *dest);
