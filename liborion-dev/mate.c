@@ -31,7 +31,7 @@ i32 main(int argc, const char *argv[]) {
       .optimization = args.optlevel
     });
     AddIncludePaths(orionobj_test, "./include");
-    AddFile(orionobj_test, "./tests/test.c");
+    AddFile(orionobj_test, "./tests/*");
     AddLibraryPaths(orionobj_test, "./build");
     LinkSystemLibraries(orionobj_test, "orion-dev");
     InstallExecutable(orionobj_test);
