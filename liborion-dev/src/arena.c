@@ -168,3 +168,44 @@ orionpp_error_t orionpp_arena_pop(orionpp_arena_t *arena, size_t size) {
   
   return ORIONPP_ERROR_GOOD;
 }
+
+orionpp_error_t orionpp_arena_reset(orionpp_arena_t *arena) {
+  if (!arena || !arena->initialized) {
+    return ORIONPP_ERROR_INVALID_ARG;
+  }
+  
+  // Reset all buckets to unused
+  arena_bucket_t *bucket = arena->head;
+  while (bucket) {
+    bucket->used = 0;
+    bucket = bucket->next;
+  }
+  
+  // Reset current to head
+  arena->current = arena->head;
+  
+  return ORIONPP_ERROR_GOOD;
+}
+
+size_t orionpp_arena_used(const orionpp_arena_t *arena) {
+  if (!arena || !arena->initialized) {
+    return 0;
+  }
+  
+  size_t total_used = 0;
+  const arena_bucket_t *bucket = arena->head;
+  while (bucket) {
+    total_used += bucket->used;
+    bucket = bucket->next;
+  }
+  
+  return total_used;
+}
+
+size_t orionpp_arena_available(const orionpp_arena_t *arena) {
+  if (!arena || !arena->initialized) {
+    return 0;
+  }
+  
+  return arena->max_size - arena->total_allocated;
+}

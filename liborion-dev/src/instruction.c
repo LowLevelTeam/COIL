@@ -4,6 +4,13 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdint.h>
+
+#ifdef WIN32
+  #include <io.h>
+#else
+  #include <unistd.h>
+#endif
 
 static const char *opcode_isa_strings[] = {
   "LET", "CONST", "MOV", "LEA", "JMP", "BREQ", "BRNEQ", "BRGT", "BRGE",
@@ -23,124 +30,177 @@ static const char *type_int_strings[] = {
 
 // Debug Helpers
 size_t orionpp_string_opcode(char *buf, size_t bufsize, orionpp_opcode_t *opcode) {
-  if (!buf || bufsize == 0) {
+  if (!buf || bufsize == 0 || !opcode) {
     return 0;
   }
-  const char *opstr = "UNKNOWN";
   
   int written = -1;
-  if (opcode->root == ORIONPP_OPCODE_ISA && (opcode->module_ < sizeof(opcode_isa_strings) / sizeof(opcode_isa_strings[0]))) {
-    opstr = opcode_isa_strings[opcode->module_];
+  if (opcode->root == ORIONPP_OPCODE_ISA && 
+      opcode->module_ < (sizeof(opcode_isa_strings) / sizeof(opcode_isa_strings[0]))) {
+    const char *opstr = opcode_isa_strings[opcode->module_];
     written = snprintf(buf, bufsize, "ISA.%s", opstr);
   } else {
-    written = snprintf(buf, bufsize, "%s", opstr);
+    written = snprintf(buf, bufsize, "UNKNOWN(%d.%d)", opcode->root, opcode->module_);
   }
   
-  return (written > 0 && (size_t)written < bufsize) ? written : 0;
+  return (written > 0 && (size_t)written < bufsize) ? (size_t)written : 0;
 }
 
 size_t orionpp_string_type(char *buf, size_t bufsize, orionpp_type_t *type) {
-  if (!buf || bufsize == 0) {
+  if (!buf || bufsize == 0 || !type) {
     return 0;
   }
   
-  const char *typestr = "UNKNOWN";
-  
-
-
   int written = -1;
-  if (type->base.root == ORIONPP_TYPE_QUAL && (type->base.module_ < sizeof(type_qual_strings) / sizeof(type_qual_strings[0]))) {
-    opstr = type_qual_strings[type->base.module_];
-
-    if (type->count == 0) {
-      int nextwritten_signed = snprintf(buf, bufsize, "%s<", opstr); // unknown second type
-      if (nextwritten_signed < 0) {
+  
+  if (type->base.root == ORIONPP_TYPE_QUAL && 
+      type->base.module_ < (sizeof(type_qual_strings) / sizeof(type_qual_strings[0]))) {
+    const char *typestr = type_qual_strings[type->base.module_];
+    
+    if (type->count > 0 && type->types) {
+      written = snprintf(buf, bufsize, "%s<", typestr);
+      if (written < 0 || (size_t)written >= bufsize) {
         return 0;
       }
-      size_t nextwritten = (size_t)nextwritten_signed;
-
-      orionpp_type_t *type = type->types;
-      size_t next_type_size = orionpp_string_type(buf + nextwritten, bufsize - nextwritten, type);
-      if (next_type_size == 0) {
+      
+      size_t inner_len = orionpp_string_type(buf + written, bufsize - written, type->types);
+      if (inner_len == 0) {
         return 0;
       }
-
-      snprintf(buf + nextwritten + next_type_size, bufsize - nextwritten - next_type_size, ">", opstr);
+      
+      int close_written = snprintf(buf + written + inner_len, 
+                                   bufsize - written - inner_len, ">");
+      if (close_written < 0) {
+        return 0;
+      }
+      
+      written += inner_len + close_written;
     } else {
-      written = snprintf(buf, bufsize, "%s<T>", opstr); // unknown second type
+      written = snprintf(buf, bufsize, "%s<T>", typestr);
     }
-  } else if (type->base.root == ORIONPP_TYPE_QUAL && (type->base.module_ < sizeof(type_int_strings) / sizeof(type_int_strings[0]))) {
-    opstr = type_int_strings[type->base.module_];
-    written = snprintf(buf, bufsize, "%s", opstr);
+  } else if (type->base.root == ORIONPP_TYPE_INT && 
+             type->base.module_ < (sizeof(type_int_strings) / sizeof(type_int_strings[0]))) {
+    const char *typestr = type_int_strings[type->base.module_];
+    written = snprintf(buf, bufsize, "%s", typestr);
   } else {
-    written = snprintf(buf, bufsize, "%s", opstr);
+    written = snprintf(buf, bufsize, "UNKNOWN_TYPE(%d.%d)", 
+                       type->base.root, type->base.module_);
   }
 
-  return (written > 0 && (size_t)written < bufsize) ? written : 0;
+  return (written > 0 && (size_t)written < bufsize) ? (size_t)written : 0;
 }
 
 size_t orionpp_string_value(char *buf, size_t bufsize, orionpp_value_t *value) {
-  if (!buf || bufsize == 0) {
+  if (!buf || bufsize == 0 || !value || !value->value) {
     return 0;
   }
   
-  int print_invalid = 1;
+  // type should be stringed as well.
 
   int written = -1;
-  if (value->type.base.root == ORIONPP_TYPE_QUAL && (value->type.base.module_ < sizeof(type_qual_strings) / sizeof(type_qual_strings[0]))) {
-    // const forwards
-    // volatile forwards
-    // pointer prints memory address (memory addresses are hardcoded as of the current version to be 8 bytes)
-  } else if (value->type.base.root == ORIONPP_TYPE_INT && (value->type.base.module_ < sizeof(type_int_strings) / sizeof(type_int_strings[0]))) {
+  int print_invalid = 1;
+  void *data = value->value;
+  size_t datasize = value->value_byte_size;
+
+  if (value->type.base.root == ORIONPP_TYPE_INT && 
+      value->type.base.module_ < (sizeof(type_int_strings) / sizeof(type_int_strings[0]))) {
     print_invalid = 0;
+    
     switch (value->type.base.module_) {
       case ORIONPP_TYPE_INT8:
-        if (datasize == 1) written = snprintf(buf, bufsize, "%hhd", *((int8_t)data));
+        if (datasize == 1) written = snprintf(buf, bufsize, "%hhd", *((int8_t*)data));
+        else print_invalid = 1;
         break;
       case ORIONPP_TYPE_INT16:
-        if (datasize == 2) written = snprintf(buf, bufsize, "%hd", *((int16_t)data));
+        if (datasize == 2) written = snprintf(buf, bufsize, "%hd", *((int16_t*)data));
+        else print_invalid = 1;
         break;
       case ORIONPP_TYPE_INT32:
-        if (datasize == 4) written = snprintf(buf, bufsize, "%d", *((int32_t)data));
+        if (datasize == 4) written = snprintf(buf, bufsize, "%d", *((int32_t*)data));
+        else print_invalid = 1;
         break;
       case ORIONPP_TYPE_INT64:
-        if (datasize == 8) written = snprintf(buf, bufsize, "%ld", *((int64_t)data));
+        if (datasize == 8) written = snprintf(buf, bufsize, "%ld", *((int64_t*)data));
+        else print_invalid = 1;
         break;
       case ORIONPP_TYPE_UNT8:
-        if (datasize == 1) written = snprintf(buf, bufsize, "%hhu", *((uint8_t)data));
+        if (datasize == 1) written = snprintf(buf, bufsize, "%hhu", *((uint8_t*)data));
+        else print_invalid = 1;
         break;
       case ORIONPP_TYPE_UNT16:
-        if (datasize == 2) written = snprintf(buf, bufsize, "%hu", *((uint16_t)data));
+        if (datasize == 2) written = snprintf(buf, bufsize, "%hu", *((uint16_t*)data));
+        else print_invalid = 1;
         break;
       case ORIONPP_TYPE_UNT32:
-        if (datasize == 4) written = snprintf(buf, bufsize, "%u", *((uint32_t)data));
+        if (datasize == 4) written = snprintf(buf, bufsize, "%u", *((uint32_t*)data));
+        else print_invalid = 1;
         break;
       case ORIONPP_TYPE_UNT64:
-        if (datasize == 8) written = snprintf(buf, bufsize, "%lu", *((uint64_t)data));
+        if (datasize == 8) written = snprintf(buf, bufsize, "%lu", *((uint64_t*)data));
+        else print_invalid = 1;
         break;
       default:
         print_invalid = 1;
     }
+  } else if (value->type.base.root == ORIONPP_TYPE_QUAL && 
+             value->type.base.module_ == ORIONPP_TYPE_PTR) {
+    print_invalid = 0;
+    if (datasize == sizeof(void*)) {
+      written = snprintf(buf, bufsize, "%p", *((void**)data));
+    } else {
+      print_invalid = 1;
+    }
   }
 
   if (print_invalid) {
-    const char *invalidmsg = "INVALID;"
+    const char *invalidmsg = "INVALID";
     written = snprintf(buf, bufsize, "%s", invalidmsg);
   }
 
-  return (written > 0 && (size_t)written < bufsize) ? written : 0;
+  return (written > 0 && (size_t)written < bufsize) ? (size_t)written : 0;
 }
 
 size_t orionpp_string_instr(char *buf, size_t bufsize, orinopp_instruction_t *instr) {
-  if (!buf || bufsize == 0) {
+  if (!buf || bufsize == 0 || !instr) {
     return 0;
   }
   
-  // string opcode
+  // Get opcode string
+  size_t opcode_len = orionpp_string_opcode(buf, bufsize, &instr->opcode);
+  if (opcode_len == 0) {
+    return 0;
+  }
+  
+  size_t total_written = opcode_len;
+  
+  // Add values
+  if (instr->value_count > 0 && instr->values) {
+    int written = snprintf(buf + total_written, bufsize - total_written, " ");
+    if (written < 0 || total_written + written >= bufsize) {
+      return 0;
+    }
+    total_written += written;
+    
+    for (size_t i = 0; i < instr->value_count; i++) {
+      if (i > 0) {
+        written = snprintf(buf + total_written, bufsize - total_written, ", ");
+        if (written < 0 || total_written + written >= bufsize) {
+          return 0;
+        }
+        total_written += written;
+      }
+      
+      size_t value_len = orionpp_string_value(buf + total_written, 
+                                              bufsize - total_written, 
+                                              &instr->values[i]);
+      if (value_len == 0) {
+        return 0;
+      }
+      total_written += value_len;
+    }
+  }
 
-  // string arguments
-
-  return 0;
+  return total_written;
 }
 
 void orionpp_print_opcode(orionpp_opcode_t *opcode) {
@@ -177,20 +237,53 @@ orionpp_error_t orionpp_readf(file_handle_t file, orinopp_instruction_t *dest) {
     return ORIONPP_ERROR_INVALID_ARG;
   }
   
+  // Read opcode
 #ifdef WIN32
   DWORD bytes_read;
   if (!ReadFile(file, &dest->opcode, sizeof(dest->opcode), &bytes_read, NULL) ||
       bytes_read != sizeof(dest->opcode)) {
     return ORIONPP_ERROR_FILE_ERROR;
   }
+  
+  // Read value count
+  if (!ReadFile(file, &dest->value_count, sizeof(dest->value_count), &bytes_read, NULL) ||
+      bytes_read != sizeof(dest->value_count)) {
+    return ORIONPP_ERROR_FILE_ERROR;
+  }
 #else
   if (read(file, &dest->opcode, sizeof(dest->opcode)) != sizeof(dest->opcode)) {
     return ORIONPP_ERROR_FILE_ERROR;
   }
+  
+  if (read(file, &dest->value_count, sizeof(dest->value_count)) != sizeof(dest->value_count)) {
+    return ORIONPP_ERROR_FILE_ERROR;
+  }
 #endif
   
-  // For simplicity, assume no values for now
-  dest->values = NULL;
+  // Allocate and read values if any
+  if (dest->value_count > 0) {
+    dest->values = malloc(dest->value_count * sizeof(orionpp_value_t));
+    if (!dest->values) {
+      return ORIONPP_ERROR_OUT_OF_MEMORY;
+    }
+    
+#ifdef WIN32
+    if (!ReadFile(file, dest->values, dest->value_count * sizeof(orionpp_value_t), 
+                  &bytes_read, NULL) ||
+        bytes_read != dest->value_count * sizeof(orionpp_value_t)) {
+      free(dest->values);
+      return ORIONPP_ERROR_FILE_ERROR;
+    }
+#else
+    if (read(file, dest->values, dest->value_count * sizeof(orionpp_value_t)) != 
+        (ssize_t)(dest->value_count * sizeof(orionpp_value_t))) {
+      free(dest->values);
+      return ORIONPP_ERROR_FILE_ERROR;
+    }
+#endif
+  } else {
+    dest->values = NULL;
+  }
   
   return ORIONPP_ERROR_GOOD;
 }
@@ -200,17 +293,44 @@ orionpp_error_t orionpp_writef(file_handle_t file, const orinopp_instruction_t *
     return ORIONPP_ERROR_INVALID_ARG;
   }
   
+  // Write opcode
 #ifdef WIN32
   DWORD bytes_written;
   if (!WriteFile(file, &src->opcode, sizeof(src->opcode), &bytes_written, NULL) ||
       bytes_written != sizeof(src->opcode)) {
     return ORIONPP_ERROR_FILE_ERROR;
   }
+  
+  // Write value count
+  if (!WriteFile(file, &src->value_count, sizeof(src->value_count), &bytes_written, NULL) ||
+      bytes_written != sizeof(src->value_count)) {
+    return ORIONPP_ERROR_FILE_ERROR;
+  }
 #else
   if (write(file, &src->opcode, sizeof(src->opcode)) != sizeof(src->opcode)) {
     return ORIONPP_ERROR_FILE_ERROR;
   }
+  
+  if (write(file, &src->value_count, sizeof(src->value_count)) != sizeof(src->value_count)) {
+    return ORIONPP_ERROR_FILE_ERROR;
+  }
 #endif
+  
+  // Write values if any
+  if (src->value_count > 0 && src->values) {
+#ifdef WIN32
+    if (!WriteFile(file, src->values, src->value_count * sizeof(orionpp_value_t), 
+                   &bytes_written, NULL) ||
+        bytes_written != src->value_count * sizeof(orionpp_value_t)) {
+      return ORIONPP_ERROR_FILE_ERROR;
+    }
+#else
+    if (write(file, src->values, src->value_count * sizeof(orionpp_value_t)) != 
+        (ssize_t)(src->value_count * sizeof(orionpp_value_t))) {
+      return ORIONPP_ERROR_FILE_ERROR;
+    }
+#endif
+  }
   
   return ORIONPP_ERROR_GOOD;
 }
@@ -218,34 +338,82 @@ orionpp_error_t orionpp_writef(file_handle_t file, const orinopp_instruction_t *
 // Arena I/O helpers
 int orionpp_readarena(orionpp_arena_t *arena, orinopp_instruction_t *dest) {
   // This would need arena read position tracking
-  // For now, return error
-  return ORIONPP_ERROR_INVALID_ARG;
+  // For now, return error indicating not implemented
+  (void)arena;
+  (void)dest;
+  return ORIONPP_ERROR_UNSUPPORTED_FEATURE;
 }
 
 int orionpp_writearena(const orionpp_arena_t *arena, const orinopp_instruction_t *src) {
   // This would need arena write position tracking
-  // For now, return error
-  return ORIONPP_ERROR_INVALID_ARG;
+  // For now, return error indicating not implemented
+  (void)arena;
+  (void)src;
+  return ORIONPP_ERROR_UNSUPPORTED_FEATURE;
 }
 
 // Buffer I/O helpers
 orionpp_error_t orionpp_readbuf(char *buf, size_t bufsize, orinopp_instruction_t *dest) {
-  if (!buf || !dest || bufsize < sizeof(orionpp_opcode_t)) {
+  if (!buf || !dest || bufsize < sizeof(orionpp_opcode_t) + sizeof(size_t)) {
     return ORIONPP_ERROR_INVALID_ARG;
   }
   
-  memcpy(&dest->opcode, buf, sizeof(orionpp_opcode_t));
-  dest->values = NULL;
+  size_t offset = 0;
+  
+  // Read opcode
+  memcpy(&dest->opcode, buf + offset, sizeof(orionpp_opcode_t));
+  offset += sizeof(orionpp_opcode_t);
+  
+  // Read value count
+  memcpy(&dest->value_count, buf + offset, sizeof(size_t));
+  offset += sizeof(size_t);
+  
+  // Check if buffer has enough space for values
+  if (offset + dest->value_count * sizeof(orionpp_value_t) > bufsize) {
+    return ORIONPP_ERROR_BUFFER_OVERFLOW;
+  }
+  
+  // Read values if any
+  if (dest->value_count > 0) {
+    dest->values = malloc(dest->value_count * sizeof(orionpp_value_t));
+    if (!dest->values) {
+      return ORIONPP_ERROR_OUT_OF_MEMORY;
+    }
+    
+    memcpy(dest->values, buf + offset, dest->value_count * sizeof(orionpp_value_t));
+  } else {
+    dest->values = NULL;
+  }
   
   return ORIONPP_ERROR_GOOD;
 }
 
-orionpp_error_t orionpp_writebuf(const char *buf, size_t bufsize, const orinopp_instruction_t *src) {
-  if (!buf || !src || bufsize < sizeof(orionpp_opcode_t)) {
+orionpp_error_t orionpp_writebuf(char *buf, size_t bufsize, const orinopp_instruction_t *src) {
+  if (!buf || !src) {
     return ORIONPP_ERROR_INVALID_ARG;
   }
   
-  memcpy((void*)buf, &src->opcode, sizeof(orionpp_opcode_t));
+  size_t needed_size = sizeof(orionpp_opcode_t) + sizeof(size_t) + 
+                       src->value_count * sizeof(orionpp_value_t);
+  
+  if (bufsize < needed_size) {
+    return ORIONPP_ERROR_BUFFER_OVERFLOW;
+  }
+  
+  size_t offset = 0;
+  
+  // Write opcode
+  memcpy(buf + offset, &src->opcode, sizeof(orionpp_opcode_t));
+  offset += sizeof(orionpp_opcode_t);
+  
+  // Write value count
+  memcpy(buf + offset, &src->value_count, sizeof(size_t));
+  offset += sizeof(size_t);
+  
+  // Write values if any
+  if (src->value_count > 0 && src->values) {
+    memcpy(buf + offset, src->values, src->value_count * sizeof(orionpp_value_t));
+  }
   
   return ORIONPP_ERROR_GOOD;
 }

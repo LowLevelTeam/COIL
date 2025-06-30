@@ -115,9 +115,13 @@ typedef struct orinopp_instruction {
 // -------------------------------- FUNCS -------------------------------- //
 
 // Debug Helpers
+// format ROOT.MODULE
 size_t orionpp_string_opcode(char *buf, size_t bufsize, orionpp_opcode_t*); // 0 on error or the size of the string >0
+// format TYPE, TYPE<TYPE> // NOT IMPLEMENTED YET(TYPE[x], TYPE{ TYPE, TYPE })
 size_t orionpp_string_type(char *buf, size_t bufsize, orionpp_type_t*);
+// VALUE: TYPE
 size_t orionpp_string_value(char *buf, size_t bufsize, orionpp_value_t*);
+// ROOT.MODULE VALUE: TYPE, ...
 size_t orionpp_string_instr(char *buf, size_t bufsize, orinopp_instruction_t*);
 void orionpp_print_opcode(orionpp_opcode_t*);
 void orionpp_print_type(orionpp_type_t*);

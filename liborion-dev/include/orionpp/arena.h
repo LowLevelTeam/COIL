@@ -1,16 +1,22 @@
 #ifndef __ORIONPP_ARENA
 #define __ORIONPP_ARENA
 
-typedef struct orionpp_arena {
-  // TODO...
-} orionpp_arena_t;
+#include "orionpp/error.h"
+#include <stddef.h>
 
-orionpp_error_t orionpp_arena_init(orion_arena_t *);
-orionpp_error_t orionpp_arena_create(orion_arena_t *, size_t max_size, size_t bucket_size);
-orionpp_error_t orionpp_arena_destroy(orion_arena_t *);
+typedef struct orionpp_arena orionpp_arena_t;
 
-// push an immediate value
-orionpp_error_t orionpp_arena_alloc(orion_arena_t *, size_t, void**);
-orionpp_error_t orionpp_arena_pop(orion_arena_t *, size_t);
+orionpp_error_t orionpp_arena_init(orionpp_arena_t *arena);
+orionpp_error_t orionpp_arena_create(orionpp_arena_t *arena, size_t max_size, size_t bucket_size);
+orionpp_error_t orionpp_arena_destroy(orionpp_arena_t *arena);
+
+// Allocation functions
+orionpp_error_t orionpp_arena_alloc(orionpp_arena_t *arena, size_t size, void **ptr);
+orionpp_error_t orionpp_arena_pop(orionpp_arena_t *arena, size_t size);
+
+// Additional utility functions
+orionpp_error_t orionpp_arena_reset(orionpp_arena_t *arena);
+size_t orionpp_arena_used(const orionpp_arena_t *arena);
+size_t orionpp_arena_available(const orionpp_arena_t *arena);
 
 #endif // __ORIONPP_ARENA
