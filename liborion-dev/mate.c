@@ -22,7 +22,7 @@ i32 main(int argc, const char *argv[]) {
     AddFile(orionlib, "./src/*.c");
     InstallStaticLib(orionlib);
 
-    Executable orionobj_test = CreateExecutable((ExecutableOptions){
+    Executable orionlib_test = CreateExecutable((ExecutableOptions){
       .output = "test",
       .std = args.stdlevel,
       .debug = args.debuglevel,
@@ -30,15 +30,17 @@ i32 main(int argc, const char *argv[]) {
       .error = args.errorfmt,
       .optimization = args.optlevel
     });
-    AddIncludePaths(orionobj_test, "./include");
-    AddFile(orionobj_test, "./tests/*");
-    AddLibraryPaths(orionobj_test, "./build");
-    LinkSystemLibraries(orionobj_test, "orion-dev");
-    InstallExecutable(orionobj_test);
+    AddIncludePaths(orionlib_test, "./include");
+    AddFile(orionlib_test, "./tests/*.c");
+    AddLibraryPaths(orionlib_test, "./build");
+    LinkSystemLibraries(orionlib_test, "orion-dev");
+    InstallExecutable(orionlib_test);
     
     if (args.execute_commands) {
-      RunCommand(orionobj_test.outputPath);
+      RunCommand(orionlib_test.outputPath);
     }
   }
   EndBuild();
+  
+  return 0;
 }

@@ -119,7 +119,7 @@ typedef struct orionpp_instruction {
 
 // -------------------------------- FUNCS -------------------------------- //
 
-// Debug Helpers
+// Debug Helpers (implemented in instruction_format.c)
 // format ROOT.MODULE
 size_t orionpp_string_opcode(char *buf, size_t bufsize, orionpp_opcode_t*); // 0 on error or the size of the string >0
 // format TYPE, TYPE<TYPE> // NOT IMPLEMENTED YET(TYPE[x], TYPE{ TYPE, TYPE })
@@ -133,11 +133,11 @@ void orionpp_print_type(orionpp_type_t*);
 void orionpp_print_value(orionpp_value_t*);
 void orionpp_print_instr(orionpp_instruction_t*);
 
-// Implementation Helpers
+// I/O Helpers (implemented in instruction.c)
 orionpp_error_t orionpp_readf(file_handle_t file, orionpp_instruction_t *dest);
 orionpp_error_t orionpp_writef(file_handle_t file, const orionpp_instruction_t *src);
-int orionpp_readarena(orionpp_arena_t *arena, orionpp_instruction_t *dest);
-int orionpp_writearena(const orionpp_arena_t *arena, const orionpp_instruction_t *src);
+orionpp_error_t orionpp_readarena(orionpp_arena_t *arena, orionpp_instruction_t *dest);
+orionpp_error_t orionpp_writearena(orionpp_arena_t *arena, const orionpp_instruction_t *src);
 orionpp_error_t orionpp_readbuf(const char *buf, size_t bufsize, orionpp_instruction_t *dest);
 orionpp_error_t orionpp_writebuf(char *buf, size_t bufsize, const orionpp_instruction_t *src);
 
