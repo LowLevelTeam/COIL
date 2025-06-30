@@ -11,6 +11,7 @@ enum orionpp_opcode_root {
 };
 
 enum orionpp_opcode_isa {
+  ORIONPP_OP_ISA_NOP, // no operation
   ORIONPP_OP_ISA_LET, // var i {= {value}}
   ORIONPP_OP_ISA_CONST, // const i {= {value}}
   ORIONPP_OP_ISA_MOV, // i = i
@@ -75,6 +76,8 @@ enum orionpp_opcode_int {
   #include <windows.h>
   typedef HANDLE file_handle_t;
 #else
+  #include <fcntl.h>
+  #include <unistd.h>
   typedef int file_handle_t;
 #endif
 
@@ -104,14 +107,15 @@ typedef struct orionpp_opcode {
 
 typedef struct orionpp_value {
   orionpp_type_t type;
-  void *value; size_t value_byte_size;
+  void *value; 
+  size_t value_byte_size;
 } orionpp_value_t;
 
-typedef struct orinopp_instruction {
+typedef struct orionpp_instruction {
   orionpp_opcode_t opcode;
   size_t value_count;
   orionpp_value_t *values;
-} orinopp_instruction_t;
+} orionpp_instruction_t;
 
 // -------------------------------- FUNCS -------------------------------- //
 
@@ -123,18 +127,18 @@ size_t orionpp_string_type(char *buf, size_t bufsize, orionpp_type_t*);
 // VALUE: TYPE
 size_t orionpp_string_value(char *buf, size_t bufsize, orionpp_value_t*);
 // ROOT.MODULE VALUE: TYPE, ...
-size_t orionpp_string_instr(char *buf, size_t bufsize, orinopp_instruction_t*);
+size_t orionpp_string_instr(char *buf, size_t bufsize, orionpp_instruction_t*);
 void orionpp_print_opcode(orionpp_opcode_t*);
 void orionpp_print_type(orionpp_type_t*);
 void orionpp_print_value(orionpp_value_t*);
-void orionpp_print_instr(orinopp_instruction_t*);
+void orionpp_print_instr(orionpp_instruction_t*);
 
 // Implementation Helpers
-orionpp_error_t orionpp_readf(file_handle_t file, orinopp_instruction_t *dest);
-orionpp_error_t orionpp_writef(file_handle_t file, const orinopp_instruction_t *src);
-int orionpp_readarena(orionpp_arena_t *arena, orinopp_instruction_t *dest);
-int orionpp_writearena(const orionpp_arena_t *arena, const orinopp_instruction_t *src);
-orionpp_error_t orionpp_readbuf(const char *buf, size_t bufsize, orinopp_instruction_t *dest);
-orionpp_error_t orionpp_writebuf(char *buf, size_t bufsize, const orinopp_instruction_t *src);
+orionpp_error_t orionpp_readf(file_handle_t file, orionpp_instruction_t *dest);
+orionpp_error_t orionpp_writef(file_handle_t file, const orionpp_instruction_t *src);
+int orionpp_readarena(orionpp_arena_t *arena, orionpp_instruction_t *dest);
+int orionpp_writearena(const orionpp_arena_t *arena, const orionpp_instruction_t *src);
+orionpp_error_t orionpp_readbuf(const char *buf, size_t bufsize, orionpp_instruction_t *dest);
+orionpp_error_t orionpp_writebuf(char *buf, size_t bufsize, const orionpp_instruction_t *src);
 
 #endif // __ORIONPP_INSTRUCTION

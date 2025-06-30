@@ -46,9 +46,53 @@ static int test_failed = 0;
     printf("Success rate: %.2f%%\n", test_count > 0 ? (test_passed * 100.0f / test_count) : 0.0f); \
   } while(0)
 
-// Test helper functions
-static void* test_malloc_fail_once = NULL;
-static int malloc_fail_count = 0;
+// Helper function to clean up instruction memory
+void cleanup_instruction(orionpp_instruction_t *instr) {
+  if (!instr) return;
+  
+  if (instr->values) {
+    for (size_t i = 0; i < instr->value_count; i++) {
+      if (instr->values[i].value) {
+        free(instr->values[i].value);
+        instr->values[i].value = NULL;
+      }
+      if (instr->values[i].type.types) {
+        free(instr->values[i].type.types);
+        instr->values[i].type.types = NULL;
+      }
+    }
+    free(instr->values);
+    instr->values = NULL;
+  }
+  instr->value_count = 0;
+}
+
+// Helper function to create a test value
+orionpp_error_t create_test_value(orionpp_value_t *value, orionpp_type_root_t type_root, 
+                                  orionpp_type_module_t type_module, void *data, size_t data_size) {
+  if (!value) return ORIONPP_ERROR_INVALID_ARG;
+  
+  memset(value, 0, sizeof(orionpp_value_t));
+  
+  value->type.base.root = type_root;
+  value->type.base.module_ = type_module;
+  value->type.count = 0;
+  value->type.types = NULL;
+  
+  if (data && data_size > 0) {
+    value->value = malloc(data_size);
+    if (!value->value) {
+      return ORIONPP_ERROR_OUT_OF_MEMORY;
+    }
+    memcpy(value->value, data, data_size);
+    value->value_byte_size = data_size;
+  } else {
+    value->value = NULL;
+    value->value_byte_size = 0;
+  }
+  
+  return ORIONPP_ERROR_GOOD;
+}
 
 // Arena Tests
 void test_arena_functionality() {
@@ -339,73 +383,76 @@ void test_instruction_functionality() {
   // Test 6: Value string formatting
   TEST_CASE("Value string formatting");
   int32_t test_value = 42;
-  orionpp_value_t value = {
-    .type = type,
-    .value = &test_value,
-    .value_byte_size = sizeof(test_value)
-  };
+  orionpp_value_t value;
+  orionpp_error_t err = create_test_value(&value, ORIONPP_TYPE_INT, ORIONPP_TYPE_INT32, 
+                                          &test_value, sizeof(test_value));
+  TEST_ASSERT(err == ORIONPP_ERROR_GOOD, "Test value creation should succeed");
+  
   len = orionpp_string_value(buf, sizeof(buf), &value);
   TEST_ASSERT(len > 0 && strstr(buf, "42") != NULL && strstr(buf, "int32") != NULL, 
               "Should format value with type");
   
+  // Clean up
+  if (value.value) free(value.value);
+  
   // Test 7: NULL value formatting
   TEST_CASE("NULL value formatting");
-  orionpp_value_t null_value = {
-    .type = type,
-    .value = NULL,
-    .value_byte_size = 0
-  };
+  orionpp_value_t null_value;
+  err = create_test_value(&null_value, ORIONPP_TYPE_INT, ORIONPP_TYPE_INT32, NULL, 0);
+  TEST_ASSERT(err == ORIONPP_ERROR_GOOD, "NULL test value creation should succeed");
+  
   len = orionpp_string_value(buf, sizeof(buf), &null_value);
   TEST_ASSERT(len > 0 && strstr(buf, "NULL") != NULL, "Should format NULL value");
   
   // Test 8: Different integer types
   TEST_CASE("Different integer types");
   uint64_t test_u64 = 0xDEADBEEFCAFEBABE;
-  orionpp_type_t u64_type = {
-    .base = {ORIONPP_TYPE_INT, ORIONPP_TYPE_UNT64},
-    .count = 0,
-    .types = NULL
-  };
-  orionpp_value_t u64_value = {
-    .type = u64_type,
-    .value = &test_u64,
-    .value_byte_size = sizeof(test_u64)
-  };
+  orionpp_value_t u64_value;
+  err = create_test_value(&u64_value, ORIONPP_TYPE_INT, ORIONPP_TYPE_UNT64, 
+                          &test_u64, sizeof(test_u64));
+  TEST_ASSERT(err == ORIONPP_ERROR_GOOD, "uint64 test value creation should succeed");
+  
   len = orionpp_string_value(buf, sizeof(buf), &u64_value);
   TEST_ASSERT(len > 0 && strstr(buf, "uint64") != NULL, "Should format uint64 type");
   
   // Test 9: Instruction formatting
   TEST_CASE("Instruction formatting");
-  orinopp_instruction_t instr = {
+  orionpp_instruction_t instr = {
     .opcode = opcode,
     .value_count = 1,
-    .values = &value
+    .values = &u64_value
   };
   char large_buf[512];
   len = orionpp_string_instr(large_buf, sizeof(large_buf), &instr);
-  TEST_ASSERT(len > 0 && strstr(large_buf, "ISA.ADD") != NULL && strstr(large_buf, "42") != NULL,
+  TEST_ASSERT(len > 0 && strstr(large_buf, "ISA.ADD") != NULL && strstr(large_buf, "uint64") != NULL,
               "Should format complete instruction");
   
   // Test 10: Instruction with multiple values
   TEST_CASE("Instruction with multiple values");
-  orionpp_value_t values[2] = {value, u64_value};
-  orinopp_instruction_t multi_instr = {
+  int32_t test_value2 = 123;
+  orionpp_value_t value2;
+  err = create_test_value(&value2, ORIONPP_TYPE_INT, ORIONPP_TYPE_INT32, 
+                          &test_value2, sizeof(test_value2));
+  TEST_ASSERT(err == ORIONPP_ERROR_GOOD, "Second test value creation should succeed");
+  
+  orionpp_value_t values[2] = {u64_value, value2};
+  orionpp_instruction_t multi_instr = {
     .opcode = opcode,
     .value_count = 2,
     .values = values
   };
   len = orionpp_string_instr(large_buf, sizeof(large_buf), &multi_instr);
   TEST_ASSERT(len > 0 && strstr(large_buf, "ISA.ADD") != NULL && 
-              strstr(large_buf, "42") != NULL && strstr(large_buf, "uint64") != NULL,
+              strstr(large_buf, "123") != NULL && strstr(large_buf, "uint64") != NULL,
               "Should format instruction with multiple values");
   
   // Test 11: Buffer I/O
   TEST_CASE("Buffer write/read");
   char io_buf[1024];
-  orionpp_error_t err = orionpp_writebuf(io_buf, sizeof(io_buf), &instr);
+  err = orionpp_writebuf(io_buf, sizeof(io_buf), &instr);
   TEST_ASSERT(err == ORIONPP_ERROR_GOOD, "Buffer write should succeed");
   
-  orinopp_instruction_t read_instr;
+  orionpp_instruction_t read_instr;
   memset(&read_instr, 0, sizeof(read_instr));
   err = orionpp_readbuf(io_buf, sizeof(io_buf), &read_instr);
   TEST_ASSERT(err == ORIONPP_ERROR_GOOD, "Buffer read should succeed");
@@ -415,9 +462,19 @@ void test_instruction_functionality() {
               read_instr.value_count == instr.value_count,
               "Read instruction should match written instruction");
   
-  if (read_instr.values) {
-    free(read_instr.values);
+  // Verify value data integrity
+  if (read_instr.value_count > 0 && read_instr.values && instr.values) {
+    TEST_ASSERT(read_instr.values[0].value_byte_size == instr.values[0].value_byte_size,
+                "Value byte size should match");
+    
+    if (read_instr.values[0].value && instr.values[0].value) {
+      uint64_t *read_val = (uint64_t*)read_instr.values[0].value;
+      uint64_t *orig_val = (uint64_t*)instr.values[0].value;
+      TEST_ASSERT(*read_val == *orig_val, "Value data should match");
+    }
   }
+  
+  cleanup_instruction(&read_instr);
   
   // Test 12: Buffer overflow
   TEST_CASE("Buffer overflow protection");
@@ -429,10 +486,138 @@ void test_instruction_functionality() {
   TEST_CASE("Print functions");
   printf("\n    Visual verification of print functions:\n");
   printf("    "); orionpp_print_opcode(&opcode);
-  printf("    "); orionpp_print_type(&type);
-  printf("    "); orionpp_print_value(&value);
+  printf("    "); orionpp_print_type(&u64_value.type);
+  printf("    "); orionpp_print_value(&u64_value);
   printf("    "); orionpp_print_instr(&instr);
   TEST_ASSERT(1, "Print functions executed (check output manually)");
+  
+  // Clean up test values
+  if (u64_value.value) free(u64_value.value);
+  if (value2.value) free(value2.value);
+}
+
+// File I/O Tests
+void test_file_io() {
+  TEST_START("File I/O");
+  
+#ifdef WIN32
+  // Windows file I/O test
+  TEST_CASE("Windows file I/O");
+  HANDLE file = CreateFile("test_instruction.bin", GENERIC_WRITE, 0, NULL, 
+                           CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+  if (file == INVALID_HANDLE_VALUE) {
+    TEST_ASSERT(0, "Failed to create test file");
+    return;
+  }
+  
+  // Create test instruction
+  orionpp_opcode_t opcode = {ORIONPP_OPCODE_ISA, ORIONPP_OP_ISA_MOV};
+  int32_t test_data = 456;
+  orionpp_value_t value;
+  orionpp_error_t err = create_test_value(&value, ORIONPP_TYPE_INT, ORIONPP_TYPE_INT32, 
+                                          &test_data, sizeof(test_data));
+  TEST_ASSERT(err == ORIONPP_ERROR_GOOD, "Test value creation should succeed");
+  
+  orionpp_instruction_t instr = {
+    .opcode = opcode,
+    .value_count = 1,
+    .values = &value
+  };
+  
+  // Write instruction
+  err = orionpp_writef(file, &instr);
+  CloseHandle(file);
+  TEST_ASSERT(err == ORIONPP_ERROR_GOOD, "File write should succeed");
+  
+  // Read instruction back
+  file = CreateFile("test_instruction.bin", GENERIC_READ, 0, NULL, 
+                    OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+  if (file == INVALID_HANDLE_VALUE) {
+    TEST_ASSERT(0, "Failed to open test file for reading");
+    if (value.value) free(value.value);
+    return;
+  }
+  
+  orionpp_instruction_t read_instr;
+  err = orionpp_readf(file, &read_instr);
+  CloseHandle(file);
+  
+  TEST_ASSERT(err == ORIONPP_ERROR_GOOD, "File read should succeed");
+  
+  // Verify data
+  TEST_ASSERT(read_instr.opcode.root == instr.opcode.root &&
+              read_instr.opcode.module_ == instr.opcode.module_ &&
+              read_instr.value_count == instr.value_count,
+              "Read instruction should match written");
+  
+  if (read_instr.values && read_instr.values[0].value) {
+    int32_t *read_data = (int32_t*)read_instr.values[0].value;
+    TEST_ASSERT(*read_data == test_data, "Data should match");
+  }
+  
+  // Cleanup
+  cleanup_instruction(&read_instr);
+  if (value.value) free(value.value);
+  DeleteFile("test_instruction.bin");
+  
+#else
+  // Unix file I/O test
+  TEST_CASE("Unix file I/O");
+  int file = open("test_instruction.bin", O_CREAT | O_WRONLY | O_TRUNC, 0644);
+  if (file == -1) {
+    TEST_ASSERT(0, "Failed to create test file");
+    return;
+  }
+  
+  // Create test instruction
+  orionpp_opcode_t opcode = {ORIONPP_OPCODE_ISA, ORIONPP_OP_ISA_MOV};
+  int32_t test_data = 456;
+  orionpp_value_t value;
+  orionpp_error_t err = create_test_value(&value, ORIONPP_TYPE_INT, ORIONPP_TYPE_INT32, 
+                                          &test_data, sizeof(test_data));
+  TEST_ASSERT(err == ORIONPP_ERROR_GOOD, "Test value creation should succeed");
+  
+  orionpp_instruction_t instr = {
+    .opcode = opcode,
+    .value_count = 1,
+    .values = &value
+  };
+  
+  // Write instruction
+  err = orionpp_writef(file, &instr);
+  close(file);
+  TEST_ASSERT(err == ORIONPP_ERROR_GOOD, "File write should succeed");
+  
+  // Read instruction back
+  file = open("test_instruction.bin", O_RDONLY);
+  if (file == -1) {
+    TEST_ASSERT(0, "Failed to open test file for reading");
+    if (value.value) free(value.value);
+    return;
+  }
+  
+  orionpp_instruction_t read_instr;
+  err = orionpp_readf(file, &read_instr);
+  close(file);
+  
+  TEST_ASSERT(err == ORIONPP_ERROR_GOOD, "File read should succeed");
+  
+  // Verify data
+  TEST_ASSERT(read_instr.opcode.root == instr.opcode.root &&
+              read_instr.opcode.module_ == instr.opcode.module_ &&
+              read_instr.value_count == instr.value_count,
+              "Read instruction should match written");
+  
+  if (read_instr.values && read_instr.values[0].value) {
+    int32_t *read_data = (int32_t*)read_instr.values[0].value;
+    TEST_ASSERT(*read_data == test_data, "Data should match");
+  }
+  
+  // Cleanup
+  cleanup_instruction(&read_instr);
+  if (value.value) free(value.value);
+  unlink("test_instruction.bin");
+#endif
 }
 
 // Memory Safety Tests
@@ -483,6 +668,31 @@ void test_memory_safety() {
   TEST_ASSERT(err == ORIONPP_ERROR_ARENA_FULL, "Oversized allocation should fail");
   
   orionpp_arena_destroy(&arena);
+  
+  // Test 4: Instruction memory cleanup
+  TEST_CASE("Instruction memory cleanup");
+  orionpp_instruction_t instr;
+  memset(&instr, 0, sizeof(instr));
+  
+  instr.opcode.root = ORIONPP_OPCODE_ISA;
+  instr.opcode.module_ = ORIONPP_OP_ISA_ADD;
+  instr.value_count = 2;
+  instr.values = malloc(2 * sizeof(orionpp_value_t));
+  TEST_ASSERT(instr.values != NULL, "Value array allocation should succeed");
+  
+  // Create test values
+  int32_t data1 = 100, data2 = 200;
+  err = create_test_value(&instr.values[0], ORIONPP_TYPE_INT, ORIONPP_TYPE_INT32, 
+                          &data1, sizeof(data1));
+  TEST_ASSERT(err == ORIONPP_ERROR_GOOD, "First value creation should succeed");
+  
+  err = create_test_value(&instr.values[1], ORIONPP_TYPE_INT, ORIONPP_TYPE_INT32, 
+                          &data2, sizeof(data2));
+  TEST_ASSERT(err == ORIONPP_ERROR_GOOD, "Second value creation should succeed");
+  
+  // Test cleanup
+  cleanup_instruction(&instr);
+  TEST_ASSERT(instr.values == NULL && instr.value_count == 0, "Cleanup should reset instruction");
 }
 
 // Integration Tests
@@ -505,17 +715,12 @@ void test_integration() {
   // Create instruction
   orionpp_opcode_t opcode = {ORIONPP_OPCODE_ISA, ORIONPP_OP_ISA_MOV};
   int32_t value_data = 123;
-  orionpp_type_t type = {
-    .base = {ORIONPP_TYPE_INT, ORIONPP_TYPE_INT32},
-    .count = 0,
-    .types = NULL
-  };
-  orionpp_value_t value = {
-    .type = type,
-    .value = &value_data,
-    .value_byte_size = sizeof(value_data)
-  };
-  orinopp_instruction_t instr = {
+  orionpp_value_t value;
+  err = create_test_value(&value, ORIONPP_TYPE_INT, ORIONPP_TYPE_INT32, 
+                          &value_data, sizeof(value_data));
+  TEST_ASSERT(err == ORIONPP_ERROR_GOOD, "Value creation should succeed");
+  
+  orionpp_instruction_t instr = {
     .opcode = opcode,
     .value_count = 1,
     .values = &value
@@ -523,7 +728,7 @@ void test_integration() {
   
   // Allocate space for instruction copy in arena
   void *instr_ptr = NULL;
-  err = orionpp_arena_alloc(&arena, sizeof(orinopp_instruction_t), &instr_ptr);
+  err = orionpp_arena_alloc(&arena, sizeof(orionpp_instruction_t), &instr_ptr);
   TEST_ASSERT(err == ORIONPP_ERROR_GOOD, "Arena allocation should succeed");
   
   // Test serialization
@@ -532,7 +737,7 @@ void test_integration() {
   TEST_ASSERT(err == ORIONPP_ERROR_GOOD, "Instruction serialization should succeed");
   
   // Test deserialization
-  orinopp_instruction_t loaded_instr;
+  orionpp_instruction_t loaded_instr;
   err = orionpp_readbuf(buffer, sizeof(buffer), &loaded_instr);
   TEST_ASSERT(err == ORIONPP_ERROR_GOOD, "Instruction deserialization should succeed");
   
@@ -542,14 +747,18 @@ void test_integration() {
               loaded_instr.value_count == instr.value_count,
               "Deserialized instruction should match original");
   
-  // Cleanup
-  if (loaded_instr.values) {
-    free(loaded_instr.values);
+  if (loaded_instr.values && loaded_instr.values[0].value && value.value) {
+    int32_t *loaded_data = (int32_t*)loaded_instr.values[0].value;
+    int32_t *orig_data = (int32_t*)value.value;
+    TEST_ASSERT(*loaded_data == *orig_data, "Deserialized data should match original");
   }
+  
+  // Cleanup
+  cleanup_instruction(&loaded_instr);
+  if (value.value) free(value.value);
   orionpp_arena_destroy(&arena);
   
-  int workflow_success = 1;
-  TEST_ASSERT(workflow_success, "Complete workflow should succeed");
+  TEST_ASSERT(1, "Complete workflow should succeed");
 }
 
 // Edge Case Tests
@@ -568,14 +777,34 @@ void test_edge_cases() {
   
   orionpp_arena_destroy(&arena);
   
-  // Test 2: Maximum size values
-  TEST_CASE("Maximum size values");
-  err = orionpp_arena_create(&arena, SIZE_MAX, SIZE_MAX/2);
-  // This might fail due to system limits, which is acceptable
-  if (err == ORIONPP_ERROR_GOOD) {
-    orionpp_arena_destroy(&arena);
+  // Test 2: Very large values
+  TEST_CASE("Very large values");
+  orionpp_value_t large_value;
+  size_t large_size = 1024 * 1024; // 1MB
+  void *large_data = malloc(large_size);
+  if (large_data) {
+    memset(large_data, 0xAB, large_size);
+    err = create_test_value(&large_value, ORIONPP_TYPE_INT, ORIONPP_TYPE_UNT8, 
+                            large_data, large_size);
+    TEST_ASSERT(err == ORIONPP_ERROR_GOOD, "Large value creation should succeed");
+    
+    // Test serialization with small buffer (should fail)
+    char small_buf[1024];
+    orionpp_instruction_t large_instr = {
+      .opcode = {ORIONPP_OPCODE_ISA, ORIONPP_OP_ISA_MOV},
+      .value_count = 1,
+      .values = &large_value
+    };
+    
+    err = orionpp_writebuf(small_buf, sizeof(small_buf), &large_instr);
+    TEST_ASSERT(err == ORIONPP_ERROR_BUFFER_OVERFLOW, "Should fail with small buffer");
+    
+    // Cleanup
+    free(large_data);
+    if (large_value.value) free(large_value.value);
+  } else {
+    TEST_ASSERT(1, "Large allocation test skipped (malloc failed)");
   }
-  TEST_ASSERT(1, "Maximum size handling completed");
   
   // Test 3: Rapid allocation/deallocation
   TEST_CASE("Rapid allocation/deallocation");
@@ -596,6 +825,25 @@ void test_edge_cases() {
   TEST_ASSERT(rapid_success, "Rapid allocation/deallocation should work");
   
   orionpp_arena_destroy(&arena);
+  
+  // Test 4: Empty instruction serialization
+  TEST_CASE("Empty instruction serialization");
+  orionpp_instruction_t empty_instr = {
+    .opcode = {ORIONPP_OPCODE_ISA, ORIONPP_OP_ISA_NOP},
+    .value_count = 0,
+    .values = NULL
+  };
+  
+  char buf[256];
+  err = orionpp_writebuf(buf, sizeof(buf), &empty_instr);
+  TEST_ASSERT(err == ORIONPP_ERROR_GOOD, "Empty instruction write should succeed");
+  
+  orionpp_instruction_t read_empty;
+  err = orionpp_readbuf(buf, sizeof(buf), &read_empty);
+  TEST_ASSERT(err == ORIONPP_ERROR_GOOD, "Empty instruction read should succeed");
+  
+  TEST_ASSERT(read_empty.value_count == 0 && read_empty.values == NULL,
+              "Empty instruction should remain empty");
 }
 
 int main() {
@@ -606,6 +854,7 @@ int main() {
   test_error_functionality();  
   test_header_functionality();
   test_instruction_functionality();
+  test_file_io();
   test_memory_safety();
   test_integration();
   test_edge_cases();
