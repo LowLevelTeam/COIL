@@ -2,6 +2,7 @@
 #define __ORIONPP_INSTRUCTION
 
 #include <stdint.h>
+#include <orionpp/arena.h>
 
 // -------------------------------- ENUMS -------------------------------- //
 

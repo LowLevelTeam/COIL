@@ -1,8 +1,8 @@
 #ifndef __ORIONPP_ARENA
 #define __ORIONPP_ARENA
 
-#include "orionpp/error.h"
 #include <stddef.h>
+#include <orionpp/error.h>
 
 typedef struct orionpp_arena orionpp_arena_t;
 
