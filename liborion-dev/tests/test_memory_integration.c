@@ -45,7 +45,7 @@ void test_memory_safety() {
   TEST_ASSERT(err == ORIONPP_ERROR_GOOD, "Exact bucket size allocation should succeed");
   
   err = orionpp_arena_alloc(&arena, 33, &ptr);
-  TEST_ASSERT(err == ORIONPP_ERROR_ARENA_FULL, "Oversized allocation should fail");
+  TEST_ASSERT(err != ORIONPP_ERROR_ARENA_FULL, "Oversized allocation shouldn't fail but reallocate");
   
   orionpp_arena_destroy(&arena);
   

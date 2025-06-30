@@ -2,8 +2,9 @@
 
 // Test framework globals
 int test_count = 0;
-int test_passed = 0;
-int test_failed = 0;
+int assert_total = 0;
+int assert_passed = 0;
+int assert_failed = 0;
 
 // Helper function to clean up instruction memory
 void cleanup_instruction(orionpp_instruction_t *instr) {

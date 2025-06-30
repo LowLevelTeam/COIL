@@ -14,8 +14,9 @@
 
 // Test framework globals
 extern int test_count;
-extern int test_passed;
-extern int test_failed;
+extern int assert_total;
+extern int assert_passed;
+extern int assert_failed;
 
 // Test framework macros
 #define TEST_COUNT_MAX 1000
@@ -27,18 +28,18 @@ extern int test_failed;
 
 #define TEST_CASE(name) \
   do { \
-    printf("  [%d] %s... ", ++test_count, name); \
+    printf("  [%d] %s...\n", ++test_count, name); \
     fflush(stdout); \
   } while(0)
 
 #define TEST_ASSERT(condition, message) \
   do { \
+    ++assert_total; \
     if (condition) { \
-      printf("PASS\n"); \
-      test_passed++; \
+      ++assert_passed; \
     } else { \
       printf("FAIL - %s\n", message); \
-      test_failed++; \
+      ++assert_failed; \
     } \
   } while(0)
 
@@ -46,9 +47,10 @@ extern int test_failed;
   do { \
     printf("\n=== TEST SUMMARY ===\n"); \
     printf("Total tests: %d\n", test_count); \
-    printf("Passed: %d\n", test_passed); \
-    printf("Failed: %d\n", test_failed); \
-    printf("Success rate: %.2f%%\n", test_count > 0 ? (test_passed * 100.0f / test_count) : 0.0f); \
+    printf("Total Asserts: %d\n", assert_total); \
+    printf("Total Passed Asserts: %d\n", assert_passed); \
+    printf("Failed Failed Asserts: %d\n", assert_failed); \
+    printf("Success rate: %.2f%%\n", assert_total > 0 ? (assert_passed * 100.0f / assert_total) : 0.0f); \
   } while(0)
 
 // Test utility functions

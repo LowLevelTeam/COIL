@@ -26,5 +26,5 @@ int main() {
   TEST_SUMMARY();
   
   // Return appropriate exit code
-  return test_failed > 0 ? 1 : 0;
+  return assert_failed > 0 ? 1 : 0;
 }
