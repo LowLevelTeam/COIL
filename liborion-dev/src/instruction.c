@@ -79,10 +79,7 @@ static size_t format_type_recursive(char *buf, size_t bufsize, const orionpp_typ
           total_written += comma_written;
         }
         
-        size_t inner_len = format_type_recursive(buf + total_written, 
-                                                 bufsize - total_written, 
-                                                 &type->types[i], 
-                                                 depth + 1);
+        size_t inner_len = format_type_recursive(buf + total_written, bufsize - total_written, &type->types[i], depth + 1);
         if (inner_len == 0) {
           return 0;
         }
@@ -420,7 +417,7 @@ int orionpp_writearena(const orionpp_arena_t *arena, const orinopp_instruction_t
 }
 
 // Buffer I/O helpers
-orionpp_error_t orionpp_readbuf(char *buf, size_t bufsize, orinopp_instruction_t *dest) {
+orionpp_error_t orionpp_readbuf(const char *buf, size_t bufsize, orinopp_instruction_t *dest) {
   if (!buf || !dest || bufsize < sizeof(orionpp_opcode_t) + sizeof(size_t)) {
     return ORIONPP_ERROR_INVALID_ARG;
   }

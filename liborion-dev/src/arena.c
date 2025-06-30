@@ -4,22 +4,6 @@
 #include <string.h>
 #include <stdint.h>
 
-typedef struct arena_bucket {
-  void *data;
-  size_t size;
-  size_t used;
-  struct arena_bucket *next;
-} arena_bucket_t;
-
-typedef struct orionpp_arena {
-  arena_bucket_t *head;
-  arena_bucket_t *current;
-  size_t max_size;
-  size_t bucket_size;
-  size_t total_allocated;
-  int initialized;
-} orionpp_arena_t;
-
 orionpp_error_t orionpp_arena_init(orionpp_arena_t *arena) {
   if (!arena) {
     return ORIONPP_ERROR_INVALID_ARG;

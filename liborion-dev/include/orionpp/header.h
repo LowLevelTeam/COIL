@@ -1,6 +1,8 @@
 #ifndef __ORIONPP_HEADER
 #define __ORIONPP_HEADER
 
+#include <orionpp/error.h>
+
 // -------------------------------- DEFS -------------------------------- //
 #ifndef ORIONPP_MAGIC_LEN
   #define ORIONPP_MAGIC_LEN 4
@@ -13,16 +15,16 @@
 
 enum orionpp_feature {
   // For seamless updates to the standard in the future
-  // ORIONPP_FEATURE_ABI, // ABICC (Application Binary Inteface Calling Convention)
-  // ORIONPP_FEATURE_CSTL, // Copmile time standard library only
-  // ORIONPP_FEATURE_STL, // Runtime Standard library
-  // ORIONPP_FEATURE_ORION, // embedded orion
+  ORIONPP_FEATURE_ABI, // ABICC (Application Binary Inteface Calling Convention)
+  ORIONPP_FEATURE_CSTL, // Copmile time standard library only
+  ORIONPP_FEATURE_STL, // Runtime Standard library
+  ORIONPP_FEATURE_ORION, // embedded orion
 };
-typedef uint64_t orionpp_feature_t;
 
 // -------------------------------- TYPES -------------------------------- //
 
 typedef unsigned char orionpp_byte_t;
+typedef orionpp_byte_t orionpp_feature_t;
 
 // -------------------------------- STRUCTS -------------------------------- //
 

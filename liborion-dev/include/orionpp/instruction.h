@@ -6,7 +6,7 @@
 
 // -------------------------------- ENUMS -------------------------------- //
 
-enum orionpp_opcode {
+enum orionpp_opcode_root {
   ORIONPP_OPCODE_ISA,
 };
 
@@ -94,7 +94,7 @@ typedef struct orionpp_type_raw {
 typedef struct orionpp_type {
   orionpp_type_raw_t base;
   size_t count; // count of types
-  orionpp_type_raw_t *types; // optional array of types 
+  struct orionpp_type *types; // optional array of types 
 } orionpp_type_t;
 
 typedef struct orionpp_opcode {
@@ -132,9 +132,9 @@ void orionpp_print_instr(orinopp_instruction_t*);
 // Implementation Helpers
 orionpp_error_t orionpp_readf(file_handle_t file, orinopp_instruction_t *dest);
 orionpp_error_t orionpp_writef(file_handle_t file, const orinopp_instruction_t *src);
-int orionpp_readarena(orion_arena_t *arena, orinopp_instruction_t *dest);
-int orionpp_writearena(const orion_arena_t *arena, const orinopp_instruction_t *src);
-orionpp_error_t orionpp_readbuf(char *buf, size_t bufsize, orinopp_instruction_t *dest);
-orionpp_error_t orionpp_writebuf(const char *buf, size_t bufsize, const orinopp_instruction_t *src);
+int orionpp_readarena(orionpp_arena_t *arena, orinopp_instruction_t *dest);
+int orionpp_writearena(const orionpp_arena_t *arena, const orinopp_instruction_t *src);
+orionpp_error_t orionpp_readbuf(const char *buf, size_t bufsize, orinopp_instruction_t *dest);
+orionpp_error_t orionpp_writebuf(char *buf, size_t bufsize, const orinopp_instruction_t *src);
 
 #endif // __ORIONPP_INSTRUCTION
