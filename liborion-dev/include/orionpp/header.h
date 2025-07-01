@@ -19,10 +19,9 @@
 typedef uint64_t orionpp_feature_t;
 
 enum orionpp_feature {
-  ORIONPP_FEATURE_ABI = (1 << 0),    // Application Binary Interface Calling Convention
-  ORIONPP_FEATURE_CSTL = (1 << 1),   // Compile-time standard library only
-  ORIONPP_FEATURE_STL = (1 << 2),    // Runtime Standard library
-  ORIONPP_FEATURE_ORION = (1 << 3)   // Embedded orion
+  ORIONPP_FEATURE_CSTL = (1 << 0),   // Compile-time standard library only
+  ORIONPP_FEATURE_STL = (1 << 1),    // Runtime Standard library
+  ORIONPP_FEATURE_ORION = (1 << 2)   // Embedded orion
   // bits 4-63 reserved
 };
 
