@@ -30,7 +30,7 @@ extern int assert_failed;
 
 #define TEST_CASE(name) \
   do { \
-    printf("  [%d] %s... ", ++test_count, name); \
+    printf("  [%d] %s... \n", ++test_count, name); \
     fflush(stdout); \
   } while(0)
 
@@ -39,7 +39,6 @@ extern int assert_failed;
     ++assert_total; \
     if (condition) { \
       ++assert_passed; \
-      printf("PASS\n"); \
     } else { \
       printf("FAIL - %s\n", message); \
       ++assert_failed; \
