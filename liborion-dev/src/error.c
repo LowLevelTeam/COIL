@@ -8,19 +8,17 @@
  */
 
 static const char *error_messages[] = {
-  "Success",
-  "Invalid argument",
-  "Out of memory",
-  "Buffer overflow",
-  "File error",
-  "Invalid instruction",
-  "Invalid type",
-  "Arena full",
-  "Arena not initialized",
-  "Invalid magic number",
-  "Unsupported language version",
-  "Unsupported feature",
-  "Unknown error"
+  "GOOD",
+  "INVALID_ARGUMENT",
+  "NOMEM",
+  "BUFFER_OVERFLOW",
+  "INVALID_INSTRUCTION",
+  "INVALID_TYPE",
+  "INVALID_VALUE",
+  "INVALID_MAGIC",
+  "INVALID_VERSION",
+  "UNSUPPORTED_FEATURE",
+  "UNKNOWN"
 };
 
 const char *orionpp_strerr(orionpp_error_t err) {
