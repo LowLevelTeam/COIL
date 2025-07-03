@@ -36,11 +36,11 @@ typedef struct orionpp_header {
   orionpp_byte_t patch;
   orionpp_feature_t features;
   uint64_t typetab;
-  uint64_t abitab;
+  uint64_t strtab;
+  uint64_t datatab;
+  uint64_t codetab;
   uint64_t extrntab;
   uint64_t intrntab;
-  uint64_t strtab;
-  uint64_t codetab;
 } orionpp_header_t;
 
 /**

@@ -24,7 +24,7 @@ enum orionpp_type_int {
 };
 
 enum orionpp_type_qual {
-  ORIONPP_TYPE_QUAL_CONST,
+  ORIONPP_TYPE_QUAL_CONSTPTR,
   ORIONPP_TYPE_QUAL_VOLATILE,
   ORIONPP_TYPE_QUAL_PTR,
 };

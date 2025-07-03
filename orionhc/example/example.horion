@@ -1,0 +1,90 @@
+[header]
+version = 1.0.0
+features = {
+  CSTL,
+  STL,
+}
+
+[string]
+
+0 = ""
+1 = "char"
+2 = "size_t"
+3 = "printf"
+4 = "errno"
+5 = "say_hello"
+6 = "say_hello str"
+7 = "global mut var"
+
+[type]
+
+0:
+  name = 1
+  type = prim.i8
+
+1:
+  name = 2
+
+2:
+  type = c.int 
+
+3:
+  type = mach.const_ptr<prim.i8>
+
+[data]
+
+
+0:
+  name = 7
+  type = 2
+  data = 0 // global variable set to 0 and exported for example purposes
+1:
+  name = 4
+  type = 2
+2:
+  name = 6
+  type = 3
+  data = .asciiz "Hello %s\n"
+
+[code]
+
+0:
+  name = 5
+  abi = CABI
+  rets = []
+  args = [3]
+
+  ABI.callee_setup
+  ABI.callee_arg 0 // special variable tracked by abi setup rather then scope
+  ISA.scope
+    ISA.let 1, 2 // printf returns an int, not used in this example but showcase return values
+    ABI.caller_setup
+      ABI.caller_arg 0, DATA(2)
+      ABI.caller_varg VAR(0)
+      ISA.call FUNC(1)
+      ABI.caller_ret 0, VAR(1)
+    ABI.caller_cleanup
+  ISA.scopl
+  ABI.callee_cleanup
+
+1:
+  name = 3
+  abi = CABI
+  rets = [2]
+  args = [3, ...]
+
+[intrn]
+  [type]
+    0;
+  [data]
+    0;
+  [code]
+    0;
+
+[extrn]
+  [type]
+    1;
+  [data]
+    1;
+  [code]
+    1;
